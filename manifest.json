@@ -3,13 +3,13 @@
   "version": "1.0.2",
   "manifest_version": 3,
   "description": "Calculadora de atributos com rolagem de dados integrada para Owlbear Rodeo.",
-  "author": "Hairan",
+  "author": "Seu Nome",
   "owlbear_extension_config": {
     "schema_version": 1
   },
   "action": {
+    "title": "Calculadora de Atributos",
     "default_title": "Calculadora de Atributos",
     "default_popup": "index.html"
   }
 }
-
