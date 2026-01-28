@@ -1,6 +1,6 @@
 {
   "name": "Light and Darkness",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "manifest_version": 1,
   "action": {
     "title": "Light and Darkness",
@@ -10,3 +10,4 @@
     "width": 400
   }
 }
+
