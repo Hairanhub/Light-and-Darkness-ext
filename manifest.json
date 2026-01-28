@@ -1,13 +1,15 @@
 {
-  "name": "Light and Darkness",
-  "version": "1.0.1",
-  "manifest_version": 1,
+  "name": "Calculadora de Atributos & Dados",
+  "version": "1.0.2",
+  "manifest_version": 3,
+  "description": "Calculadora de atributos com rolagem de dados integrada para Owlbear Rodeo.",
+  "author": "Seu Nome",
+  "background": {
+    "scripts": ["script.js"]
+  },
   "action": {
-    "title": "Light and Darkness",
-    "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
-    "popover": "https://hairanhub.github.io/Light-and-Darkness-ext/index.html",
-    "height": 600,
-    "width": 400
-  }
+    "default_title": "Calculadora de Atributos",
+    "default_popup": "index.html"
+  },
+  "permissions": []
 }
-
