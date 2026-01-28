@@ -4,8 +4,8 @@
   "manifest_version": 1,
   "action": {
     "title": "Light and Darkness",
-    "icon": "icon.png",
-    "popover": "index.html",
+    "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
+    "popover": "https://hairanhub.github.io/Light-and-Darkness-ext/index.html",
     "height": 600,
     "width": 400
   }
