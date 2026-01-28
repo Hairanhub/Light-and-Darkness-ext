@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Light and Darkness - Dados</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Pequeno ajuste para garantir que o fundo não fique transparente no Owlbear */
+    body { background-color: #222; color: white; margin: 0; overflow: hidden; }
+    .barra-atributos { display: flex; flex-wrap: wrap; gap: 5px; padding: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="barra-atributos">
+  <button onclick="abrirDados(10, 'FOR')">FOR 10</button>
+  <button onclick="abrirDados(15, 'DEX')">DEX 15</button>
+  <button onclick="abrirDados(20, 'DEF')">DEF 20</button>
+  <button onclick="abrirDados(25, 'INT')">INT 25</button>
+  <button onclick="abrirDados(30, 'CAR')">CAR 30</button>
+  <button onclick="abrirDados(35, 'CON')">CON 35</button>
+</div>
+
+<div class="modal" id="modalDados" style="display:none;">
+  <div class="container" id="janelaDados">
+    <button class="close" onclick="fecharDados()">✖</button>
+    <h3>Rolagem de Dados</h3>
+
+    <div class="linha">
+      <input id="qtd" type="number" value="1" min="1">
+      <span>d</span>
+      <input id="faces" type="number" value="20" min="2">
+      <span>+</span>
+      <input id="mod" type="number" value="0">
+    </div>
+
+    <div class="atributo">
+      Atributo: <span id="atributoSelecionado">0</span> <span id="nomeAtributo">FOR</span>
+      <label style="margin-left: 8px;">
+        <input type="checkbox" id="usarAtributo" checked>
+        Usar atributo
+      </label>
+    </div>
+
+    <button id="rolar">Rolar</button>
+    <div id="resultado"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@owlbear-rodeo/sdk"></script>
+
+<script>
+  // Funções de interface
+  function abrirDados(valor, nome) {
+    document.getElementById('modalDados').style.display = 'flex';
+    document.getElementById('atributoSelecionado').innerText = valor;
+    document.getElementById('nomeAtributo').innerText = nome;
+  }
+
+  function fecharDados() {
+    document.getElementById('modalDados').style.display = 'none';
+  }
+
+  // 2. INICIALIZAÇÃO DO SDK
+  // Isso faz a extensão "acordar" quando o Owlbear a abre
+  OBR.onReady(() => {
+    console.log("Light and Darkness pronto para o combate!");
+  });
+</script>
+
+<script src="script.js"></script>
+</body>
+</html>
