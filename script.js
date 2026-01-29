@@ -1,13 +1,11 @@
 let playerName = "Jogador";
 
-// Garante que o código corre mal o HTML esteja pronto
 window.onload = () => {
   const startBtn = document.getElementById("start-btn");
   const nameInput = document.getElementById("user-name-input");
   const setupScreen = document.getElementById("setup-screen");
   const mainContent = document.getElementById("main-content");
 
-  // AÇÃO DO BOTÃO ENTRAR
   if (startBtn) {
     startBtn.onclick = () => {
       const name = nameInput.value.trim();
@@ -40,7 +38,6 @@ function initWidget() {
   let currentVal = 0;
   const diceModal = document.getElementById("dice-modal");
 
-  // Função para adicionar mensagens ao log visual
   function addMsg(sender, text) {
     if (!chatLog) return;
     const div = document.createElement("div");
@@ -50,16 +47,12 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // Integração com o SDK do Owlbear Rodeo
   if (window.OBR) {
     OBR.onReady(() => {
       OBR.chat.onMessagesChange((m) => {
         const last = m[m.length - 1];
-        if (last) {
-          // Evita duplicar se a mensagem for sua (já adicionada localmente no roll)
-          if (!last.text.includes(`**${playerName}**`)) {
-            addMsg(last.senderName || "Sistema", last.text);
-          }
+        if (last && !last.text.includes(`**${playerName}**`)) {
+          addMsg(last.senderName || "Sistema", last.text);
         }
       });
     });
@@ -69,6 +62,8 @@ function initWidget() {
     const div = document.createElement("div");
     div.className = "attribute";
     div.style.background = defaults[idx].c;
+    
+    // ESTRUTURA CORRIGIDA: Nome -> Mods -> Botões -> Valores -> Resultado
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <div class="mods">
@@ -79,8 +74,8 @@ function initWidget() {
       </div>
       <button class="add">+</button>
       <button class="rem">-</button>
-      <input type="number" class="base" value="0" style="width:40px">
-      <input type="number" class="mult" value="1" style="width:30px">
+      <input type="number" class="base" value="0">
+      <input type="number" class="mult" value="1">
       <div class="result">0</div>
     `;
 
@@ -104,10 +99,7 @@ function initWidget() {
     };
     div.querySelector(".rem").onclick = () => {
       const items = div.querySelectorAll(".mod-item");
-      if (items.length > 1) {
-        items[items.length - 1].remove();
-        update();
-      }
+      if (items.length > 1) { items[items.length - 1].remove(); update(); }
     };
 
     setTimeout(update, 10);
@@ -138,16 +130,14 @@ function initWidget() {
     }
   });
 
-  document.getElementById("close-modal").onclick = () => {
-    diceModal.style.display = "none";
-  };
+  document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
 
-  // Lógica de Rolar Dados com Modificadores Separados
+  // ROLAGEM DE DADOS COM FORMATAÇÃO: QdF[X+Y]
   document.getElementById("roll-button").onclick = () => {
     const q = +document.getElementById("dice-qty").value || 1;
     const f = +document.getElementById("dice-faces").value || 20;
-    const modManual = +document.getElementById("dice-mod").value || 0;
-    const bonusAttr = document.getElementById("use-attr-check").checked ? currentVal : 0;
+    const mManual = +document.getElementById("dice-mod").value || 0;
+    const bAttr = document.getElementById("use-attr-check").checked ? currentVal : 0;
 
     let sum = 0, raw = [];
     for (let i = 0; i < q; i++) {
@@ -156,21 +146,19 @@ function initWidget() {
       raw.push(r);
     }
 
-    const total = sum + bonusAttr + modManual;
+    const total = sum + bAttr + mManual;
 
-    // Constrói a string de detalhe para o chat: [dados] + Atrib + Mod
-    let detalhes = `[${raw.join('+')}]`;
-    if (bonusAttr !== 0) detalhes += ` + ${bonusAttr}(Atrib)`;
-    if (modManual !== 0) detalhes += ` + ${modManual}(Mod)`;
+    // FORMATAÇÃO PEDIDA: QdF[resultado] + Atrib + Mod
+    let detalhes = `${q}d${f}[${raw.join('+')}]`;
+    if (bAttr !== 0) detalhes += ` + ${bAttr}(Atrib)`;
+    if (mManual !== 0) detalhes += ` + ${mManual}(Mod)`;
 
     const attrName = document.getElementById("modal-attr-name").innerText;
     const txt = `rolou ${attrName}: **${total}** ${detalhes}`;
 
-    // Resultado visual no modal
-    document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.5rem; color: #ffd700; margin-top:10px;">Total: ${total}</div>`;
+    document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
 
-    // Envio para o chat e log local
-    if (window.OBR && OBR.isReady) {
+    if (window.OBR) {
       OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
     }
     addMsg(playerName, txt);
