@@ -5,10 +5,8 @@ body {
 }
 
 #widget {
-  position: fixed;
-  bottom: 12px;
-  left: 12px;
-  width: 520px;
+  /* Remova ou comente as linhas de position: fixed, bottom e left */
+  width: 100%; 
   z-index: 999;
 }
 
