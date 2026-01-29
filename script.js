@@ -1,6 +1,6 @@
 let playerName = "Jogador";
 
-// Função para garantir que o código só rode após o HTML carregar
+// Garante que o código corre mal o HTML esteja pronto
 window.onload = () => {
   const startBtn = document.getElementById("start-btn");
   const nameInput = document.getElementById("user-name-input");
@@ -8,18 +8,19 @@ window.onload = () => {
   const mainContent = document.getElementById("main-content");
 
   // AÇÃO DO BOTÃO ENTRAR
-  startBtn.onclick = () => {
-    const name = nameInput.value.trim();
-    if (name) {
-      playerName = name;
-      setupScreen.style.display = "none";
-      mainContent.style.display = "block";
-    } else {
-      alert("Por favor, digite seu nome!");
-    }
-  };
+  if (startBtn) {
+    startBtn.onclick = () => {
+      const name = nameInput.value.trim();
+      if (name) {
+        playerName = name;
+        setupScreen.style.display = "none";
+        mainContent.style.display = "block";
+      } else {
+        alert("Por favor, digite seu nome!");
+      }
+    };
+  }
 
-  // Inicialização do restante do Widget
   initWidget();
 };
 
@@ -28,7 +29,7 @@ function initWidget() {
   const panel = document.getElementById("panel");
   const toggleBtn = document.getElementById("toggle");
   const chatLog = document.getElementById("chat-log");
-  const compactSpans = [0,1,2,3,4,5].map(i => document.getElementById(`c${i}`));
+  const compactSpans = [0, 1, 2, 3, 4, 5].map(i => document.getElementById(`c${i}`));
 
   const defaults = [
     { n: "FOR", c: "#5B1F1F" }, { n: "DEX", c: "#371E59" },
@@ -39,7 +40,9 @@ function initWidget() {
   let currentVal = 0;
   const diceModal = document.getElementById("dice-modal");
 
+  // Função para adicionar mensagens ao log visual
   function addMsg(sender, text) {
+    if (!chatLog) return;
     const div = document.createElement("div");
     div.className = "chat-msg";
     div.innerHTML = `<b>${sender}:</b> ${text}`;
@@ -47,11 +50,17 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  // Integração com o SDK do Owlbear Rodeo
   if (window.OBR) {
     OBR.onReady(() => {
       OBR.chat.onMessagesChange((m) => {
         const last = m[m.length - 1];
-        if (last) addMsg(last.senderName || "Sistema", last.text);
+        if (last) {
+          // Evita duplicar se a mensagem for sua (já adicionada localmente no roll)
+          if (!last.text.includes(`**${playerName}**`)) {
+            addMsg(last.senderName || "Sistema", last.text);
+          }
+        }
       });
     });
   }
@@ -62,10 +71,16 @@ function initWidget() {
     div.style.background = defaults[idx].c;
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
-      <div class="mods"><div class="mod-item"><input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0"></div></div>
-      <button class="add">+</button><button class="rem">-</button>
-      <input type="number" class="base" value="0">
-      <input type="number" class="mult" value="1">
+      <div class="mods">
+        <div class="mod-item">
+          <input class="mod-name" value="MOD">
+          <input type="number" class="mod-value" value="0">
+        </div>
+      </div>
+      <button class="add">+</button>
+      <button class="rem">-</button>
+      <input type="number" class="base" value="0" style="width:40px">
+      <input type="number" class="mult" value="1" style="width:30px">
       <div class="result">0</div>
     `;
 
@@ -76,74 +91,88 @@ function initWidget() {
       const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
       const res = (base + mods) * mult;
       div.querySelector(".result").innerText = res;
-      compactSpans[idx].innerText = `${name} ${res}`;
+      if (compactSpans[idx]) compactSpans[idx].innerText = `${name} ${res}`;
     };
 
     div.addEventListener("input", update);
     div.querySelector(".add").onclick = () => {
-      const m = document.createElement("div"); m.className = "mod-item";
+      const m = document.createElement("div");
+      m.className = "mod-item";
       m.innerHTML = `<input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0">`;
-      div.querySelector(".mods").appendChild(m); update();
+      div.querySelector(".mods").appendChild(m);
+      update();
     };
     div.querySelector(".rem").onclick = () => {
       const items = div.querySelectorAll(".mod-item");
-      if (items.length > 1) items[items.length-1].remove(); update();
+      if (items.length > 1) {
+        items[items.length - 1].remove();
+        update();
+      }
     };
-    
+
     setTimeout(update, 10);
     return div;
   }
 
-  defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
+  if (attrContainer) {
+    defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
+  }
 
-  toggleBtn.onclick = () => {
-    panel.classList.toggle("expanded");
-    toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
-  };
+  if (toggleBtn) {
+    toggleBtn.onclick = () => {
+      panel.classList.toggle("expanded");
+      toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
+    };
+  }
 
   compactSpans.forEach((s, i) => {
-    s.onclick = () => {
-      const p = s.innerText.split(" ");
-      currentVal = parseInt(p[1]);
-      diceModal.style.display = "flex";
-      document.getElementById("modal-attr-name").innerText = p[0];
-      document.getElementById("modal-attr-value").innerText = p[1];
-    };
+    if (s) {
+      s.onclick = () => {
+        const p = s.innerText.split(" ");
+        currentVal = parseInt(p[1]) || 0;
+        diceModal.style.display = "flex";
+        document.getElementById("modal-attr-name").innerText = p[0];
+        document.getElementById("modal-attr-value").innerText = p[1];
+        document.getElementById("roll-result").innerHTML = "";
+      };
+    }
   });
 
-  document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
+  document.getElementById("close-modal").onclick = () => {
+    diceModal.style.display = "none";
+  };
 
+  // Lógica de Rolar Dados com Modificadores Separados
   document.getElementById("roll-button").onclick = () => {
-  const q = +document.getElementById("dice-qty").value || 1;
-  const f = +document.getElementById("dice-faces").value || 20;
-  const modManual = +document.getElementById("dice-mod").value || 0; 
-  const bonusAttr = document.getElementById("use-attr-check").checked ? currentVal : 0;
-  
-  let sum = 0, raw = [];
-  for(let i=0; i<q; i++) { 
-    let r = Math.floor(Math.random() * f) + 1; 
-    sum += r; 
-    raw.push(r); 
-  }
-  
-  const total = sum + bonusAttr + modManual;
-  
-  // Monta a string de detalhes: [dados] + Atrib + Mod
-  let detalhes = `[${raw.join('+')}]`;
-  if (bonusAttr !== 0) detalhes += ` + ${bonusAttr}(Atrib)`;
-  if (modManual !== 0) detalhes += ` + ${modManual}(Mod)`;
+    const q = +document.getElementById("dice-qty").value || 1;
+    const f = +document.getElementById("dice-faces").value || 20;
+    const modManual = +document.getElementById("dice-mod").value || 0;
+    const bonusAttr = document.getElementById("use-attr-check").checked ? currentVal : 0;
 
-  const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** ${detalhes}`;
-  
-  document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
-  
-  if (window.OBR) {
-    OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
-  } else {
-    // Se estiver testando fora do Owlbear
-    const div = document.createElement("div");
-    div.className = "chat-msg";
-    div.innerHTML = `<b>${playerName}:</b> ${txt}`;
-    document.getElementById("chat-log").appendChild(div);
-  }
-};
+    let sum = 0, raw = [];
+    for (let i = 0; i < q; i++) {
+      let r = Math.floor(Math.random() * f) + 1;
+      sum += r;
+      raw.push(r);
+    }
+
+    const total = sum + bonusAttr + modManual;
+
+    // Constrói a string de detalhe para o chat: [dados] + Atrib + Mod
+    let detalhes = `[${raw.join('+')}]`;
+    if (bonusAttr !== 0) detalhes += ` + ${bonusAttr}(Atrib)`;
+    if (modManual !== 0) detalhes += ` + ${modManual}(Mod)`;
+
+    const attrName = document.getElementById("modal-attr-name").innerText;
+    const txt = `rolou ${attrName}: **${total}** ${detalhes}`;
+
+    // Resultado visual no modal
+    document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.5rem; color: #ffd700; margin-top:10px;">Total: ${total}</div>`;
+
+    // Envio para o chat e log local
+    if (window.OBR && OBR.isReady) {
+      OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
+    }
+    addMsg(playerName, txt);
+  };
+}
