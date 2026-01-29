@@ -17,9 +17,6 @@
   </div>
 
   <div id="panel">
-    <div id="custom-chat">
-      <div id="chat-messages"></div>
-    </div>
     <div id="attributes"></div>
   </div>
 </div>
@@ -28,18 +25,24 @@
   <div id="dice-container" class="modal-content">
     <button id="close-modal">✖</button>
     <h3 id="modal-attr-name">ATRIBUTO</h3>
+    
     <div class="dice-inputs">
       <input type="number" id="dice-qty" value="1" min="1">
-      <span>d</span><input type="number" id="dice-faces" value="20" min="2">
-      <span>+</span><input type="number" id="dice-mod" value="0">
+      <span>d</span>
+      <input type="number" id="dice-faces" value="20" min="2">
+      <span>+</span>
+      <input type="number" id="dice-mod" value="0">
     </div>
+
     <div class="use-attr-row">
       <label>
         <input type="checkbox" id="use-attr-check" checked> 
-        Usar valor: <span id="modal-attr-value">0</span>
+        Usar valor do atributo: <span id="modal-attr-value">0</span>
       </label>
     </div>
+
     <button id="roll-button">ROLAR DADOS</button>
+    
     <div id="roll-result"></div>
   </div>
 </div>
