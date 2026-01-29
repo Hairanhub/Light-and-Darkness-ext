@@ -81,10 +81,16 @@ function createAttribute(index) {
 // Inicializar Atributos
 defaults.forEach((_, i) => { attrContainer.appendChild(createAttribute(i)); });
 
-// Toggle Expandir / Recolher
-toggleBtn.onclick = () => {
-  panel.classList.toggle("expanded");
-  toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
+// Toggle Expandir / Recolher com redimensionamento dinâmico
+toggleBtn.onclick = async () => {
+  const isExpanded = panel.classList.toggle("expanded");
+  toggleBtn.textContent = isExpanded ? "▼" : "▲";
+
+  if (window.OBR && OBR.isReady) {
+    // Se expandido, a janela fica grande (600px), se recolhido, fica pequena (apenas a barra)
+    const newHeight = isExpanded ? 600 : 60; 
+    await OBR.viewport.setHeight(newHeight);
+  }
 };
 
 // LÓGICA DO MODAL DE DADOS
