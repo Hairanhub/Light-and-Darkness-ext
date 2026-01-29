@@ -114,17 +114,33 @@ function initWidget() {
   document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
 
   document.getElementById("roll-button").onclick = () => {
-    const q = +document.getElementById("dice-qty").value || 1;
-    const f = +document.getElementById("dice-faces").value || 20;
-    const m = +document.getElementById("dice-mod").value || 0;
-    const b = document.getElementById("use-attr-check").checked ? currentVal : 0;
-    let sum = 0, raw = [];
-    for(let i=0; i<q; i++) { let r = Math.floor(Math.random()*f)+1; sum+=r; raw.push(r); }
-    const total = sum + b + m;
-    const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** (${raw.join('+')} + ${b+m})`;
-    
-    document.getElementById("roll-result").innerHTML = `Total: ${total}`;
-    if (window.OBR) OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
-    else addMsg(playerName, txt); // Para teste offline
-  };
-}
+  const q = +document.getElementById("dice-qty").value || 1;
+  const f = +document.getElementById("dice-faces").value || 20;
+  const modManual = +document.getElementById("dice-mod").value || 0; // Modificador do dado
+  const bonusAttr = document.getElementById("use-attr-check").checked ? currentVal : 0; // Atributo
+  
+  let sum = 0, raw = [];
+  for(let i=0; i<q; i++) { 
+    let r = Math.floor(Math.random() * f) + 1; 
+    sum += r; 
+    raw.push(r); 
+  }
+  
+  // O Total soma tudo, mas a mensagem vai separar
+  const total = sum + bonusAttr + modManual;
+  
+  // Formatação da string de modificadores: "+ bônus + mod"
+  let modString = "";
+  if (bonusAttr !== 0) modString += ` + ${bonusAttr}(Attr)`;
+  if (modManual !== 0) modString += ` + ${modManual}(Mod)`;
+
+  const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** [${raw.join('+')}]${modString}`;
+  
+  document.getElementById("roll-result").innerHTML = `Total: ${total}`;
+  
+  if (window.OBR) {
+    OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
+  } else {
+    addMsg(playerName, txt);
+  }
+};
