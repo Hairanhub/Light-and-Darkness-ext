@@ -89,15 +89,17 @@ if (window.OBR) {
   });
 }
 
-// Toggle Expandir / Recolher Invertido (Cresce para cima)
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
 
-  if (window.OBR && window.OBR.isReady) {
-    // Se expandido, a janela do Popover aumenta para 600px. Se recolhido, volta para 50px.
-    const newHeight = isExpanded ? 600 : 50; 
-    await OBR.viewport.setHeight(newHeight);
+  if (window.OBR && OBR.isReady) {
+    // AJUSTE OS VALORES ABAIXO:
+    // 65px (altura da barra compacta) 
+    // 550px (altura dela aberta com os atributos)
+    const targetHeight = isExpanded ? 550 : 65; 
+    
+    await OBR.viewport.setHeight(targetHeight);
   }
 };
 
