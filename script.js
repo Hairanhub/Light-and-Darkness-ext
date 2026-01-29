@@ -1,14 +1,12 @@
 const attrContainer = document.getElementById("attributes");
 const panel = document.getElementById("panel");
 const toggleBtn = document.getElementById("toggle");
+const chatLog = document.getElementById("chat-log");
 
 const compactValues = [
-  document.getElementById("c0"),
-  document.getElementById("c1"),
-  document.getElementById("c2"),
-  document.getElementById("c3"),
-  document.getElementById("c4"),
-  document.getElementById("c5"),
+  document.getElementById("c0"), document.getElementById("c1"),
+  document.getElementById("c2"), document.getElementById("c3"),
+  document.getElementById("c4"), document.getElementById("c5"),
 ];
 
 const defaults = [
@@ -20,13 +18,34 @@ const defaults = [
   { name: "CON", color: "#1E592D" },
 ];
 
-// VARIÁVEIS DO MODAL
 let currentAttrValue = 0;
 const diceModal = document.getElementById("dice-modal");
 const closeModal = document.getElementById("close-modal");
 const modalAttrName = document.getElementById("modal-attr-name");
 const modalAttrValue = document.getElementById("modal-attr-value");
 const diceContainer = document.getElementById("dice-container");
+
+// Função para adicionar mensagem no log visual
+function addChatMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.className = "chat-msg";
+  msg.innerHTML = `<b>${sender}:</b> ${text}`;
+  chatLog.appendChild(msg);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Inicializar SDK do Owlbear
+if (window.OBR) {
+  OBR.onReady(() => {
+    // Escuta mensagens de outros jogadores para mostrar no log interno
+    OBR.chat.onMessagesChange((messages) => {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg) {
+        addChatMessage(lastMsg.senderName || "Sistema", lastMsg.text);
+      }
+    });
+  });
+}
 
 function createMod() {
   const wrap = document.createElement("div");
@@ -39,7 +58,6 @@ function createAttribute(index) {
   const div = document.createElement("div");
   div.className = "attribute";
   div.style.background = defaults[index].color;
-
   const modsContainer = document.createElement("div");
   modsContainer.className = "mods";
   modsContainer.appendChild(createMod());
@@ -73,21 +91,17 @@ function createAttribute(index) {
     if (mods.length > 1) mods[mods.length - 1].remove();
     update();
   };
-
   update();
   return div;
 }
 
-// Inicializar Atributos
 defaults.forEach((_, i) => { attrContainer.appendChild(createAttribute(i)); });
 
-// Toggle Expandir / Recolher
 toggleBtn.onclick = () => {
   panel.classList.toggle("expanded");
   toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
 };
 
-// LÓGICA DO MODAL DE DADOS
 function openDiceModal(name, value, color) {
   currentAttrValue = parseInt(value);
   diceModal.style.display = "flex";
@@ -99,18 +113,13 @@ function openDiceModal(name, value, color) {
 
 closeModal.onclick = () => { diceModal.style.display = "none"; };
 
-// Evento de clique na barra compacta
 compactValues.forEach((span, index) => {
   span.onclick = () => {
     const parts = span.innerText.split(" ");
-    const name = parts[0];
-    const value = parts[1];
-    openDiceModal(name, value, defaults[index].color);
+    openDiceModal(parts[0], parts[1], defaults[index].color);
   };
 });
 
-
-// Botão de Rolar Dados
 document.getElementById("roll-button").onclick = async () => {
   const qty = Number(document.getElementById("dice-qty").value) || 1;
   const faces = Number(document.getElementById("dice-faces").value) || 20;
@@ -118,40 +127,26 @@ document.getElementById("roll-button").onclick = async () => {
   const useAttr = document.getElementById("use-attr-check").checked;
   const attrName = modalAttrName.innerText;
 
-  let rollsHtml = [];
-  let rollsRaw = [];
-  let sum = 0;
-
+  let sum = 0, rollsRaw = [], rollsHtml = [];
   for (let i = 0; i < qty; i++) {
     let r = Math.floor(Math.random() * faces) + 1;
-    sum += r;
-    rollsRaw.push(r);
-
-    // Lógica de cores para D20
-    if (faces === 20 && r === 20) {
-      rollsHtml.push(`<span style="color: #00ff00; font-weight: bold;">${r}</span>`);
-    } else if (faces === 20 && r === 1) {
-      rollsHtml.push(`<span style="color: #ff4d4d; font-weight: bold;">${r}</span>`);
-    } else {
-      rollsHtml.push(r);
-    }
+    sum += r; rollsRaw.push(r);
+    if (faces === 20 && r === 20) rollsHtml.push(`<span style="color: #00ff00; font-weight: bold;">20</span>`);
+    else if (faces === 20 && r === 1) rollsHtml.push(`<span style="color: #ff4d4d; font-weight: bold;">1</span>`);
+    else rollsHtml.push(r);
   }
 
   const bonus = useAttr ? currentAttrValue : 0;
   const total = sum + bonus + modManual;
 
-  // Atualiza o visual do modal (Mantendo sua estrutura)
   document.getElementById("roll-result").innerHTML = `
     <div style="font-size: 0.9rem; color: #aaa;">(${rollsHtml.join(" + ")}) + ${bonus} + ${modManual}</div>
     <div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>
   `;
 
-  // ENVIAR PARA O CHAT DO OWLBEAR
-  // Verifica se o SDK está disponível antes de enviar
   if (window.OBR && OBR.isReady) {
     const userName = await OBR.player.getName();
-    OBR.chat.sendMessage({
-      text: `${userName} rolou ${attrName}: **${total}** [${qty}d${faces}(${rollsRaw.join(',')}) + ${bonus + modManual}]`
-    });
+    const textMsg = `rolou ${attrName}: **${total}** [${qty}d${faces}(${rollsRaw.join(',')}) + ${bonus + modManual}]`;
+    OBR.chat.sendMessage({ text: `${userName} ${textMsg}` });
   }
 };
