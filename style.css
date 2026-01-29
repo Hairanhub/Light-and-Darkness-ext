@@ -1,4 +1,4 @@
-/* 1. CONFIGURAÇÃO DE BASE */
+/* 1. BASE E TRANSPARÊNCIA */
 body {
   margin: 0; padding: 0;
   font-family: "Segoe UI", Roboto, sans-serif;
@@ -15,7 +15,7 @@ body {
   width: 100%;
 }
 
-/* 2. BARRA COMPACTA (Original) */
+/* 2. BARRA COMPACTA */
 #compact {
   background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
   color: #fff;
@@ -33,6 +33,7 @@ body {
   padding: 4px 6px;
   background: rgba(255,255,255,0.08);
   border-radius: 6px;
+  font-weight: 600;
   font-size: 13px;
   text-align: center;
 }
@@ -46,7 +47,8 @@ body {
   position: relative;
   display: none;
   flex-direction: column;
-  height: 430px; /* Espaço interno para o manifest de 500 */
+  height: 430px; /* Ajustado para o manifest 500 */
+  overflow: hidden;
 }
 
 #panel.expanded { display: flex; }
@@ -56,7 +58,7 @@ body {
   top: 0; left: 0;
   width: 100%; height: 100%;
   overflow-y: auto;
-  z-index: 1; /* Atrás dos atributos */
+  z-index: 1;
   padding: 15px;
   box-sizing: border-box;
   display: flex;
@@ -66,23 +68,24 @@ body {
 .chat-entry {
   margin-bottom: 8px;
   padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.5); /* Fundo escuro para a mensagem */
+  background: rgba(0, 0, 0, 0.5);
   border-left: 3px solid #ffd700;
   border-radius: 4px;
-  color: #ffffff !important; /* LETRAS BRANCAS */
+  color: #ffffff !important; /* TEXTO BRANCO NO CHAT */
   font-size: 14px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 #attributes {
   position: relative;
-  z-index: 5; /* À frente do chat */
-  margin-top: auto; /* Empurra para baixo */
-  background: rgba(30, 30, 30, 0.85); /* Fundo sólido para os inputs */
+  z-index: 5;
+  margin-top: auto;
+  background: rgba(30, 30, 30, 0.9);
   padding: 10px;
   border-radius: 0 0 12px 12px;
 }
 
-/* 4. ATRIBUTOS (TAMANHO ORIGINAL) */
+/* 4. ATRIBUTOS (TAMANHOS ORIGINAIS REVERTIDOS) */
 .attribute { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; margin-bottom: 6px; }
 .attr-name { width: 38px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: 700; background: rgba(255,255,255,0.6); }
 .base { width: 44px; height: 28px; border-radius: 6px; border: none; text-align: center; }
@@ -93,8 +96,6 @@ body {
 .mult { width: 40px; height: 28px; border-radius: 6px; border: none; text-align: center; }
 .result { min-width: 52px; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,0.5); font-weight: 700; text-align: center; color: #ffd700; }
 
-/* MODAL IGUAL AO ORIGINAL */
+/* MODAL */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: transparent !important; display: flex; justify-content: center; align-items: center; z-index: 10000; pointer-events: none; }
 .modal-content { pointer-events: auto; background: #1e1e1e; color: white; padding: 25px; border-radius: 15px; border: 3px solid #fff; text-align: center; min-width: 280px; box-shadow: 0 0 30px rgba(0,0,0,0.8); position: relative; }
-#close-modal { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; }
-#roll-button { width: 100%; padding: 12px; background: #ffd700; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; }
