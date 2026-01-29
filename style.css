@@ -6,10 +6,11 @@ body {
 
 #widget {
   position: fixed;
-  bottom: 0;             /* Colado no fundo */
-  left: 0;               /* Colado na esquerda */
-  width: 100%;           /* Ocupa a largura total da janela da extensão */
-  max-width: 440px;      /* Limite que você definiu */
+  /* Valores negativos para anular o padding padrão do Owlbear */
+  bottom: -8px; 
+  left: -8px;
+  /* Faz a largura compensar o deslocamento para a esquerda e direita */
+  width: calc(100% + 16px); 
   z-index: 999;
 }
 
@@ -19,10 +20,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
-  /* Ajuste das bordas: Arredondado apenas em cima para parecer que sai do chão */
-  border-radius: 8px 8px 0 0; 
-  box-shadow: 0 -2px 10px rgba(0,0,0,.4); /* Sombra projetada para cima */
+  /* Aumentamos o padding de baixo para o conteúdo não sumir no corte */
+  padding: 6px 12px 14px 12px; 
+  /* Remove arredondamento total de baixo */
+  border-radius: 10px 10px 0 0; 
+  box-shadow: 0 -4px 12px rgba(0,0,0,.5);
 }
 
 .compact-attrs {
