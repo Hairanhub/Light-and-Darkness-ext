@@ -89,16 +89,20 @@ if (window.OBR) {
   });
 }
 
-// Toggle Expandir / Recolher com REDIMENSIONAMENTO DINÂMICO
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
 
-  if (window.OBR && OBR.isReady) {
-    // Quando expande, a janela do Owlbear cresce para 600px
-    // Quando recolhe, ela volta para 65px, eliminando o fundo embaçado
-    const targetHeight = isExpanded ? 600 : 65; 
-    await OBR.viewport.setHeight(targetHeight);
+  // Tenta redimensionar várias vezes para garantir que o Owlbear obedeça
+  if (window.OBR) {
+    const targetHeight = isExpanded ? 600 : 65;
+    
+    // OBR.viewport.setHeight é o comando que remove o fundo embaçado
+    try {
+      await OBR.viewport.setHeight(targetHeight);
+    } catch (e) {
+      console.error("Erro ao redimensionar:", e);
+    }
   }
 };
 
