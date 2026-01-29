@@ -12,12 +12,12 @@ body {
   background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
   color: #fff; display: flex; justify-content: space-between;
   align-items: center; padding: 6px 10px; border-radius: 10px;
-  z-index: 10;
+  z-index: 100;
 }
 
 .compact-attrs span {
-  min-width: 45px; padding: 4px 6px; background: rgba(255,255,255,0.08);
-  border-radius: 6px; font-size: 13px; cursor: pointer;
+  min-width: 50px; padding: 4px 6px; background: rgba(255,255,255,0.1);
+  border-radius: 6px; font-size: 13px; cursor: pointer; margin-right: 4px;
 }
 
 #panel {
@@ -27,19 +27,21 @@ body {
   overflow-y: auto;
 }
 
-#panel.expanded {
-  max-height: 430px; opacity: 1; padding: 10px;
-}
+#panel.expanded { max-height: 430px; opacity: 1; padding: 10px; }
 
 .attribute { display: flex; align-items: center; gap: 6px; padding: 6px; margin-bottom: 6px; border-radius: 8px; }
 .attr-name { width: 38px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: bold; }
 .base { width: 44px; height: 28px; border-radius: 6px; border: none; text-align: center; }
-.mod-item { display: flex; gap: 4px; }
+.mod-item { display: flex; gap: 4px; margin-bottom: 2px; }
 .mod-name { width: 72px; height: 26px; border-radius: 6px; border: none; }
 .mod-value { width: 44px; height: 26px; border-radius: 6px; border: none; text-align: center; }
-.add, .rem { width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer; color: white; background: rgba(255,255,255,0.1); }
+.add, .rem { width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer; color: white; background: rgba(255,255,255,0.2); }
 .mult { width: 40px; height: 28px; border-radius: 6px; border: none; text-align: center; }
 .result { min-width: 52px; font-weight: bold; color: #ffd700; text-align: center; }
 
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: transparent; display: flex; justify-content: center; align-items: center; z-index: 10000; pointer-events: none; }
-.modal-content { pointer-events: auto; background: #1e1e1e; color: white; padding: 20px; border-radius: 15px; border: 2px solid #fff; text-align: center; }
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.8); display: none; /* Alterado para none inicial */
+  justify-content: center; align-items: center; z-index: 10000;
+}
+.modal-content { background: #1e1e1e; color: white; padding: 20px; border-radius: 15px; border: 2px solid #fff; text-align: center; }
