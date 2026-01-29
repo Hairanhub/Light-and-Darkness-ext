@@ -38,7 +38,7 @@ body {
 }
 
 .compact-attrs span {
-  min-width: 58px;
+  min-width: 45px;
   padding: 4px 6px;
   background: rgba(255,255,255,0.08);
   border-radius: 6px;
