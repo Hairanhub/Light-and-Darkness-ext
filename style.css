@@ -1,7 +1,8 @@
+/* Garante que o fundo da página seja invisível */
 body {
   margin: 0;
   font-family: "Segoe UI", Roboto, sans-serif;
-  background: transparent;
+  background: transparent !important; /* Força a transparência */
 }
 
 #widget {
