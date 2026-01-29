@@ -41,7 +41,6 @@ function initWidget() {
   let currentAttrColor = "#ffd700";
   const diceModal = document.getElementById("dice-modal");
 
-  // Função para adicionar mensagens ao log com cor personalizada
   function addMsg(sender, text, color) {
     if (!chatLog) return;
     const div = document.createElement("div");
@@ -52,13 +51,11 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // Integração OBR
   if (window.OBR) {
     OBR.onReady(() => {
       OBR.chat.onMessagesChange((m) => {
         const last = m[m.length - 1];
         if (last && !last.text.includes(`**${playerName}**`)) {
-          // Extrai a cor enviada na tag oculta
           const colorMatch = last.text.match(/\[C:(#[0-9a-fA-F]{6})\]/);
           const cleanText = last.text.replace(/\[C:#[0-9a-fA-F]{6}\]/, "");
           addMsg(last.senderName || "Sistema", cleanText, colorMatch ? colorMatch[1] : "#ffd700");
@@ -71,8 +68,12 @@ function initWidget() {
     const div = document.createElement("div");
     div.className = "attribute";
     div.style.background = defaults[idx].c;
+    
+    // ORDEM REORGANIZADA: [NOME] [BASE] [MULT] [MODS] [+/-] [TOTAL]
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
+      <input type="number" class="base" value="0">
+      <input type="number" class="mult" value="1">
       <div class="mods">
         <div class="mod-item">
           <input class="mod-name" value="MOD">
@@ -81,8 +82,6 @@ function initWidget() {
       </div>
       <button class="add">+</button>
       <button class="rem">-</button>
-      <input type="number" class="base" value="0">
-      <input type="number" class="mult" value="1">
       <div class="result">0</div>
     `;
 
@@ -124,7 +123,7 @@ function initWidget() {
       s.onclick = () => {
         const p = s.innerText.split(" ");
         currentVal = parseInt(p[1]) || 0;
-        currentAttrColor = defaults[i].c; // Captura a cor do atributo clicado
+        currentAttrColor = defaults[i].c;
         diceModal.style.display = "flex";
         document.getElementById("modal-attr-name").innerText = p[0];
         document.getElementById("modal-attr-value").innerText = p[1];
@@ -145,7 +144,6 @@ function initWidget() {
     for (let i = 0; i < q; i++) {
       let r = Math.floor(Math.random() * f) + 1;
       sum += r;
-      // Destaque de Crítico e Erro
       if (r === f) raw.push(`<span class="die-crit">${r}</span>`);
       else if (r === 1) raw.push(`<span class="die-fail">${r}</span>`);
       else raw.push(r);
@@ -154,7 +152,6 @@ function initWidget() {
     const total = sum + bAttr + mManual;
     const attrName = document.getElementById("modal-attr-name").innerText;
     
-    // Formatação da mensagem com Atributo colorido
     let detalhes = `${q}d${f}[${raw.join('+')}]`;
     if (bAttr !== 0) detalhes += ` + ${bAttr}(Atrib)`;
     if (mManual !== 0) detalhes += ` + ${mManual}(Mod)`;
@@ -165,7 +162,6 @@ function initWidget() {
     document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
 
     if (window.OBR) {
-      // Envia a cor do jogador de forma "escondida" no texto
       OBR.chat.sendMessage({ text: `[C:${playerColor}] **${playerName}** ${txt}` });
     }
     addMsg(playerName, txt, playerColor);
