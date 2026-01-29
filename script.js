@@ -40,19 +40,18 @@ function createAttribute(index) {
   div.className = "attribute";
   div.style.background = defaults[index].color;
   const modsContainer = document.createElement("div");
-  modsContainer.className = "mods";
+  modsContainer.className = "mods-container";
   modsContainer.appendChild(createMod());
 
   div.innerHTML = `
     <input class="attr-name" maxlength="3" value="${defaults[index].name}">
     <input type="number" class="base" value="0">
-    <div class="mods-wrap"></div>
+    <div class="mods-target"></div>
     <button class="add">+</button><button class="rem">-</button>
     <input type="number" class="mult" value="1">
     <div class="result">0</div>
   `;
-  div.querySelector(".mods-wrap").appendChild(modsContainer);
-  const nameInput = div.querySelector(".attr-name");
+  div.querySelector(".mods-target").appendChild(modsContainer);
 
   const update = () => {
     const base = +div.querySelector(".base").value || 0;
@@ -60,7 +59,7 @@ function createAttribute(index) {
     const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
     const result = (base + mods) * mult;
     div.querySelector(".result").innerText = result;
-    compactValues[index].innerText = `${nameInput.value} ${result}`;
+    compactValues[index].innerText = `${div.querySelector(".attr-name").value} ${result}`;
   };
 
   div.addEventListener("input", update);
@@ -101,8 +100,8 @@ document.getElementById("roll-button").onclick = async () => {
   const mod = +document.getElementById("dice-mod").value || 0;
   const bonus = document.getElementById("use-attr-check").checked ? currentAttrValue : 0;
   
-  let sum = 0; let rolls = [];
-  for(let i=0; i<qty; i++){ let r = Math.floor(Math.random()*faces)+1; sum+=r; rolls.push(r); }
+  let sum = 0;
+  for(let i=0; i<qty; i++){ sum += Math.floor(Math.random()*faces)+1; }
   const total = sum + bonus + mod;
 
   const msg = `<strong>${modalAttrName.innerText}</strong>: 🎲 ${total} <small>(${sum}+${bonus+mod})</small>`;
