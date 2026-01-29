@@ -15,18 +15,18 @@ const defaults = [
   { name: "CAR", color: "#594F1E" }, { name: "CON", color: "#1E592D" },
 ];
 
-// MODAL VARS
 let currentAttrValue = 0;
 const diceModal = document.getElementById("dice-modal");
 const modalAttrName = document.getElementById("modal-attr-name");
-const modalAttrValue = document.getElementById("modal-attr-value");
 
-function addToCustomChat(msg) {
+// FUNÇÃO PARA ENVIAR MENSAGEM AO CHAT INTERNO
+function addToCustomChat(text) {
   const entry = document.createElement("div");
   entry.className = "chat-entry";
-  entry.innerHTML = msg;
+  entry.innerHTML = text;
   chatMessages.appendChild(entry);
-  document.getElementById("custom-chat").scrollTop = chatMessages.scrollHeight;
+  const chatDiv = document.getElementById("custom-chat");
+  chatDiv.scrollTop = chatDiv.scrollHeight;
 }
 
 function createMod() {
@@ -47,14 +47,12 @@ function createAttribute(index) {
   div.innerHTML = `
     <input class="attr-name" maxlength="3" value="${defaults[index].name}">
     <input type="number" class="base" value="0">
-    <div class="mods-area"></div>
+    <div class="mods-target"></div>
     <button class="add">+</button><button class="rem">-</button>
     <input type="number" class="mult" value="1">
     <div class="result">0</div>
   `;
-
-  div.querySelector(".mods-area").appendChild(modsContainer);
-  const nameInput = div.querySelector(".attr-name");
+  div.querySelector(".mods-target").appendChild(modsContainer);
 
   const update = () => {
     const base = +div.querySelector(".base").value || 0;
@@ -62,15 +60,12 @@ function createAttribute(index) {
     const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
     const result = (base + mods) * mult;
     div.querySelector(".result").innerText = result;
-    compactValues[index].innerText = `${nameInput.value} ${result}`;
+    compactValues[index].innerText = `${div.querySelector(".attr-name").value} ${result}`;
   };
 
   div.addEventListener("input", update);
   div.querySelector(".add").onclick = () => { modsContainer.appendChild(createMod()); update(); };
-  div.querySelector(".rem").onclick = () => { 
-    if (modsContainer.children.length > 1) modsContainer.lastChild.remove(); 
-    update(); 
-  };
+  div.querySelector(".rem").onclick = () => { if(modsContainer.children.length > 1) modsContainer.lastChild.remove(); update(); };
   update();
   return div;
 }
@@ -80,14 +75,14 @@ defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
-  if (window.OBR) OBR.viewport.setHeight(isExpanded ? 600 : 65);
+  if (window.OBR) await OBR.viewport.setHeight(isExpanded ? 580 : 65);
 };
 
-function openDiceModal(name, value, color) {
+function openDiceModal(name, value) {
   currentAttrValue = parseInt(value);
   diceModal.style.display = "flex";
   modalAttrName.innerText = name;
-  modalAttrValue.innerText = value;
+  document.getElementById("modal-attr-value").innerText = value;
   if (window.OBR) OBR.viewport.setHeight(600);
 }
 
@@ -97,7 +92,7 @@ document.getElementById("close-modal").onclick = () => {
 };
 
 compactValues.forEach((span, i) => {
-  span.onclick = () => openDiceModal(defaults[i].name, span.innerText.split(" ")[1], defaults[i].color);
+  span.onclick = () => openDiceModal(defaults[i].name, span.innerText.split(" ")[1]);
 });
 
 document.getElementById("roll-button").onclick = async () => {
@@ -106,16 +101,16 @@ document.getElementById("roll-button").onclick = async () => {
   const mod = +document.getElementById("dice-mod").value || 0;
   const bonus = document.getElementById("use-attr-check").checked ? currentAttrValue : 0;
   
-  let rolls = []; let sum = 0;
-  for(let i=0; i<qty; i++){ let r = Math.floor(Math.random()*faces)+1; rolls.push(r); sum+=r; }
-  
+  let sum = 0; let rolls = [];
+  for(let i=0; i<qty; i++){ let r = Math.floor(Math.random()*faces)+1; sum+=r; rolls.push(r); }
   const total = sum + bonus + mod;
-  const resultMsg = `<strong>${modalAttrName.innerText}</strong>: ${total} <small>(${sum}+${bonus+mod})</small>`;
-  
-  addToCustomChat(resultMsg);
+
+  const msg = `<strong>${modalAttrName.innerText}</strong>: 🎲 ${total} <small>(${sum}+${bonus+mod})</small>`;
+  addToCustomChat(msg);
+
   if (window.OBR && OBR.isReady) {
     const name = await OBR.player.getName();
-    OBR.chat.sendMessage(`${name} rolou ${modalAttrName.innerText}: **${total}** [${rolls.join('+')}]+${bonus+mod}`);
+    OBR.chat.sendMessage(`${name} rolou ${modalAttrName.innerText}: **${total}**`);
   }
   document.getElementById("roll-result").innerText = "Total: " + total;
 };
