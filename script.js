@@ -116,8 +116,8 @@ function initWidget() {
   document.getElementById("roll-button").onclick = () => {
   const q = +document.getElementById("dice-qty").value || 1;
   const f = +document.getElementById("dice-faces").value || 20;
-  const modManual = +document.getElementById("dice-mod").value || 0; // Modificador do dado
-  const bonusAttr = document.getElementById("use-attr-check").checked ? currentVal : 0; // Atributo
+  const modManual = +document.getElementById("dice-mod").value || 0; 
+  const bonusAttr = document.getElementById("use-attr-check").checked ? currentVal : 0;
   
   let sum = 0, raw = [];
   for(let i=0; i<q; i++) { 
@@ -126,15 +126,14 @@ function initWidget() {
     raw.push(r); 
   }
   
-  // O Total soma tudo, mas a mensagem vai separar
   const total = sum + bonusAttr + modManual;
   
-  // Formatação da string de modificadores: "+ bônus + mod"
-  let modString = "";
-  if (bonusAttr !== 0) modString += ` + ${bonusAttr}(Attr)`;
-  if (modManual !== 0) modString += ` + ${modManual}(Mod)`;
+  // Monta a explicação dos bônus separadamente
+  let detalhes = `[${raw.join('+')}]`;
+  if (bonusAttr !== 0) detalhes += ` + ${bonusAttr}(Atrib)`;
+  if (modManual !== 0) detalhes += ` + ${modManual}(Mod)`;
 
-  const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** [${raw.join('+')}]${modString}`;
+  const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** ${detalhes}`;
   
   document.getElementById("roll-result").innerHTML = `Total: ${total}`;
   
