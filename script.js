@@ -1,6 +1,7 @@
 const attrContainer = document.getElementById("attributes");
 const panel = document.getElementById("panel");
 const toggleBtn = document.getElementById("toggle");
+const diceModal = document.getElementById("dice-modal");
 
 const compactValues = [
   document.getElementById("c0"), document.getElementById("c1"),
@@ -15,7 +16,6 @@ const defaults = [
 ];
 
 let currentAttrValue = 0;
-const diceModal = document.getElementById("dice-modal");
 
 function createMod() {
   const wrap = document.createElement("div");
@@ -29,18 +29,17 @@ function createAttribute(index) {
   div.className = "attribute";
   div.style.background = defaults[index].color;
   const modsContainer = document.createElement("div");
-  modsContainer.className = "mods-list";
   
   div.innerHTML = `
     <input class="attr-name" maxlength="3" value="${defaults[index].name}">
     <input type="number" class="base" value="0">
-    <div class="mods-area"></div>
+    <div class="mods-target"></div>
     <button class="add">+</button><button class="rem">-</button>
     <input type="number" class="mult" value="1">
     <div class="result">0</div>
   `;
   
-  const target = div.querySelector(".mods-area");
+  const target = div.querySelector(".mods-target");
   target.appendChild(modsContainer);
   modsContainer.appendChild(createMod());
 
@@ -56,7 +55,6 @@ function createAttribute(index) {
   div.addEventListener("input", update);
   div.querySelector(".add").onclick = () => { modsContainer.appendChild(createMod()); update(); };
   div.querySelector(".rem").onclick = () => { if(modsContainer.children.length > 1) modsContainer.lastChild.remove(); update(); };
-  
   update();
   return div;
 }
@@ -74,6 +72,7 @@ function openDiceModal(name, value) {
   diceModal.style.display = "flex";
   document.getElementById("modal-attr-name").innerText = name;
   document.getElementById("modal-attr-value").innerText = value;
+  document.getElementById("roll-result").innerHTML = "";
   if (window.OBR) OBR.viewport.setHeight(500);
 }
 
@@ -93,12 +92,23 @@ document.getElementById("roll-button").onclick = async () => {
   const bonus = document.getElementById("use-attr-check").checked ? currentAttrValue : 0;
   
   let sum = 0;
-  for(let i=0; i<qty; i++){ sum += Math.floor(Math.random()*faces)+1; }
+  let rollsText = [];
+  for(let i=0; i<qty; i++) {
+    let r = Math.floor(Math.random()*faces)+1;
+    sum += r;
+    if(faces === 20 && r === 20) rollsText.push(`<b style="color:#00ff00">${r}</b>`);
+    else if(faces === 20 && r === 1) rollsText.push(`<b style="color:#ff4d4d">${r}</b>`);
+    else rollsText.push(r);
+  }
   const total = sum + bonus + mod;
+
+  document.getElementById("roll-result").innerHTML = `
+    <div style="color:#aaa">(${rollsText.join("+")}) + ${bonus} + ${mod}</div>
+    <div style="font-size:1.5rem; color:#ffd700">Total: ${total}</div>
+  `;
 
   if (window.OBR && OBR.isReady) {
     const name = await OBR.player.getName();
-    OBR.chat.sendMessage(`${name} rolou: **${total}** (${sum} + ${bonus+mod})`);
+    OBR.chat.sendMessage(`${name} rolou ${document.getElementById("modal-attr-name").innerText}: **${total}**`);
   }
-  document.getElementById("roll-result").innerText = "Total: " + total;
 };
