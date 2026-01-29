@@ -5,10 +5,12 @@ body {
   background: transparent !important; /* Força a transparência */
 }
 
+/* Ajuste o widget para não ter fundo próprio se não desejar */
 #widget {
-  /* Remova ou comente as linhas de position: fixed, bottom e left */
-  width: 100%; 
+  position: relative; /* Mudamos de fixed para relative para funcionar dentro do popover */
+  width: 520px;
   z-index: 999;
+  background: transparent;
 }
 
 #compact {
@@ -94,24 +96,28 @@ body {
 /* =========================
    ESTILOS DO MODAL (NOVO)
 ========================= */
+/* REMOVE O FUNDO PRETO E EMBAÇADO DO MODAL */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0) !important; /* Torna o fundo do modal totalmente invisível */
+  backdrop-filter: none !important; /* Remove qualquer efeito de desfoque (blur) */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10000;
+  pointer-events: none; /* Permite clicar no mapa através da área vazia */
 }
 
+/* Garante que apenas a caixa de dados receba cliques */
 .modal-content {
+  pointer-events: auto; /* Reativa cliques apenas na caixa da calculadora */
   background: #1e1e1e;
   color: white;
   padding: 25px;
   border-radius: 15px;
   border: 3px solid #fff;
-  position: relative;
   text-align: center;
   min-width: 280px;
   box-shadow: 0 0 30px rgba(0,0,0,0.8);
