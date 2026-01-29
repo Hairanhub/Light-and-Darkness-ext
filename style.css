@@ -7,7 +7,7 @@ body {
 #widget {
   position: fixed;
   /* Valores negativos para anular o padding padrão do Owlbear */
-  bottom: -20px; 
+  bottom: -8px; 
   left: -8px;
   /* Faz a largura compensar o deslocamento para a esquerda e direita */
   width: calc(100% + 16px); 
