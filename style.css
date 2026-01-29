@@ -96,23 +96,23 @@ body {
 /* =========================
    ESTILOS DO MODAL (NOVO)
 ========================= */
-/* REMOVE O FUNDO PRETO E EMBAÇADO DO MODAL */
+/* 1. Remova o fundo escuro do overlay */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
-  background: rgba(0, 0, 0, 0) !important; /* Torna o fundo do modal totalmente invisível */
-  backdrop-filter: none !important; /* Remove qualquer efeito de desfoque (blur) */
+  background: transparent !important; /* Totalmente invisível */
+  backdrop-filter: none !important;    /* Remove o embaçado */
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  pointer-events: none; /* Permite clicar no mapa através da área vazia */
+  pointer-events: none; /* Deixa clicar no mapa ao redor do modal */
 }
 
-/* Garante que apenas a caixa de dados receba cliques */
+/* 2. Garanta que a janelinha do dado ainda seja visível e clicável */
 .modal-content {
-  pointer-events: auto; /* Reativa cliques apenas na caixa da calculadora */
+  pointer-events: auto; /* Reativa o clique apenas aqui */
   background: #1e1e1e;
   color: white;
   padding: 25px;
