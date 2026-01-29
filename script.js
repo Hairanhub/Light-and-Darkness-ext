@@ -81,24 +81,23 @@ function createAttribute(index) {
 // Inicializar Atributos
 defaults.forEach((_, i) => { attrContainer.appendChild(createAttribute(i)); });
 
-// --- AJUSTE OWLBEAR: Redimensionamento Inicial ---
+// --- AJUSTE OWLBEAR: Garantir que comece pequena ---
 if (window.OBR) {
   OBR.onReady(() => {
-    // Garante que a janela comece apenas com a altura da barra compacta
-    OBR.viewport.setHeight(50); 
+    // Define a altura inicial apenas para a barra compacta (65px)
+    OBR.viewport.setHeight(65);
   });
 }
 
+// Toggle Expandir / Recolher com REDIMENSIONAMENTO DINÂMICO
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
 
   if (window.OBR && OBR.isReady) {
-    // AJUSTE OS VALORES ABAIXO:
-    // 65px (altura da barra compacta) 
-    // 550px (altura dela aberta com os atributos)
-    const targetHeight = isExpanded ? 550 : 65; 
-    
+    // Quando expande, a janela do Owlbear cresce para 600px
+    // Quando recolhe, ela volta para 65px, eliminando o fundo embaçado
+    const targetHeight = isExpanded ? 600 : 65; 
     await OBR.viewport.setHeight(targetHeight);
   }
 };
@@ -111,18 +110,18 @@ function openDiceModal(name, value, color) {
   modalAttrValue.innerText = value;
   diceContainer.style.borderColor = color;
   document.getElementById("roll-result").innerText = "";
-  
-  // OBRIGATÓRIO: Se o modal abrir, a janela do Owlbear deve estar em 600px para ele aparecer
-  if (window.OBR && window.OBR.isReady) {
+
+  // Garante que a janela esteja grande o suficiente para ver o modal
+  if (window.OBR && OBR.isReady) {
     OBR.viewport.setHeight(600);
   }
 }
 
 closeModal.onclick = () => { 
   diceModal.style.display = "none"; 
-  // Se fechar o modal e o painel estiver recolhido, encolhe a janela de novo
+  // Se o painel estiver fechado, volta a janela para o tamanho da barra
   if (!panel.classList.contains("expanded") && window.OBR) {
-    OBR.viewport.setHeight(50);
+    OBR.viewport.setHeight(65);
   }
 };
 
