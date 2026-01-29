@@ -1,7 +1,6 @@
 let playerName = "Jogador";
 let playerColor = "#ffd700";
-// Conjunto para memorizar IDs de mensagens já processadas e evitar loops
-const processedMsgIds = new Set();
+window.lastProcessedTime = 0;
 
 window.onload = () => {
   const startBtn = document.getElementById("start-btn");
@@ -10,12 +9,21 @@ window.onload = () => {
   const setupScreen = document.getElementById("setup-screen");
   const mainContent = document.getElementById("main-content");
 
+  // Recuperar nome e cor salvos anteriormente
+  const savedUser = JSON.parse(localStorage.getItem("user_profile"));
+  if (savedUser) {
+    nameInput.value = savedUser.name;
+    colorInput.value = savedUser.color;
+  }
+
   if (startBtn) {
     startBtn.onclick = () => {
       const name = nameInput.value.trim();
       if (name) {
         playerName = name;
         playerColor = colorInput.value;
+        // Salvar perfil do usuário
+        localStorage.setItem("user_profile", JSON.stringify({name: playerName, color: playerColor}));
         setupScreen.style.display = "none";
         mainContent.style.display = "block";
       } else { 
@@ -53,77 +61,89 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // OUVINTE ULTRA-SEGURO
+  // SINCRONIZAÇÃO VIA METADATA (Sinergia entre jogadores)
   if (window.OBR) {
     OBR.onReady(() => {
-      OBR.chat.onMessagesChange((messages) => {
-        if (!messages || messages.length === 0) return;
-
-        const last = messages[messages.length - 1];
-        
-        // 1. Só processa se tiver nossa marca de "Extensão" [EXT]
-        if (!last.text || !last.text.includes("[EXT]")) return;
-
-        // 2. Extrai o ID único da mensagem (ex: ID:123456)
-        const idMatch = last.text.match(/ID:(\d+)/);
-        const msgId = idMatch ? idMatch[1] : null;
-
-        // 3. Se já processamos esse ID, ignora completamente
-        if (msgId && processedMsgIds.has(msgId)) return;
-        if (msgId) processedMsgIds.add(msgId);
-
-        // 4. Limpa as tags técnicas para exibir o texto limpo
-        const colorMatch = last.text.match(/\[C:(#[0-9a-fA-F]{6})\]/);
-        const msgColor = colorMatch ? colorMatch[1] : "#ffd700";
-        
-        let cleanText = last.text
-          .replace(/\[EXT\]/g, "")
-          .replace(/\[C:#[0-9a-fA-F]{6}\]/g, "")
-          .replace(/ID:\d+/g, "")
-          .trim();
-
-        addMsg(last.senderName || "Sistema", cleanText, msgColor);
+      OBR.room.onMetadataChange((metadata) => {
+        const lastRoll = metadata["com.lightdarkness.ext/lastRoll"];
+        if (lastRoll && lastRoll.timestamp !== window.lastProcessedTime) {
+          window.lastProcessedTime = lastRoll.timestamp;
+          if (lastRoll.sender !== playerName) {
+            addMsg(lastRoll.sender, lastRoll.text, lastRoll.color);
+          }
+        }
       });
     });
   }
 
   function createAttribute(idx) {
+    const attrKey = `attr_data_${idx}`;
     const div = document.createElement("div");
     div.className = "attribute";
     div.style.background = defaults[idx].c;
+    
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <input type="number" class="base" value="0">
       <input type="number" class="mult" value="1">
-      <div class="mods">
-        <div class="mod-item"><input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0"></div>
-      </div>
+      <div class="mods"></div>
       <button class="add">+</button>
       <button class="rem">-</button>
       <div class="result">0</div>
     `;
 
-    const update = () => {
+    const modsContainer = div.querySelector(".mods");
+
+    const update = (save = true) => {
       const name = div.querySelector(".attr-name").value.toUpperCase();
       const base = +div.querySelector(".base").value || 0;
       const mult = +div.querySelector(".mult").value || 1;
-      const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
+      const modInputs = [...div.querySelectorAll(".mod-value")];
+      const mods = modInputs.reduce((s, m) => s + (+m.value || 0), 0);
       const res = (base + mods) * mult;
+      
       div.querySelector(".result").innerText = res;
       if (compactSpans[idx]) compactSpans[idx].innerText = `${name} ${res}`;
+
+      // SALVAMENTO LOCAL (O F5 sem medo)
+      if (save) {
+        const modsData = modInputs.map(m => ({
+          name: m.previousElementSibling.value,
+          value: m.value
+        }));
+        localStorage.setItem(attrKey, JSON.stringify({ name, base, mult, modsData }));
+      }
     };
 
-    div.addEventListener("input", update);
-    div.querySelector(".add").onclick = () => {
-      const m = document.createElement("div"); m.className = "mod-item";
-      m.innerHTML = `<input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0">`;
-      div.querySelector(".mods").appendChild(m); update();
-    };
+    // Carregar dados salvos
+    const savedData = JSON.parse(localStorage.getItem(attrKey));
+    if (savedData) {
+      div.querySelector(".attr-name").value = savedData.name;
+      div.querySelector(".base").value = savedData.base;
+      div.querySelector(".mult").value = savedData.mult;
+      savedData.modsData.forEach(m => addModField(m.name, m.value));
+    } else {
+      addModField("MOD", 0);
+    }
+
+    function addModField(mName = "MOD", mVal = 0) {
+      const m = document.createElement("div");
+      m.className = "mod-item";
+      m.innerHTML = `<input class="mod-name" value="${mName}"><input type="number" class="mod-value" value="${mVal}">`;
+      m.addEventListener("input", () => update());
+      modsContainer.appendChild(m);
+    }
+
+    div.addEventListener("input", () => update());
+    div.querySelector(".add").onclick = () => { addModField(); update(); };
     div.querySelector(".rem").onclick = () => {
-      const items = div.querySelectorAll(".mod-item");
-      if (items.length > 1) { items[items.length - 1].remove(); update(); }
+      if (modsContainer.children.length > 0) {
+        modsContainer.lastElementChild.remove();
+        update();
+      }
     };
-    setTimeout(update, 10);
+
+    setTimeout(() => update(false), 50);
     return div;
   }
 
@@ -176,16 +196,19 @@ function initWidget() {
     
     document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
 
+    addMsg(playerName, txt, playerColor);
+
     if (window.OBR) {
-      const uId = Date.now();
-      // Marcamos o ID antes de enviar para não processarmos nossa própria mensagem
-      processedMsgIds.add(uId.toString());
-      
-      const finalMsg = `[EXT] [C:${playerColor}] **${playerName}** ${txt} ID:${uId}`;
-      OBR.chat.sendMessage({ text: finalMsg });
-      addMsg(playerName, txt, playerColor);
-    } else {
-      addMsg(playerName, txt, playerColor);
+      const now = Date.now();
+      window.lastProcessedTime = now;
+      OBR.room.setMetadata({
+        "com.lightdarkness.ext/lastRoll": {
+          sender: playerName,
+          text: txt,
+          color: playerColor,
+          timestamp: now
+        }
+      });
     }
   };
 }
