@@ -8,7 +8,8 @@ body {
   position: fixed;
   bottom: 12px;
   left: 12px;
-  width: 520px;
+  width: calc(100% - 24px); /* Ocupa a largura da janela descontando as margens */
+  max-width: 416px;         /* Garante que não passe do limite de 440px contando o padding */
   z-index: 999;
 }
 
@@ -18,26 +19,28 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
+  padding: 6px 8px;        /* Reduzi levemente o padding lateral */
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,.4);
 }
 
 .compact-attrs {
   display: flex;
-  gap: 10px;
+  gap: 4px;                /* Reduzi de 10px para 4px para ganhar espaço */
+  flex-grow: 1;            /* Faz com que os atributos tentem ocupar o espaço disponível */
 }
 
 .compact-attrs span {
-  min-width: 58px;
-  padding: 4px 6px;
+  min-width: 45px;         /* Reduzi de 58px para 45px */
+  padding: 4px 2px;        /* Padding lateral mínimo para manter a letra grande */
   background: rgba(255,255,255,0.08);
   border-radius: 6px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 13px;         /* Mantive o tamanho da letra como você pediu */
   text-align: center;
-  cursor: pointer; /* Feedback de clique */
+  cursor: pointer;
   transition: background 0.2s;
+  flex: 1;                 /* Faz com que todos os botões tenham o mesmo tamanho */
 }
 
 .compact-attrs span:hover {
