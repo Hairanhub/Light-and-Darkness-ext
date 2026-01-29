@@ -19,7 +19,6 @@ let currentAttrValue = 0;
 const diceModal = document.getElementById("dice-modal");
 const modalAttrName = document.getElementById("modal-attr-name");
 
-// FUNÇÃO PARA ENVIAR MENSAGEM AO CHAT INTERNO
 function addToCustomChat(text) {
   const entry = document.createElement("div");
   entry.className = "chat-entry";
@@ -47,12 +46,13 @@ function createAttribute(index) {
   div.innerHTML = `
     <input class="attr-name" maxlength="3" value="${defaults[index].name}">
     <input type="number" class="base" value="0">
-    <div class="mods-target"></div>
+    <div class="mods-wrap"></div>
     <button class="add">+</button><button class="rem">-</button>
     <input type="number" class="mult" value="1">
     <div class="result">0</div>
   `;
-  div.querySelector(".mods-target").appendChild(modsContainer);
+  div.querySelector(".mods-wrap").appendChild(modsContainer);
+  const nameInput = div.querySelector(".attr-name");
 
   const update = () => {
     const base = +div.querySelector(".base").value || 0;
@@ -60,7 +60,7 @@ function createAttribute(index) {
     const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
     const result = (base + mods) * mult;
     div.querySelector(".result").innerText = result;
-    compactValues[index].innerText = `${div.querySelector(".attr-name").value} ${result}`;
+    compactValues[index].innerText = `${nameInput.value} ${result}`;
   };
 
   div.addEventListener("input", update);
@@ -75,7 +75,7 @@ defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
-  if (window.OBR) await OBR.viewport.setHeight(isExpanded ? 580 : 65);
+  if (window.OBR) await OBR.viewport.setHeight(isExpanded ? 500 : 65);
 };
 
 function openDiceModal(name, value) {
@@ -83,7 +83,7 @@ function openDiceModal(name, value) {
   diceModal.style.display = "flex";
   modalAttrName.innerText = name;
   document.getElementById("modal-attr-value").innerText = value;
-  if (window.OBR) OBR.viewport.setHeight(600);
+  if (window.OBR) OBR.viewport.setHeight(500);
 }
 
 document.getElementById("close-modal").onclick = () => {
