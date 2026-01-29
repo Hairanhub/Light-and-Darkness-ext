@@ -2,17 +2,41 @@ body {
   margin: 0;
   font-family: "Segoe UI", Roboto, sans-serif;
   background: transparent;
+  overflow: hidden;
 }
 
 #widget {
   position: fixed;
-  /* Valores negativos para anular o padding padrão do Owlbear */
   bottom: -8px; 
   left: -8px;
-  /* Faz a largura compensar o deslocamento para a esquerda e direita */
   width: calc(100% + 16px); 
   z-index: 999;
+  display: flex;
+  flex-direction: column;
 }
+
+/* Container do Log de Chat */
+#chat-log {
+  max-height: 120px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  margin-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+}
+
+.chat-msg {
+  font-size: 11px;
+  color: #fff;
+  padding: 3px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.chat-msg b { color: #ffd700; }
 
 #compact {
   background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
@@ -20,74 +44,54 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* Aumentamos o padding de baixo para o conteúdo não sumir no corte */
   padding: 6px 12px 14px 12px; 
-  /* Remove arredondamento total de baixo */
-  border-radius: 10px 10px 0 0; 
+  border-radius: 0; 
   box-shadow: 0 -4px 12px rgba(0,0,0,.5);
+  position: relative;
+  z-index: 20; /* Acima do log */
 }
 
 .compact-attrs {
   display: flex;
-  gap: 4px;                /* Reduzi de 10px para 4px para ganhar espaço */
-  flex-grow: 1;            /* Faz com que os atributos tentem ocupar o espaço disponível */
+  gap: 4px;
+  flex-grow: 1;
 }
 
 .compact-attrs span {
-  min-width: 45px;         /* Reduzi de 58px para 45px */
-  padding: 4px 2px;        /* Padding lateral mínimo para manter a letra grande */
+  min-width: 45px;
+  padding: 4px 2px;
   background: rgba(255,255,255,0.08);
   border-radius: 6px;
   font-weight: 600;
-  font-size: 13px;         /* Mantive o tamanho da letra como você pediu */
+  font-size: 13px;
   text-align: center;
   cursor: pointer;
-  transition: background 0.2s;
-  flex: 1;                 /* Faz com que todos os botões tenham o mesmo tamanho */
-}
-
-.compact-attrs span:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-#toggle {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 14px;
-  padding: 4px 8px;
-  cursor: pointer;
+  flex: 1;
 }
 
 #panel {
-  margin-top: 6px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
   background: linear-gradient(180deg, #2b2b2b, #1e1e1e);
-  border-radius: 12px;
   padding: 10px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.5);
-  overflow: hidden;
+  box-shadow: 0 -6px 16px rgba(0,0,0,.5);
+  overflow-y: auto;
   max-height: 0;
   opacity: 0;
-  transform: translateY(6px);
-  transition: max-height 0.35s ease, opacity 0.25s ease, transform 0.25s ease;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+  z-index: 30; /* Cobrindo tudo */
+  padding-bottom: 20px;
 }
 
 #panel.expanded {
-  max-height: 1000px;
+  max-height: 440px;
   opacity: 1;
-  transform: translateY(0);
 }
 
-.attribute {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
-  border-radius: 8px;
-  margin-bottom: 6px;
-}
-
+/* Mantendo seus estilos de atributos e modal abaixo */
+.attribute { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; margin-bottom: 6px; }
 .attr-name { width: 38px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: 700; background: rgba(255,255,255,0.6); }
 .base { width: 44px; height: 28px; border-radius: 6px; border: none; text-align: center; }
 .mods { display: flex; flex-direction: column; gap: 4px; }
@@ -98,48 +102,11 @@ body {
 .mult { width: 40px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: bold; }
 .result { min-width: 52px; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,0.25); font-weight: 700; text-align: center; }
 
-/* =========================
-   ESTILOS DO MODAL (NOVO)
-========================= */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-}
-
-.modal-content {
-  background: #1e1e1e;
-  color: white;
-  padding: 25px;
-  border-radius: 15px;
-  border: 3px solid #fff;
-  position: relative;
-  text-align: center;
-  min-width: 280px;
-  box-shadow: 0 0 30px rgba(0,0,0,0.8);
-}
-
-#close-modal {
-  position: absolute; top: 10px; right: 10px;
-  background: none; border: 1px solid #ff4d4d; color: #ff4d4d;
-  border-radius: 50%; width: 25px; height: 25px; cursor: pointer;
-}
-
-.dice-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px 0; font-size: 18px; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+.modal-content { background: #1e1e1e; color: white; padding: 25px; border-radius: 15px; border: 3px solid #fff; position: relative; text-align: center; min-width: 280px; }
+#close-modal { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; }
+.dice-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px 0; }
 .dice-inputs input { width: 55px; padding: 8px; border-radius: 6px; border: none; text-align: center; font-size: 16px; font-weight: bold; }
-
 .use-attr-row { margin-bottom: 20px; font-size: 14px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; }
-
-#roll-button {
-  width: 100%; padding: 12px; background: #ffd700; color: #000; border: none;
-  border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
-}
-
-#roll-button:hover { background: #ffea70; }
-
-#roll-result { margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; min-height: 24px; word-wrap: break-word; }
+#roll-button { width: 100%; padding: 12px; background: #ffd700; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+#roll-result { margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; }
