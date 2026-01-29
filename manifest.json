@@ -1,6 +1,6 @@
 {
-  "name": "Calculadora de Atributos & Chat",
-  "version": "4.2.0",
+  "name": "Calculadora Atributos Chat",
+  "version": "4.3.0",
   "manifest_version": 1,
   "action": {
     "title": "Atributos & Dados",
