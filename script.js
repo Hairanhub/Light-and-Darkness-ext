@@ -19,6 +19,7 @@ let currentAttrValue = 0;
 const diceModal = document.getElementById("dice-modal");
 const modalAttrName = document.getElementById("modal-attr-name");
 
+// FUNÇÃO PARA ENVIAR MENSAGEM AO CHAT INTERNO
 function addToCustomChat(text) {
   const entry = document.createElement("div");
   entry.className = "chat-entry";
@@ -40,7 +41,7 @@ function createAttribute(index) {
   div.className = "attribute";
   div.style.background = defaults[index].color;
   const modsContainer = document.createElement("div");
-  modsContainer.className = "mods-container";
+  modsContainer.className = "mods";
   modsContainer.appendChild(createMod());
 
   div.innerHTML = `
@@ -74,7 +75,7 @@ defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
-  if (window.OBR) await OBR.viewport.setHeight(isExpanded ? 500 : 65);
+  if (window.OBR) await OBR.viewport.setHeight(isExpanded ? 580 : 65);
 };
 
 function openDiceModal(name, value) {
@@ -82,7 +83,7 @@ function openDiceModal(name, value) {
   diceModal.style.display = "flex";
   modalAttrName.innerText = name;
   document.getElementById("modal-attr-value").innerText = value;
-  if (window.OBR) OBR.viewport.setHeight(500);
+  if (window.OBR) OBR.viewport.setHeight(600);
 }
 
 document.getElementById("close-modal").onclick = () => {
@@ -100,8 +101,8 @@ document.getElementById("roll-button").onclick = async () => {
   const mod = +document.getElementById("dice-mod").value || 0;
   const bonus = document.getElementById("use-attr-check").checked ? currentAttrValue : 0;
   
-  let sum = 0;
-  for(let i=0; i<qty; i++){ sum += Math.floor(Math.random()*faces)+1; }
+  let sum = 0; let rolls = [];
+  for(let i=0; i<qty; i++){ let r = Math.floor(Math.random()*faces)+1; sum+=r; rolls.push(r); }
   const total = sum + bonus + mod;
 
   const msg = `<strong>${modalAttrName.innerText}</strong>: 🎲 ${total} <small>(${sum}+${bonus+mod})</small>`;
