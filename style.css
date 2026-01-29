@@ -10,13 +10,14 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; background: transparent; 
 
 #widget { 
   position: fixed; 
-  top: 0; /* Começa do topo */
+  top: 0; 
   left: -8px; 
   width: calc(100% + 16px); 
-  height: 100vh; /* Ocupa a altura total da janela do popover */
+  height: 100vh; 
   z-index: 999; 
   display: flex;
   flex-direction: column;
+  pointer-events: none; /* Faz o clique ignorar o container vazio */
 }
 
 #chat-log {
