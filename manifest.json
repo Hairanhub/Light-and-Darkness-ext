@@ -1,6 +1,6 @@
 {
   "name": "Calculadora de Atributos & Dados",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "manifest_version": 1,
   "action": {
     "title": "Calculadora de Atributos & Dados",
@@ -21,3 +21,5 @@
 
 
 
+
+7
