@@ -1,19 +1,22 @@
 /* Garante que o fundo da página seja invisível */
 body {
   margin: 0;
-  font-family: "Segoe UI", Roboto, sans-serif;
+  padding: 0;
   background: transparent !important;
-  overflow: hidden; /* Evita barras de rolagem desnecessárias */
+  overflow: hidden; /* Evita scrollbars enquanto a janela redimensiona */
+  display: flex;
+  align-items: flex-end; /* Garante que tudo comece colado na base */
+  height: 100vh; 
 }
 
 #widget {
   display: flex;
-  flex-direction: column-reverse; /* Inverte: Compacto embaixo, Painel em cima */
-  width: 100%; /* Ocupa a largura da janela definida no manifesto */
-  height: 100vh; /* Ocupa a altura da janela */
+  flex-direction: column-reverse; 
+  width: 520px;
   background: transparent;
+  /* Remova 'height: 100%' ou 'height: 600px' se houver */
+  margin: 0;
 }
-
 #compact {
   background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
   color: #fff;
