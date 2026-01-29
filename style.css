@@ -1,22 +1,24 @@
-/* Garante que o fundo da página seja invisível */
+/* 1. CONFIGURAÇÃO DE TRANSPARÊNCIA E BASE */
 body {
   margin: 0;
   padding: 0;
-  background: transparent !important;
-  overflow: hidden; /* Evita scrollbars enquanto a janela redimensiona */
+  font-family: "Segoe UI", Roboto, sans-serif;
+  background: transparent !important; /* Remove o fundo branco/cinza padrão */
+  overflow: hidden; /* Evita barras de rolagem enquanto a janela cresce */
   display: flex;
-  align-items: flex-end; /* Garante que tudo comece colado na base */
-  height: 100vh; 
+  align-items: flex-end; /* Mantém a barra colada no fundo da janela do Owlbear */
+  height: 100vh;
 }
 
 #widget {
   display: flex;
-  flex-direction: column-reverse; 
-  width: 520px;
+  flex-direction: column-reverse; /* Inverte a ordem: Barra embaixo, Painel sobe */
+  width: 100%;
   background: transparent;
-  /* Remova 'height: 100%' ou 'height: 600px' se houver */
   margin: 0;
 }
+
+/* 2. BARRA COMPACTA (Sempre visível na base) */
 #compact {
   background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
   color: #fff;
@@ -26,7 +28,8 @@ body {
   padding: 6px 10px;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0,0,0,.4);
-  flex-shrink: 0; /* Não deixa a barra amassar */
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 .compact-attrs {
@@ -46,30 +49,52 @@ body {
   transition: background 0.2s;
 }
 
+.compact-attrs span:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+#toggle {
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+/* 3. PAINEL DE ATRIBUTOS (O que expande para cima) */
 #panel {
   background: linear-gradient(180deg, #2b2b2b, #1e1e1e);
   border-radius: 12px;
-  padding: 0 10px; /* Começa sem padding vertical */
-  margin-bottom: 8px; /* Espaço para não grudar na barra compacta */
+  margin-bottom: 8px; /* Empurra o espaço para cima da barra */
   box-shadow: 0 6px 16px rgba(0,0,0,.5);
   overflow-y: auto;
   
-  /* Lógica de expansão para cima */
+  /* Lógica de animação */
   max-height: 0;
   opacity: 0;
-  transform: translateY(10px); /* Leve efeito de subida */
-  transition: max-height 0.3s ease, opacity 0.2s ease, transform 0.3s ease, padding 0.3s ease;
+  transform: translateY(10px); /* Começa um pouco abaixo para o efeito de subida */
+  transition: max-height 0.3s ease-out, opacity 0.2s ease, transform 0.3s ease;
 }
 
 #panel.expanded {
-  max-height: 520px;
+  max-height: 520px; /* Altura máxima que ele pode atingir */
   opacity: 1;
   padding: 10px;
   transform: translateY(0);
 }
 
-/* O restante dos estilos (Attribute, Modal, etc) permanece igual ao que você enviou */
-.attribute { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; margin-bottom: 6px; }
+/* 4. ITENS DOS ATRIBUTOS */
+.attribute {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
 .attr-name { width: 38px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: 700; background: rgba(255,255,255,0.6); }
 .base { width: 44px; height: 28px; border-radius: 6px; border: none; text-align: center; }
 .mods { display: flex; flex-direction: column; gap: 4px; }
@@ -80,21 +105,22 @@ body {
 .mult { width: 40px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: bold; }
 .result { min-width: 52px; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,0.25); font-weight: 700; text-align: center; }
 
+/* 5. MODAL DE DADOS (TRANSPARÊNCIA TOTAL NO FUNDO) */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
-  background: transparent !important;
+  background: transparent !important; /* Remove o fundo preto/embaçado do popover */
   backdrop-filter: none !important;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  pointer-events: none;
+  pointer-events: none; /* Permite interagir com o mapa através da área vazia */
 }
 
 .modal-content {
-  pointer-events: auto;
+  pointer-events: auto; /* Apenas a caixa do dado aceita cliques */
   background: #1e1e1e;
   color: white;
   padding: 25px;
@@ -103,12 +129,25 @@ body {
   text-align: center;
   min-width: 280px;
   box-shadow: 0 0 30px rgba(0,0,0,0.8);
+  position: relative;
 }
 
-#close-modal { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; }
+#close-modal {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: 1px solid #ff4d4d; color: #ff4d4d;
+  border-radius: 50%; width: 25px; height: 25px; cursor: pointer;
+}
+
 .dice-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px 0; font-size: 18px; }
 .dice-inputs input { width: 55px; padding: 8px; border-radius: 6px; border: none; text-align: center; font-size: 16px; font-weight: bold; }
+
 .use-attr-row { margin-bottom: 20px; font-size: 14px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; }
-#roll-button { width: 100%; padding: 12px; background: #ffd700; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+
+#roll-button {
+  width: 100%; padding: 12px; background: #ffd700; color: #000; border: none;
+  border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px;
+}
+
 #roll-button:hover { background: #ffea70; }
+
 #roll-result { margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; min-height: 24px; word-wrap: break-word; }
