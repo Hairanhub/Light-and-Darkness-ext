@@ -27,20 +27,28 @@ const diceContainer = document.getElementById("dice-container");
 
 // Função para adicionar mensagem no log visual
 function addChatMessage(sender, text) {
+  const chatLog = document.getElementById("chat-log");
+  if (!chatLog) return;
+  
   const msg = document.createElement("div");
   msg.className = "chat-msg";
   msg.innerHTML = `<b>${sender}:</b> ${text}`;
   chatLog.appendChild(msg);
+  
+  // Força o scroll para baixo
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
-// Inicializar SDK do Owlbear
+// Inicializar SDK do Owlbear de forma robusta
 if (window.OBR) {
-  OBR.onReady(() => {
-    // Escuta mensagens de outros jogadores para mostrar no log interno
+  OBR.onReady(async () => {
+    console.log("Owlbear SDK pronto!");
+
+    // 1. Ouvir mensagens que chegam no chat do Owlbear
     OBR.chat.onMessagesChange((messages) => {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg) {
+        // Evita duplicar se você mesmo enviou (opcional)
         addChatMessage(lastMsg.senderName || "Sistema", lastMsg.text);
       }
     });
