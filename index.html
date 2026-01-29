@@ -7,23 +7,28 @@
 </head>
 <body>
 
-<div id="widget">
-  <div id="chat-log"></div>
-
-  <div id="compact">
-    <div class="compact-attrs">
-      <span id="c0"></span>
-      <span id="c1"></span>
-      <span id="c2"></span>
-      <span id="c3"></span>
-      <span id="c4"></span>
-      <span id="c5"></span>
-    </div>
-    <button id="toggle">▲</button>
+<div id="setup-screen" class="setup-overlay">
+  <div class="setup-content">
+    <h2>Bem-vindo!</h2>
+    <p>Como você quer ser chamado no chat?</p>
+    <input type="text" id="user-name-input" placeholder="Nome do Personagem/Jogador">
+    <button id="start-btn">ENTRAR NA MESA</button>
   </div>
+</div>
 
-  <div id="panel" class="collapsed">
-    <div id="attributes"></div>
+<div id="main-content" style="display: none;">
+  <div id="widget">
+    <div id="chat-log"></div>
+    <div id="compact">
+      <div class="compact-attrs">
+        <span id="c0"></span><span id="c1"></span><span id="c2"></span>
+        <span id="c3"></span><span id="c4"></span><span id="c5"></span>
+      </div>
+      <button id="toggle">▲</button>
+    </div>
+    <div id="panel">
+      <div id="attributes"></div>
+    </div>
   </div>
 </div>
 
@@ -31,7 +36,6 @@
   <div id="dice-container" class="modal-content">
     <button id="close-modal">✖</button>
     <h3 id="modal-attr-name">ATRIBUTO</h3>
-    
     <div class="dice-inputs">
       <input type="number" id="dice-qty" value="1" min="1">
       <span>d</span>
@@ -39,14 +43,9 @@
       <span>+</span>
       <input type="number" id="dice-mod" value="0">
     </div>
-
     <div class="use-attr-row">
-      <label>
-        <input type="checkbox" id="use-attr-check" checked> 
-        Usar valor: <span id="modal-attr-value">0</span>
-      </label>
+      <label><input type="checkbox" id="use-attr-check" checked> Usar valor: <span id="modal-attr-value">0</span></label>
     </div>
-
     <button id="roll-button">ROLAR DADOS</button>
     <div id="roll-result"></div>
   </div>
