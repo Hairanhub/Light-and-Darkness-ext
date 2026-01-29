@@ -1,6 +1,5 @@
 let playerName = "Jogador";
 let playerColor = "#ffd700";
-window.lastProcessedTime = 0;
 
 window.onload = () => {
   const startBtn = document.getElementById("start-btn");
@@ -9,7 +8,7 @@ window.onload = () => {
   const setupScreen = document.getElementById("setup-screen");
   const mainContent = document.getElementById("main-content");
 
-  // Recuperar nome e cor salvos anteriormente
+  // Carrega perfil salvo
   const savedUser = JSON.parse(localStorage.getItem("user_profile"));
   if (savedUser) {
     nameInput.value = savedUser.name;
@@ -22,13 +21,10 @@ window.onload = () => {
       if (name) {
         playerName = name;
         playerColor = colorInput.value;
-        // Salvar perfil do usuário
         localStorage.setItem("user_profile", JSON.stringify({name: playerName, color: playerColor}));
         setupScreen.style.display = "none";
         mainContent.style.display = "block";
-      } else { 
-        alert("Por favor, digite seu nome!"); 
-      }
+      } else { alert("Por favor, digite seu nome!"); }
     };
   }
   initWidget();
@@ -51,6 +47,7 @@ function initWidget() {
   let currentAttrColor = "#ffd700";
   const diceModal = document.getElementById("dice-modal");
 
+  // Função que desenha no SEU CHAT (index.html)
   function addMsg(sender, text, color) {
     if (!chatLog) return;
     const div = document.createElement("div");
@@ -61,15 +58,28 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // SINCRONIZAÇÃO VIA METADATA (Sinergia entre jogadores)
+  // OUVINTE DO CHAT DO OWLBEAR
   if (window.OBR) {
     OBR.onReady(() => {
-      OBR.room.onMetadataChange((metadata) => {
-        const lastRoll = metadata["com.lightdarkness.ext/lastRoll"];
-        if (lastRoll && lastRoll.timestamp !== window.lastProcessedTime) {
-          window.lastProcessedTime = lastRoll.timestamp;
-          if (lastRoll.sender !== playerName) {
-            addMsg(lastRoll.sender, lastRoll.text, lastRoll.color);
+      OBR.chat.onMessagesChange((messages) => {
+        const last = messages[messages.length - 1];
+        // Só processa se a mensagem tiver a nossa "assinatura" [DICE]
+        if (last && last.text && last.text.includes("[DICE]")) {
+          
+          // Extrai a cor [C:#hex]
+          const colorMatch = last.text.match(/\[C:(#[0-9a-fA-F]{6})\]/);
+          const msgColor = colorMatch ? colorMatch[1] : "#ffd700";
+          
+          // Limpa as tags para mostrar o texto bonitinho
+          const cleanText = last.text
+            .replace("[DICE]", "")
+            .replace(/\[C:#[0-9a-fA-F]{6}\]/, "")
+            .trim();
+
+          // Evita duplicar na sua própria tela (já que o OBR manda de volta pra você)
+          const isMine = last.text.includes(`**${playerName}**`);
+          if (!isMine) {
+            addMsg(last.senderName || "Sistema", cleanText, msgColor);
           }
         }
       });
@@ -81,18 +91,14 @@ function initWidget() {
     const div = document.createElement("div");
     div.className = "attribute";
     div.style.background = defaults[idx].c;
-    
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <input type="number" class="base" value="0">
       <input type="number" class="mult" value="1">
       <div class="mods"></div>
-      <button class="add">+</button>
-      <button class="rem">-</button>
+      <button class="add">+</button><button class="rem">-</button>
       <div class="result">0</div>
     `;
-
-    const modsContainer = div.querySelector(".mods");
 
     const update = (save = true) => {
       const name = div.querySelector(".attr-name").value.toUpperCase();
@@ -101,48 +107,37 @@ function initWidget() {
       const modInputs = [...div.querySelectorAll(".mod-value")];
       const mods = modInputs.reduce((s, m) => s + (+m.value || 0), 0);
       const res = (base + mods) * mult;
-      
       div.querySelector(".result").innerText = res;
       if (compactSpans[idx]) compactSpans[idx].innerText = `${name} ${res}`;
 
-      // SALVAMENTO LOCAL (O F5 sem medo)
       if (save) {
-        const modsData = modInputs.map(m => ({
-          name: m.previousElementSibling.value,
-          value: m.value
-        }));
+        const modsData = modInputs.map(m => ({ name: m.previousElementSibling.value, value: m.value }));
         localStorage.setItem(attrKey, JSON.stringify({ name, base, mult, modsData }));
       }
     };
 
-    // Carregar dados salvos
     const savedData = JSON.parse(localStorage.getItem(attrKey));
     if (savedData) {
       div.querySelector(".attr-name").value = savedData.name;
       div.querySelector(".base").value = savedData.base;
       div.querySelector(".mult").value = savedData.mult;
       savedData.modsData.forEach(m => addModField(m.name, m.value));
-    } else {
-      addModField("MOD", 0);
-    }
+    } else { addModField("MOD", 0); }
 
     function addModField(mName = "MOD", mVal = 0) {
       const m = document.createElement("div");
       m.className = "mod-item";
       m.innerHTML = `<input class="mod-name" value="${mName}"><input type="number" class="mod-value" value="${mVal}">`;
       m.addEventListener("input", () => update());
-      modsContainer.appendChild(m);
+      div.querySelector(".mods").appendChild(m);
     }
 
     div.addEventListener("input", () => update());
     div.querySelector(".add").onclick = () => { addModField(); update(); };
     div.querySelector(".rem").onclick = () => {
-      if (modsContainer.children.length > 0) {
-        modsContainer.lastElementChild.remove();
-        update();
-      }
+      const container = div.querySelector(".mods");
+      if (container.children.length > 0) { container.lastElementChild.remove(); update(); }
     };
-
     setTimeout(() => update(false), 50);
     return div;
   }
@@ -196,19 +191,12 @@ function initWidget() {
     
     document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
 
+    // 1. Mostra na sua tela
     addMsg(playerName, txt, playerColor);
 
+    // 2. Envia para o Owlbear com a tag [DICE] para os outros verem
     if (window.OBR) {
-      const now = Date.now();
-      window.lastProcessedTime = now;
-      OBR.room.setMetadata({
-        "com.lightdarkness.ext/lastRoll": {
-          sender: playerName,
-          text: txt,
-          color: playerColor,
-          timestamp: now
-        }
-      });
+      OBR.chat.sendMessage({ text: `[DICE] [C:${playerColor}] **${playerName}** ${txt}` });
     }
   };
 }
