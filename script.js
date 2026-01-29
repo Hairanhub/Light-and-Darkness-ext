@@ -1,160 +1,114 @@
+let playerName = "Jogador";
+const chatLog = document.getElementById("chat-log");
+
+// Tela Inicial
+document.getElementById("start-btn").onclick = () => {
+  const name = document.getElementById("user-name-input").value.trim();
+  if (name) {
+    playerName = name;
+    document.getElementById("setup-screen").style.display = "none";
+    document.getElementById("main-content").style.display = "block";
+  } else { alert("Digite um nome!"); }
+};
+
 const attrContainer = document.getElementById("attributes");
 const panel = document.getElementById("panel");
 const toggleBtn = document.getElementById("toggle");
-const chatLog = document.getElementById("chat-log");
-
-const compactValues = [
-  document.getElementById("c0"), document.getElementById("c1"),
-  document.getElementById("c2"), document.getElementById("c3"),
-  document.getElementById("c4"), document.getElementById("c5"),
-];
+const compactSpans = [0,1,2,3,4,5].map(i => document.getElementById(`c${i}`));
 
 const defaults = [
-  { name: "FOR", color: "#5B1F1F" },
-  { name: "DEX", color: "#371E59" },
-  { name: "DEF", color: "#1F3B5B" },
-  { name: "INT", color: "#5B1F3B" },
-  { name: "CAR", color: "#594F1E" },
-  { name: "CON", color: "#1E592D" },
+  { n: "FOR", c: "#5B1F1F" }, { n: "DEX", c: "#371E59" },
+  { n: "DEF", c: "#1F3B5B" }, { n: "INT", c: "#5B1F3B" },
+  { n: "CAR", c: "#594F1E" }, { n: "CON", c: "#1E592D" }
 ];
 
-let currentAttrValue = 0;
+let currentVal = 0;
 const diceModal = document.getElementById("dice-modal");
-const closeModal = document.getElementById("close-modal");
-const modalAttrName = document.getElementById("modal-attr-name");
-const modalAttrValue = document.getElementById("modal-attr-value");
-const diceContainer = document.getElementById("dice-container");
 
-// Função para adicionar mensagem no log visual
-function addChatMessage(sender, text) {
-  const chatLog = document.getElementById("chat-log");
-  if (!chatLog) return;
-  
-  const msg = document.createElement("div");
-  msg.className = "chat-msg";
-  msg.innerHTML = `<b>${sender}:</b> ${text}`;
-  chatLog.appendChild(msg);
-  
-  // Força o scroll para baixo
+function addMsg(sender, text) {
+  const div = document.createElement("div");
+  div.className = "chat-msg";
+  div.innerHTML = `<b>${sender}:</b> ${text}`;
+  chatLog.appendChild(div);
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
-// Inicializar SDK do Owlbear de forma robusta
 if (window.OBR) {
-  OBR.onReady(async () => {
-    console.log("Owlbear SDK pronto!");
-
-    // 1. Ouvir mensagens que chegam no chat do Owlbear
-    OBR.chat.onMessagesChange((messages) => {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg) {
-        // Evita duplicar se você mesmo enviou (opcional)
-        addChatMessage(lastMsg.senderName || "Sistema", lastMsg.text);
-      }
+  OBR.onReady(() => {
+    OBR.chat.onMessagesChange((m) => {
+      const last = m[m.length - 1];
+      if (last) addMsg(last.senderName || "Sistema", last.text);
     });
   });
 }
 
-function createMod() {
-  const wrap = document.createElement("div");
-  wrap.className = "mod-item";
-  wrap.innerHTML = `<input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0">`;
-  return wrap;
-}
-
-function createAttribute(index) {
+function createAttribute(idx) {
   const div = document.createElement("div");
   div.className = "attribute";
-  div.style.background = defaults[index].color;
-  const modsContainer = document.createElement("div");
-  modsContainer.className = "mods";
-  modsContainer.appendChild(createMod());
-
+  div.style.background = defaults[idx].c;
   div.innerHTML = `
-    <input class="attr-name" maxlength="3" value="${defaults[index].name}">
-    <input type="number" class="base" value="0">
-    <button class="add">+</button>
-    <button class="rem">-</button>
+    <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
+    <div class="mods"><div class="mod-item"><input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0"></div></div>
+    <button class="add">+</button><button class="rem">-</button>
+    <input type="number" class="base" value="0" style="width:40px">
     <input type="number" class="mult" value="1">
     <div class="result">0</div>
   `;
 
-  div.insertBefore(modsContainer, div.querySelector(".add"));
-  const nameInput = div.querySelector(".attr-name");
-
   const update = () => {
-    nameInput.value = nameInput.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
+    const name = div.querySelector(".attr-name").value.toUpperCase();
     const base = +div.querySelector(".base").value || 0;
     const mult = +div.querySelector(".mult").value || 1;
     const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
-    const result = (base + mods) * mult;
-    div.querySelector(".result").innerText = result;
-    compactValues[index].innerText = `${nameInput.value} ${result}`;
+    const res = (base + mods) * mult;
+    div.querySelector(".result").innerText = res;
+    compactSpans[idx].innerText = `${name} ${res}`;
   };
 
   div.addEventListener("input", update);
-  div.querySelector(".add").onclick = () => { modsContainer.appendChild(createMod()); update(); };
-  div.querySelector(".rem").onclick = () => {
-    const mods = modsContainer.querySelectorAll(".mod-item");
-    if (mods.length > 1) mods[mods.length - 1].remove();
-    update();
+  div.querySelector(".add").onclick = () => {
+    const m = document.createElement("div"); m.className = "mod-item";
+    m.innerHTML = `<input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0">`;
+    div.querySelector(".mods").appendChild(m); update();
   };
-  update();
+  div.querySelector(".rem").onclick = () => {
+    const items = div.querySelectorAll(".mod-item");
+    if (items.length > 1) items[items.length-1].remove(); update();
+  };
+  
+  setTimeout(update, 10);
   return div;
 }
 
-defaults.forEach((_, i) => { attrContainer.appendChild(createAttribute(i)); });
+defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
 
 toggleBtn.onclick = () => {
   panel.classList.toggle("expanded");
   toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
 };
 
-function openDiceModal(name, value, color) {
-  currentAttrValue = parseInt(value);
-  diceModal.style.display = "flex";
-  modalAttrName.innerText = name;
-  modalAttrValue.innerText = value;
-  diceContainer.style.borderColor = color;
-  document.getElementById("roll-result").innerText = "";
-}
-
-closeModal.onclick = () => { diceModal.style.display = "none"; };
-
-compactValues.forEach((span, index) => {
-  span.onclick = () => {
-    const parts = span.innerText.split(" ");
-    openDiceModal(parts[0], parts[1], defaults[index].color);
+compactSpans.forEach((s, i) => {
+  s.onclick = () => {
+    const p = s.innerText.split(" ");
+    currentVal = parseInt(p[1]);
+    diceModal.style.display = "flex";
+    document.getElementById("modal-attr-name").innerText = p[0];
+    document.getElementById("modal-attr-value").innerText = p[1];
   };
 });
 
-document.getElementById("roll-button").onclick = async () => {
-  const qty = Number(document.getElementById("dice-qty").value) || 1;
-  const faces = Number(document.getElementById("dice-faces").value) || 20;
-  const modManual = Number(document.getElementById("dice-mod").value) || 0;
-  const useAttr = document.getElementById("use-attr-check").checked;
-  const attrName = modalAttrName.innerText;
+document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
 
-  let sum = 0, rollsRaw = [], rollsHtml = [];
-  for (let i = 0; i < qty; i++) {
-    let r = Math.floor(Math.random() * faces) + 1;
-    sum += r; rollsRaw.push(r);
-    if (faces === 20 && r === 20) rollsHtml.push(`<span style="color: #00ff00; font-weight: bold;">20</span>`);
-    else if (faces === 20 && r === 1) rollsHtml.push(`<span style="color: #ff4d4d; font-weight: bold;">1</span>`);
-    else rollsHtml.push(r);
-  }
-
-  const bonus = useAttr ? currentAttrValue : 0;
-  const total = sum + bonus + modManual;
-
-  document.getElementById("roll-result").innerHTML = `
-    <div style="font-size: 0.9rem; color: #aaa;">(${rollsHtml.join(" + ")}) + ${bonus} + ${modManual}</div>
-    <div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>
-  `;
-
-  if (window.OBR && OBR.isReady) {
-    const userName = await OBR.player.getName();
-    const textMsg = `rolou ${attrName}: **${total}** [${qty}d${faces}(${rollsRaw.join(',')}) + ${bonus + modManual}]`;
-    OBR.chat.sendMessage({ text: `${userName} ${textMsg}` });
-  }
+document.getElementById("roll-button").onclick = () => {
+  const q = +document.getElementById("dice-qty").value || 1;
+  const f = +document.getElementById("dice-faces").value || 20;
+  const m = +document.getElementById("dice-mod").value || 0;
+  const b = document.getElementById("use-attr-check").checked ? currentVal : 0;
+  let sum = 0, raw = [];
+  for(let i=0; i<q; i++) { let r = Math.floor(Math.random()*f)+1; sum+=r; raw.push(r); }
+  const total = sum + b + m;
+  const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** (${raw.join('+')} + ${b+m})`;
+  
+  document.getElementById("roll-result").innerHTML = `Total: ${total}`;
+  if (window.OBR) OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
 };
