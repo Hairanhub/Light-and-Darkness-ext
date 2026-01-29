@@ -41,6 +41,7 @@ function initWidget() {
   let currentAttrColor = "#ffd700";
   const diceModal = document.getElementById("dice-modal");
 
+  // Função que renderiza a mensagem no HTML local
   function addMsg(sender, text, color) {
     if (!chatLog) return;
     const div = document.createElement("div");
@@ -51,14 +52,22 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  // SINCRONIZAÇÃO GLOBAL: Escuta o chat do Owlbear Rodeo
   if (window.OBR) {
     OBR.onReady(() => {
-      OBR.chat.onMessagesChange((m) => {
-        const last = m[m.length - 1];
-        if (last && !last.text.includes(`**${playerName}**`)) {
+      OBR.chat.onMessagesChange((messages) => {
+        // Pega apenas a última mensagem recebida no chat global
+        const last = messages[messages.length - 1];
+        if (last) {
+          // Extrai o metadado de cor [C:#hex] se existir
           const colorMatch = last.text.match(/\[C:(#[0-9a-fA-F]{6})\]/);
+          const msgColor = colorMatch ? colorMatch[1] : "#ffd700";
+          
+          // Remove a tag de cor para não exibir o código [C:...] no texto
           const cleanText = last.text.replace(/\[C:#[0-9a-fA-F]{6}\]/, "");
-          addMsg(last.senderName || "Sistema", cleanText, colorMatch ? colorMatch[1] : "#ffd700");
+          
+          // Renderiza a mensagem para TODOS que estiverem com a extensão aberta
+          addMsg(last.senderName || "Sistema", cleanText, msgColor);
         }
       });
     });
@@ -69,7 +78,6 @@ function initWidget() {
     div.className = "attribute";
     div.style.background = defaults[idx].c;
     
-    // ORDEM REORGANIZADA: [NOME] [BASE] [MULT] [MODS] [+/-] [TOTAL]
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <input type="number" class="base" value="0">
@@ -157,13 +165,19 @@ function initWidget() {
     if (mManual !== 0) detalhes += ` + ${mManual}(Mod)`;
 
     const coloredAttr = `<span style="color: ${currentAttrColor}; font-weight: bold; text-shadow: 1px 1px 2px #000;">${attrName}</span>`;
+    
+    // Texto formatado para o chat
     const txt = `rolou ${coloredAttr}: **${total}** ${detalhes}`;
 
+    // Mostra o resultado apenas no seu modal (feedback visual rápido)
     document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
 
+    // ENVIO PARA O OBR: Isso faz a mensagem ir para todos
     if (window.OBR) {
       OBR.chat.sendMessage({ text: `[C:${playerColor}] **${playerName}** ${txt}` });
+    } else {
+      // Caso esteja testando fora do Owlbear
+      addMsg(playerName, txt, playerColor);
     }
-    addMsg(playerName, txt, playerColor);
   };
 }
