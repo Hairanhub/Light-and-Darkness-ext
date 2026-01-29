@@ -1,13 +1,13 @@
 {
-  "name": "Calculadora de Atributos & Dados",
-  "version": "1.1.8",
+  "name": "Calculadora de Atributos & Chat",
+  "version": "4.1.0",
   "manifest_version": 1,
   "action": {
-    "title": "Calculadora de Atributos & Dados",
-    "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
-    "popover": "https://hairanhub.github.io/Light-and-Darkness-ext/index.html",
-    "height": 500,
-    "width": 440
+    "title": "Atributos & Dados",
+    "icon": "icon.png",
+    "popover": "index.html",
+    "width": 440,
+    "height": 500
   }
 }
 
@@ -23,4 +23,5 @@
 
 
 7
+
 
