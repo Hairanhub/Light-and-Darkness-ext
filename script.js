@@ -81,14 +81,22 @@ function createAttribute(index) {
 // Inicializar Atributos
 defaults.forEach((_, i) => { attrContainer.appendChild(createAttribute(i)); });
 
-// Toggle Expandir / Recolher com redimensionamento dinâmico
+// --- AJUSTE OWLBEAR: Redimensionamento Inicial ---
+if (window.OBR) {
+  OBR.onReady(() => {
+    // Garante que a janela comece apenas com a altura da barra compacta
+    OBR.viewport.setHeight(50); 
+  });
+}
+
+// Toggle Expandir / Recolher Invertido (Cresce para cima)
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
 
-  if (window.OBR && OBR.isReady) {
-    // Se expandido, a janela fica grande (600px), se recolhido, fica pequena (apenas a barra)
-    const newHeight = isExpanded ? 600 : 60; 
+  if (window.OBR && window.OBR.isReady) {
+    // Se expandido, a janela do Popover aumenta para 600px. Se recolhido, volta para 50px.
+    const newHeight = isExpanded ? 600 : 50; 
     await OBR.viewport.setHeight(newHeight);
   }
 };
@@ -101,11 +109,21 @@ function openDiceModal(name, value, color) {
   modalAttrValue.innerText = value;
   diceContainer.style.borderColor = color;
   document.getElementById("roll-result").innerText = "";
+  
+  // OBRIGATÓRIO: Se o modal abrir, a janela do Owlbear deve estar em 600px para ele aparecer
+  if (window.OBR && window.OBR.isReady) {
+    OBR.viewport.setHeight(600);
+  }
 }
 
-closeModal.onclick = () => { diceModal.style.display = "none"; };
+closeModal.onclick = () => { 
+  diceModal.style.display = "none"; 
+  // Se fechar o modal e o painel estiver recolhido, encolhe a janela de novo
+  if (!panel.classList.contains("expanded") && window.OBR) {
+    OBR.viewport.setHeight(50);
+  }
+};
 
-// Evento de clique na barra compacta
 compactValues.forEach((span, index) => {
   span.onclick = () => {
     const parts = span.innerText.split(" ");
@@ -114,7 +132,6 @@ compactValues.forEach((span, index) => {
     openDiceModal(name, value, defaults[index].color);
   };
 });
-
 
 // Botão de Rolar Dados
 document.getElementById("roll-button").onclick = async () => {
@@ -133,7 +150,6 @@ document.getElementById("roll-button").onclick = async () => {
     sum += r;
     rollsRaw.push(r);
 
-    // Lógica de cores para D20
     if (faces === 20 && r === 20) {
       rollsHtml.push(`<span style="color: #00ff00; font-weight: bold;">${r}</span>`);
     } else if (faces === 20 && r === 1) {
@@ -146,14 +162,11 @@ document.getElementById("roll-button").onclick = async () => {
   const bonus = useAttr ? currentAttrValue : 0;
   const total = sum + bonus + modManual;
 
-  // Atualiza o visual do modal (Mantendo sua estrutura)
   document.getElementById("roll-result").innerHTML = `
     <div style="font-size: 0.9rem; color: #aaa;">(${rollsHtml.join(" + ")}) + ${bonus} + ${modManual}</div>
     <div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>
   `;
 
-  // ENVIAR PARA O CHAT DO OWLBEAR
-  // Verifica se o SDK está disponível antes de enviar
   if (window.OBR && OBR.isReady) {
     const userName = await OBR.player.getName();
     OBR.chat.sendMessage({
