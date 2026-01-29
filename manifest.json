@@ -1,7 +1,11 @@
 {
   "name": "Calculadora de Atributos & Dados",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "manifest_version": 1,
+  "permissions": [
+    "CHAT",
+    "PLAYER"
+  ],
   "action": {
     "title": "Calculadora de Atributos & Dados",
     "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
@@ -10,6 +14,7 @@
     "width": 440
   }
 }
+
 
 
 
