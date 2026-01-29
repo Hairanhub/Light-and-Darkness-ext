@@ -128,18 +128,22 @@ function initWidget() {
   
   const total = sum + bonusAttr + modManual;
   
-  // Monta a explicação dos bônus separadamente
+  // Monta a string de detalhes: [dados] + Atrib + Mod
   let detalhes = `[${raw.join('+')}]`;
   if (bonusAttr !== 0) detalhes += ` + ${bonusAttr}(Atrib)`;
   if (modManual !== 0) detalhes += ` + ${modManual}(Mod)`;
 
   const txt = `rolou ${document.getElementById("modal-attr-name").innerText}: **${total}** ${detalhes}`;
   
-  document.getElementById("roll-result").innerHTML = `Total: ${total}`;
+  document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
   
   if (window.OBR) {
     OBR.chat.sendMessage({ text: `**${playerName}** ${txt}` });
   } else {
-    addMsg(playerName, txt);
+    // Se estiver testando fora do Owlbear
+    const div = document.createElement("div");
+    div.className = "chat-msg";
+    div.innerHTML = `<b>${playerName}:</b> ${txt}`;
+    document.getElementById("chat-log").appendChild(div);
   }
 };
