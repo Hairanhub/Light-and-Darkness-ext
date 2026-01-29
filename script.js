@@ -1,5 +1,7 @@
 let playerName = "Jogador";
 let playerColor = "#ffd700";
+// Conjunto para memorizar IDs de mensagens já processadas e evitar loops
+const processedMsgIds = new Set();
 
 window.onload = () => {
   const startBtn = document.getElementById("start-btn");
@@ -51,24 +53,35 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // SINCRONIZAÇÃO SEGURA
+  // OUVINTE ULTRA-SEGURO
   if (window.OBR) {
     OBR.onReady(() => {
       OBR.chat.onMessagesChange((messages) => {
+        if (!messages || messages.length === 0) return;
+
         const last = messages[messages.length - 1];
-        if (!last) return;
+        
+        // 1. Só processa se tiver nossa marca de "Extensão" [EXT]
+        if (!last.text || !last.text.includes("[EXT]")) return;
 
-        // TRAVA DE SEGURANÇA: Se a mensagem contiver o nosso nome e a tag de cor, 
-        // ignoramos para não causar loop infinito.
-        const colorTag = `[C:${playerColor}]`;
-        if (last.text.includes(colorTag) && last.text.includes(`**${playerName}**`)) {
-          return; 
-        }
+        // 2. Extrai o ID único da mensagem (ex: ID:123456)
+        const idMatch = last.text.match(/ID:(\d+)/);
+        const msgId = idMatch ? idMatch[1] : null;
 
+        // 3. Se já processamos esse ID, ignora completamente
+        if (msgId && processedMsgIds.has(msgId)) return;
+        if (msgId) processedMsgIds.add(msgId);
+
+        // 4. Limpa as tags técnicas para exibir o texto limpo
         const colorMatch = last.text.match(/\[C:(#[0-9a-fA-F]{6})\]/);
         const msgColor = colorMatch ? colorMatch[1] : "#ffd700";
-        const cleanText = last.text.replace(/\[C:#[0-9a-fA-F]{6}\]/, "");
         
+        let cleanText = last.text
+          .replace(/\[EXT\]/g, "")
+          .replace(/\[C:#[0-9a-fA-F]{6}\]/g, "")
+          .replace(/ID:\d+/g, "")
+          .trim();
+
         addMsg(last.senderName || "Sistema", cleanText, msgColor);
       });
     });
@@ -78,16 +91,12 @@ function initWidget() {
     const div = document.createElement("div");
     div.className = "attribute";
     div.style.background = defaults[idx].c;
-    
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <input type="number" class="base" value="0">
       <input type="number" class="mult" value="1">
       <div class="mods">
-        <div class="mod-item">
-          <input class="mod-name" value="MOD">
-          <input type="number" class="mod-value" value="0">
-        </div>
+        <div class="mod-item"><input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0"></div>
       </div>
       <button class="add">+</button>
       <button class="rem">-</button>
@@ -106,11 +115,9 @@ function initWidget() {
 
     div.addEventListener("input", update);
     div.querySelector(".add").onclick = () => {
-      const m = document.createElement("div");
-      m.className = "mod-item";
+      const m = document.createElement("div"); m.className = "mod-item";
       m.innerHTML = `<input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0">`;
-      div.querySelector(".mods").appendChild(m);
-      update();
+      div.querySelector(".mods").appendChild(m); update();
     };
     div.querySelector(".rem").onclick = () => {
       const items = div.querySelectorAll(".mod-item");
@@ -166,15 +173,19 @@ function initWidget() {
 
     const coloredAttr = `<span style="color: ${currentAttrColor}; font-weight: bold; text-shadow: 1px 1px 2px #000;">${attrName}</span>`;
     const txt = `rolou ${coloredAttr}: **${total}** ${detalhes}`;
-
+    
     document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
 
-    // Adiciona localmente para você ver na hora
-    addMsg(playerName, txt, playerColor);
-
-    // Envia para os outros via OBR
     if (window.OBR) {
-      OBR.chat.sendMessage({ text: `[C:${playerColor}] **${playerName}** ${txt}` });
+      const uId = Date.now();
+      // Marcamos o ID antes de enviar para não processarmos nossa própria mensagem
+      processedMsgIds.add(uId.toString());
+      
+      const finalMsg = `[EXT] [C:${playerColor}] **${playerName}** ${txt} ID:${uId}`;
+      OBR.chat.sendMessage({ text: finalMsg });
+      addMsg(playerName, txt, playerColor);
+    } else {
+      addMsg(playerName, txt, playerColor);
     }
   };
 }
