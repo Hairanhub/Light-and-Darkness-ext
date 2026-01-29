@@ -12,10 +12,10 @@ body {
 
 #widget {
   display: flex;
-  flex-direction: column-reverse; /* Inverte a ordem: Barra embaixo, Painel sobe */
+  flex-direction: column-reverse;
   width: 100%;
   background: transparent;
-  margin: 0;
+  /* NÃO coloque height aqui! */
 }
 
 /* 2. BARRA COMPACTA (Sempre visível na base) */
