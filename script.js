@@ -81,29 +81,34 @@ function createAttribute(index) {
 // Inicializar Atributos
 defaults.forEach((_, i) => { attrContainer.appendChild(createAttribute(i)); });
 
-// --- AJUSTE OWLBEAR: Garantir que comece pequena ---
-if (window.OBR) {
-  OBR.onReady(() => {
-    // Define a altura inicial apenas para a barra compacta (65px)
-    OBR.viewport.setHeight(65);
-  });
+/**
+ * FUNÇÃO DE REDIMENSIONAMENTO REFORÇADA
+ * Tenta redimensionar a janela do Owlbear garantindo que o SDK esteja pronto.
+ */
+async function resizeExtension(height) {
+  if (window.OBR) {
+    // Se o SDK já estiver pronto, redimensiona imediatamente
+    if (window.OBR.isReady) {
+      await OBR.viewport.setHeight(height);
+    } else {
+      // Se não, aguarda o evento Ready
+      OBR.onReady(async () => {
+        await OBR.viewport.setHeight(height);
+      });
+    }
+  }
 }
 
+// Inicializa a extensão pequena (65px)
+resizeExtension(65);
+
+// BOTÃO TOGGLE (Expandir/Recolher)
 toggleBtn.onclick = async () => {
   const isExpanded = panel.classList.toggle("expanded");
   toggleBtn.textContent = isExpanded ? "▼" : "▲";
 
-  // Tenta redimensionar várias vezes para garantir que o Owlbear obedeça
-  if (window.OBR) {
-    const targetHeight = isExpanded ? 600 : 65;
-    
-    // OBR.viewport.setHeight é o comando que remove o fundo embaçado
-    try {
-      await OBR.viewport.setHeight(targetHeight);
-    } catch (e) {
-      console.error("Erro ao redimensionar:", e);
-    }
-  }
+  const targetHeight = isExpanded ? 600 : 65;
+  await resizeExtension(targetHeight);
 };
 
 // LÓGICA DO MODAL DE DADOS
@@ -115,17 +120,15 @@ function openDiceModal(name, value, color) {
   diceContainer.style.borderColor = color;
   document.getElementById("roll-result").innerText = "";
 
-  // Garante que a janela esteja grande o suficiente para ver o modal
-  if (window.OBR && OBR.isReady) {
-    OBR.viewport.setHeight(600);
-  }
+  // Garante espaço para o modal
+  resizeExtension(600);
 }
 
-closeModal.onclick = () => { 
+closeModal.onclick = async () => { 
   diceModal.style.display = "none"; 
-  // Se o painel estiver fechado, volta a janela para o tamanho da barra
-  if (!panel.classList.contains("expanded") && window.OBR) {
-    OBR.viewport.setHeight(65);
+  // Se o painel de atributos estiver fechado, encolhe a janela para a barra
+  if (!panel.classList.contains("expanded")) {
+    await resizeExtension(65);
   }
 };
 
