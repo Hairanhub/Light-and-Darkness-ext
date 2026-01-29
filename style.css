@@ -1,101 +1,58 @@
-/* 1. BASE E TRANSPARÊNCIA */
+/* MANTENHA O SEU INÍCIO DE CONFIGURAÇÃO DE TRANSPARÊNCIA */
 body {
-  margin: 0; padding: 0;
-  font-family: "Segoe UI", Roboto, sans-serif;
-  background: transparent !important;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  height: 100vh;
+  margin: 0; padding: 0; font-family: "Segoe UI", Roboto, sans-serif;
+  background: transparent !important; overflow: hidden;
+  display: flex; align-items: flex-end; height: 100vh;
 }
 
-#widget {
-  display: flex;
-  flex-direction: column-reverse;
-  width: 100%;
-}
+#widget { display: flex; flex-direction: column-reverse; width: 100%; background: transparent; }
 
-/* 2. BARRA COMPACTA */
+/* 2. BARRA COMPACTA - AJUSTADA */
 #compact {
-  background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.4);
-  z-index: 20;
+  background: linear-gradient(135deg, #1f1f1f, #2a2a2a); color: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 4px 8px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,.4);
+  flex-shrink: 0; z-index: 10;
 }
-
 .compact-attrs span {
-  min-width: 45px;
-  padding: 4px 6px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
-  text-align: center;
+  min-width: 42px; padding: 2px 4px; background: rgba(255,255,255,0.08);
+  border-radius: 6px; font-weight: 600; font-size: 11px; text-align: center;
 }
 
-/* 3. PAINEL E CHAT DE FUNDO */
+/* 3. PAINEL E CHAT INTERNO */
 #panel {
   background: linear-gradient(180deg, #2b2b2b, #1e1e1e);
-  border-radius: 12px;
-  margin-bottom: 8px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.5);
-  position: relative;
-  display: none;
-  flex-direction: column;
-  height: 430px; /* Ajustado para o manifest 500 */
-  overflow: hidden;
+  border-radius: 12px; margin-bottom: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.5);
+  overflow-y: auto; max-height: 0; opacity: 0; transform: translateY(10px);
+  transition: max-height 0.3s ease-out, opacity 0.2s ease, transform 0.3s ease;
 }
-
-#panel.expanded { display: flex; }
+#panel.expanded { max-height: 520px; opacity: 1; padding: 10px; transform: translateY(0); }
 
 #custom-chat {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  overflow-y: auto;
-  z-index: 1;
-  padding: 15px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+  height: 140px; overflow-y: auto; background: rgba(0,0,0,0.3);
+  border-radius: 8px; padding: 8px; margin-bottom: 12px; font-size: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
 }
-
 .chat-entry {
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.5);
-  border-left: 3px solid #ffd700;
-  border-radius: 4px;
-  color: #ffffff !important; /* TEXTO BRANCO NO CHAT */
-  font-size: 14px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  margin-bottom: 4px; padding: 4px 8px; border-left: 3px solid #ffd700;
+  background: rgba(255,255,255,0.05); border-radius: 0 4px 4px 0;
 }
 
-#attributes {
-  position: relative;
-  z-index: 5;
-  margin-top: auto;
-  background: rgba(30, 30, 30, 0.9);
-  padding: 10px;
-  border-radius: 0 0 12px 12px;
-}
+/* 4. ITENS DOS ATRIBUTOS - ENXUTOS */
+.attribute { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 8px; margin-bottom: 4px; }
+.attr-name { width: 32px; height: 24px; border-radius: 6px; border: none; text-align: center; font-size: 11px; }
+.base { width: 35px; height: 24px; border-radius: 6px; border: none; text-align: center; }
+.mod-name { width: 50px; height: 22px; border-radius: 6px; border: none; font-size: 10px; }
+.mod-value { width: 32px; height: 22px; border-radius: 6px; border: none; }
+.mult { width: 30px; height: 24px; border-radius: 6px; border: none; }
+.result { min-width: 40px; font-size: 12px; background: rgba(0,0,0,0.3); border-radius: 6px; text-align: center; }
 
-/* 4. ATRIBUTOS (TAMANHOS ORIGINAIS REVERTIDOS) */
-.attribute { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; margin-bottom: 6px; }
-.attr-name { width: 38px; height: 28px; border-radius: 6px; border: none; text-align: center; font-weight: 700; background: rgba(255,255,255,0.6); }
-.base { width: 44px; height: 28px; border-radius: 6px; border: none; text-align: center; }
-.mod-item { display: flex; gap: 4px; }
-.mod-name { width: 72px; height: 26px; border-radius: 6px; border: none; padding-left: 6px; }
-.mod-value { width: 44px; height: 26px; border-radius: 6px; border: none; text-align: center; }
-.add, .rem { width: 26px; height: 26px; border-radius: 6px; border: none; background: rgba(255,255,255,0.2); color: white; cursor: pointer; }
-.mult { width: 40px; height: 28px; border-radius: 6px; border: none; text-align: center; }
-.result { min-width: 52px; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,0.5); font-weight: 700; text-align: center; color: #ffd700; }
-
-/* MODAL */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: transparent !important; display: flex; justify-content: center; align-items: center; z-index: 10000; pointer-events: none; }
+/* O RESTANTE DO SEU CSS DE MODAL CONTINUA IGUAL */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: transparent !important; z-index: 10000; display: flex; justify-content: center; align-items: center; pointer-events: none; }
 .modal-content { pointer-events: auto; background: #1e1e1e; color: white; padding: 25px; border-radius: 15px; border: 3px solid #fff; text-align: center; min-width: 280px; box-shadow: 0 0 30px rgba(0,0,0,0.8); position: relative; }
+#close-modal { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; }
+.dice-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 20px 0; font-size: 18px; }
+.dice-inputs input { width: 55px; padding: 8px; border-radius: 6px; border: none; text-align: center; font-size: 16px; font-weight: bold; }
+.use-attr-row { margin-bottom: 20px; font-size: 14px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; }
+#roll-button { width: 100%; padding: 12px; background: #ffd700; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+#roll-result { margin-top: 20px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; min-height: 24px; }
