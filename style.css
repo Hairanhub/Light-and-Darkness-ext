@@ -1,13 +1,11 @@
-body { margin: 0; font-family: "Segoe UI", sans-serif; background: transparent; overflow: hidden; }
-
-.setup-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: #1e1e1e; color: white; display: flex; justify-content: center; align-items: center; z-index: 9999;
+body { 
+  margin: 0; 
+  font-family: "Segoe UI", sans-serif; 
+  background: transparent; 
+  overflow: hidden; 
 }
-.setup-content { text-align: center; padding: 25px; border: 2px solid #ffd700; border-radius: 15px; background: #2a2a2a; width: 80%; }
-.setup-content input { padding: 12px; border-radius: 6px; border: none; width: 85%; margin-bottom: 15px; font-size: 16px; color: #000; }
-.setup-content button { padding: 12px; background: #ffd700; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 90%; color: #000; }
 
+/* CONTAINER PRINCIPAL: Ocupa a tela toda mas não bloqueia cliques */
 #widget { 
   position: fixed; 
   top: 0; 
@@ -17,38 +15,127 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; background: transparent; 
   z-index: 999; 
   display: flex;
   flex-direction: column;
-  pointer-events: none; /* Faz o clique ignorar o container vazio */
+  pointer-events: none; /* Cliques passam por ele */
 }
 
+/* ELEMENTOS QUE DEVEM RECEBER CLIQUE */
+#setup-screen, #chat-log, #compact, #panel, .modal-overlay, .modal-content {
+  pointer-events: auto; /* Devolve o clique para os botões e inputs */
+}
+
+/* TELA DE LOGIN */
+.setup-overlay {
+  position: fixed; 
+  top: 0; left: 0; 
+  width: 100%; height: 100%;
+  background: #1e1e1e; 
+  color: white; 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 9999;
+}
+
+.setup-content { 
+  text-align: center; 
+  padding: 25px; 
+  border: 2px solid #ffd700; 
+  border-radius: 15px; 
+  background: #2a2a2a; 
+  width: 80%; 
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.setup-content input { 
+  padding: 12px; 
+  border-radius: 6px; 
+  border: none; 
+  width: 85%; 
+  margin-bottom: 15px; 
+  font-size: 16px; 
+  color: #000; 
+}
+
+.setup-content button { 
+  padding: 12px; 
+  background: #ffd700; 
+  border: none; 
+  border-radius: 6px; 
+  font-weight: bold; 
+  cursor: pointer; 
+  width: 90%; 
+  color: #000; 
+}
+
+/* LOG DE CHAT (TELA CHEIA) */
 #chat-log {
-  flex-grow: 1; /* Faz o chat ocupar todo o espaço disponível */
-  overflow-y: auto;
+  flex-grow: 1; /* Faz o chat ocupar todo o espaço restante da tela */
+  overflow-y: auto; 
   background: rgba(0, 0, 0, 0.85);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
+  padding: 10px; 
+  display: flex; 
+  flex-direction: column; 
   gap: 6px;
   border-bottom: 2px solid rgba(255, 215, 0, 0.2);
 }
-.chat-msg { font-size: 11px; color: #eee; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 2px 0; }
+
+.chat-msg { 
+  font-size: 11px; 
+  color: #eee; 
+  border-bottom: 1px solid rgba(255,255,255,0.05); 
+  padding: 2px 0; 
+}
+
 .chat-msg b { color: #ffd700; }
 
+/* BARRA DE ATRIBUTOS (RODAPÉ) */
 #compact {
   background: linear-gradient(135deg, #1f1f1f, #2a2a2a);
-  padding: 10px 12px 18px 12px;
+  padding: 6px 12px 14px 12px; 
+  display: flex; 
+  justify-content: space-between;
+  align-items: center; 
+  position: relative; 
   z-index: 1000;
-  flex-shrink: 0; /* Impede a barra de "encolher" */
+  flex-shrink: 0; /* Impede a barra de ser esmagada pelo chat */
 }
+
 .compact-attrs { display: flex; gap: 4px; flex-grow: 1; }
-.compact-attrs span { min-width: 45px; padding: 4px 2px; background: rgba(255,255,255,0.1); border-radius: 6px; font-weight: 600; font-size: 13px; text-align: center; cursor: pointer; flex: 1; color: white; }
 
-#panel {
-  position: absolute; bottom: 44px; left: 0; width: 100%; background: #252525;
-  padding: 10px; z-index: 1100; max-height: 0; opacity: 0; transition: all 0.3s ease;
-  overflow-y: auto; pointer-events: none;
+.compact-attrs span { 
+  min-width: 45px; 
+  padding: 4px 2px; 
+  background: rgba(255,255,255,0.1); 
+  border-radius: 6px; 
+  font-weight: 600; 
+  font-size: 13px; 
+  text-align: center; 
+  cursor: pointer; 
+  flex: 1; 
+  color: white; 
 }
-#panel.expanded { max-height: 440px; opacity: 1; pointer-events: auto; }
 
+/* PAINEL DE EDIÇÃO (EXPANSÍVEL) */
+#panel {
+  position: absolute; 
+  bottom: 44px; 
+  left: 0; 
+  width: 100%; 
+  background: #252525;
+  padding: 10px; 
+  z-index: 1100; 
+  max-height: 0; 
+  opacity: 0; 
+  transition: all 0.3s ease;
+  overflow-y: auto; 
+}
+
+#panel.expanded { 
+  max-height: 440px; 
+  opacity: 1; 
+}
+
+/* ESTILO DOS ATRIBUTOS DENTRO DO PAINEL */
 .attribute { display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; margin-bottom: 6px; color: white; }
 .attr-name { width: 38px; height: 28px; border-radius: 6px; text-align: center; font-weight: bold; background: rgba(255,255,255,0.7); border: none; }
 .base, .mod-value, .mult { height: 28px; border-radius: 6px; border: none; text-align: center; width: 42px; }
@@ -58,8 +145,40 @@ body { margin: 0; font-family: "Segoe UI", sans-serif; background: transparent; 
 .add, .rem { width: 24px; height: 24px; border-radius: 4px; border: none; cursor: pointer; background: rgba(0,0,0,0.3); color: white; }
 .result { min-width: 50px; padding: 4px; border-radius: 6px; background: rgba(0,0,0,0.4); font-weight: bold; text-align: center; }
 
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-.modal-content { background: #1e1e1e; color: white; padding: 20px; border-radius: 12px; border: 2px solid #ffd700; text-align: center; min-width: 260px; position: relative;}
-#close-modal { position: absolute; top: 10px; right: 10px; background: none; border: 1px solid #ff4d4d; color: #ff4d4d; border-radius: 50%; cursor: pointer; }
+/* MODAL DE DADOS */
+.modal-overlay { 
+  position: fixed; 
+  top: 0; left: 0; 
+  width: 100vw; height: 100vh; 
+  background: rgba(0,0,0,0.8); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 10000; 
+}
+
+.modal-content { 
+  background: #1e1e1e; 
+  color: white; 
+  padding: 20px; 
+  border-radius: 12px; 
+  border: 2px solid #ffd700; 
+  text-align: center; 
+  min-width: 260px; 
+  position: relative;
+}
+
+#close-modal { 
+  position: absolute; 
+  top: 10px; right: 10px; 
+  background: none; 
+  border: 1px solid #ff4d4d; 
+  color: #ff4d4d; 
+  border-radius: 50%; 
+  cursor: pointer; 
+}
+
+.dice-inputs { display: flex; justify-content: center; align-items: center; gap: 5px; margin: 15px 0; }
+.dice-inputs input { width: 50px; padding: 8px; border-radius: 5px; border: none; text-align: center; font-weight: bold; }
 #roll-button { width: 100%; padding: 12px; background: #ffd700; color: black; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 #roll-result { margin-top: 15px; color: white; }
