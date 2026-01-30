@@ -2,6 +2,7 @@ const msgDiv = document.getElementById('messages');
 const input = document.getElementById('chatInput');
 const btn = document.getElementById('sendBtn');
 
+// Função para renderizar as mensagens
 function renderMsg(sender, text, color = "#ffffff") {
     const p = document.createElement('p');
     p.innerHTML = `<strong style="color: ${color}">${sender}:</strong> ${text}`;
@@ -15,12 +16,14 @@ async function init() {
     window.OBR.onReady(() => {
         console.log("SUCESSO: LD Chat Conectado e Ativo!");
 
-        // ESCUTAR: Aqui recebemos o que os outros enviam
+        // ESCUTAR: O receptor precisa disto para ver a mensagem do emissor
         window.OBR.party.onChatMessage((messages) => {
             if (Array.isArray(messages)) {
                 messages.forEach(msg => {
-                    // Renderiza a mensagem vinda da rede
-                    renderMsg(msg.senderName || "Jogador", msg.text, "#00ff88");
+                    // Se a mensagem existir, mostre na tela com cor verde
+                    if (msg.text) {
+                        renderMsg(msg.senderName || "Outro Jogador", msg.text, "#00ff88");
+                    }
                 });
             }
         });
@@ -31,10 +34,10 @@ async function sendMessage() {
     const text = input.value.trim();
     if (text && window.OBR) {
         try {
-            // ENVIAR: Manda para a sala do Owlbear
+            // ENVIAR: Manda para os outros
             await window.OBR.party.sendChatMessage([{ text: text }]);
             
-            // Renderiza na sua tela (local)
+            // MOSTRAR: Aparece para você na cor azul
             renderMsg("Você", text, "#44afff");
             
             input.value = '';
