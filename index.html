@@ -1,23 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rumble Bridge</title>
     <style>
-        body { background: #1a1a1a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
-        .card { background: #242424; padding: 15px; border-radius: 10px; border: 1px solid #444; }
-        button { background: #6200ee; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        #result { margin-top: 15px; font-size: 1.2rem; color: #03dac6; font-weight: bold; }
+        body { 
+            background: #1a1a1a; 
+            color: white; 
+            font-family: sans-serif; 
+            padding: 15px; 
+            text-align: center;
+        }
+        .card { 
+            background: #242424; 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid #333;
+        }
+        h3 { margin-top: 0; color: #bb86fc; }
+        button { 
+            background: #6200ee; 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            width: 100%; 
+            font-size: 1rem;
+        }
+        button:hover { background: #7c22ff; }
+        #result { 
+            margin-top: 15px; 
+            font-size: 1.1rem; 
+            color: #03dac6; 
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+
     <div class="card">
-        <h3>Rumble Dice Bridge</h3>
+        <h3>Rumble Dice</h3>
         <button id="roll-btn">Rolar 1d20 + 5</button>
-        <div id="result">Iniciando...</div>
+        <div id="result">Conectando...</div>
     </div>
 
-    <script src="https://unpkg.com/@owlbear-rodeo/sdk@3.1.0/dist/obr-sdk.js" defer></script>
-    
-    <script src="bridge.js" defer></script>
+    <script type="module" src="bridge.js"></script>
+
 </body>
 </html>
