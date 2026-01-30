@@ -9,18 +9,16 @@ function renderMsg(sender, text) {
     msgDiv.scrollTop = msgDiv.scrollHeight;
 }
 
-// O SDK do JSDelivr coloca o OBR direto na window
+// OBR agora virá do arquivo obr-sdk.js
 async function init() {
     if (typeof window.OBR === 'undefined') {
-        console.log("Aguardando SDK...");
-        setTimeout(init, 500);
+        console.error("SDK não encontrado no arquivo obr-sdk.js!");
         return;
     }
 
     window.OBR.onReady(() => {
-        console.log("LD Chat Conectado e Pronto!");
-
-        // Escuta mensagens
+        console.log("SUCESSO: LD Chat Conectado!");
+        
         window.OBR.party.onChatMessage((messages) => {
             messages.forEach(msg => {
                 renderMsg(msg.senderName || "Mestre", msg.text);
@@ -32,18 +30,12 @@ async function init() {
 async function sendMessage() {
     const text = input.value.trim();
     if (text && window.OBR) {
-        try {
-            await window.OBR.party.sendChatMessage([{ text: text }]);
-            input.value = '';
-        } catch (err) {
-            console.error("Erro ao enviar:", err);
-        }
+        await window.OBR.party.sendChatMessage([{ text: text }]);
+        input.value = '';
     }
 }
 
 btn.onclick = sendMessage;
-input.onkeydown = (e) => {
-    if (e.key === 'Enter') sendMessage();
-};
+input.onkeydown = (e) => { if (e.key === 'Enter') sendMessage(); };
 
 init();
