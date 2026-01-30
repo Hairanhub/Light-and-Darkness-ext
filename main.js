@@ -4,14 +4,13 @@ const btn = document.getElementById('sendBtn');
 
 const CHAT_KEY = "com.light-darkness.chat/metadata";
 
-let sceneReady = false;
+let canSend = false;
 
 /* =========================
-   RENDERIZAÇÃO DO CHAT
+   RENDER
 ========================= */
 function renderChat(messages) {
     if (!messages) return;
-
     msgDiv.innerHTML = '';
 
     messages.forEach(msg => {
@@ -24,45 +23,47 @@ function renderChat(messages) {
 }
 
 /* =========================
-   INICIALIZAÇÃO
+   INIT
 ========================= */
-async function init() {
+function init() {
     if (!window.OBR) {
         console.warn("OBR não encontrado");
         return;
     }
 
     window.OBR.onReady(async () => {
-        console.log("Chat LD: OBR pronto, aguardando cena...");
+        console.log("Chat LD: OBR Pronto. Verificando cena...");
 
-        // ESSENCIAL
-        await window.OBR.scene.ready();
-        sceneReady = true;
+        // Espera a cena EXISTIR
+        const waitScene = setInterval(async () => {
+            if (!window.OBR.scene) return;
 
-        console.log("Chat LD: Cena pronta e sincronizada!");
+            clearInterval(waitScene);
+            canSend = true;
 
-        // Escuta mudanças de metadata (multiplayer)
-        window.OBR.scene.onMetadataChange((metadata) => {
-            const chat = metadata[CHAT_KEY];
-            if (chat?.messages) {
-                renderChat(chat.messages);
+            console.log("Chat LD: Cena detectada. Chat liberado!");
+
+            // Escuta multiplayer
+            window.OBR.scene.onMetadataChange((metadata) => {
+                const chat = metadata[CHAT_KEY];
+                if (chat?.messages) renderChat(chat.messages);
+            });
+
+            // Load inicial
+            const metadata = await window.OBR.scene.getMetadata();
+            if (metadata[CHAT_KEY]?.messages) {
+                renderChat(metadata[CHAT_KEY].messages);
             }
-        });
-
-        // Carrega histórico inicial
-        const metadata = await window.OBR.scene.getMetadata();
-        if (metadata[CHAT_KEY]?.messages) {
-            renderChat(metadata[CHAT_KEY].messages);
-        }
+        }, 200);
     });
 }
 
 /* =========================
-   ENVIO DE MENSAGEM
+   SEND
 ========================= */
 async function sendMessage() {
-    if (!sceneReady) {
-        console.warn("Cena ainda não está pronta");
+    if (!canSend) {
+        console.warn("Chat ainda não pronto");
         return;
     }
 
@@ -72,8 +73,8 @@ async function sendMessage() {
     try {
         const playerName = await window.OBR.player.getName();
 
-        const fullMetadata = await window.OBR.scene.getMetadata();
-        const chatData = fullMetadata[CHAT_KEY] || { messages: [] };
+        const metadata = await window.OBR.scene.getMetadata();
+        const chatData = metadata[CHAT_KEY] || { messages: [] };
 
         chatData.messages.push({
             user: playerName,
@@ -81,27 +82,25 @@ async function sendMessage() {
             time: Date.now()
         });
 
-        if (chatData.messages.length > 40) {
-            chatData.messages.shift();
-        }
+        if (chatData.messages.length > 40) chatData.messages.shift();
 
         await window.OBR.scene.setMetadata({
-            ...fullMetadata,
+            ...metadata,
             [CHAT_KEY]: chatData
         });
 
         input.value = '';
         input.focus();
-    } catch (err) {
-        console.error("Erro ao enviar mensagem:", err);
+    } catch (e) {
+        console.error("Erro ao enviar:", e);
     }
 }
 
 /* =========================
-   EVENTOS
+   EVENTS
 ========================= */
 btn.addEventListener('click', sendMessage);
-input.addEventListener('keydown', (e) => {
+input.addEventListener('keydown', e => {
     if (e.key === 'Enter') sendMessage();
 });
 
