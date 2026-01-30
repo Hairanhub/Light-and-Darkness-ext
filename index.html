@@ -1,28 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Rumble Bridge Test</title>
-  <style>
-    body { background: #1a1a1a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
-    .card { background: #242424; padding: 15px; border-radius: 10px; border: 1px solid #444; }
-    button { 
-      background: #6200ee; color: white; border: none; padding: 12px 20px; 
-      border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%;
-    }
-    button:hover { background: #7c22ff; }
-    #result { margin-top: 15px; font-size: 1.2rem; color: #03dac6; font-weight: bold; }
-    .info { font-size: 0.8rem; color: #888; margin-bottom: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <style>
+        body { background: #1a1a1a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
+        .card { background: #242424; padding: 15px; border-radius: 10px; border: 1px solid #444; }
+        button { background: #6200ee; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        #result { margin-top: 15px; font-size: 1.2rem; color: #03dac6; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h3>Rumble Dice Bridge</h3>
-    <p class="info">Selecione um token no mapa para testar</p>
-    <button id="roll-btn">Rolar 1d20 + 5</button>
-    <div id="result">--</div>
-  </div>
+    <div class="card">
+        <h3>Rumble Dice Bridge</h3>
+        <button id="roll-btn">Rolar 1d20 + 5</button>
+        <div id="result">Aguardando...</div>
+    </div>
 
-  <script type="module" src="bridge.js"></script>
+    <script src="https://unpkg.com/@owlbear-rodeo/sdk@3.1.0/dist/obr-sdk.js"></script>
+    
+    <script src="bridge.js"></script>
 </body>
 </html>
