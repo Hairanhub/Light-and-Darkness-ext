@@ -1,98 +1,53 @@
-/* PAINEL DE ATRIBUTOS EXPANDIDO - AJUSTADO */
+/* ESTILOS GERAIS */
+body { 
+  margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; 
+  background-color: #0a0a0b; color: #e0e0e0; height: 100vh;
+  display: flex; justify-content: center; overflow: hidden;
+}
+
+#widget { 
+  width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column;
+  background: rgba(20, 20, 20, 0.95); position: relative; border-left: 1px solid #333; border-right: 1px solid #333;
+}
+
+/* LOGIN */
+.setup-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a;
+  display: flex; justify-content: center; align-items: center; z-index: 9999;
+}
+.setup-content { 
+  text-align: center; padding: 30px; border: 1px solid #ffd700; border-radius: 15px; 
+  background: #151515; width: 280px;
+}
+.setup-content input { padding: 10px; width: 80%; margin-bottom: 10px; background: #000; color: #fff; border: 1px solid #444; }
+.setup-content button { padding: 12px; background: #ffd700; border: none; width: 100%; cursor: pointer; font-weight: bold; }
+
+/* CHAT */
+#chat-log { 
+  flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px;
+  scrollbar-width: thin; scrollbar-color: #ffd700 #111;
+}
+.chat-msg { 
+  font-size: 13px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px;
+  border-left: 4px solid var(--user-color, #ffd700); align-self: flex-start; max-width: 90%;
+}
+.chat-msg b { color: var(--user-color, #ffd700); font-size: 11px; display: block; }
+
+/* RODAPÉ COMPACTO */
+#compact { background: #111; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #333; }
+.compact-attrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; flex-grow: 1; }
+.compact-attrs span { 
+  padding: 6px 2px; background: #1a1a1a; border-radius: 4px; font-size: 10px; 
+  text-align: center; border: 1px solid #222; cursor: pointer; font-weight: bold;
+}
+#toggle { background: #ffd700; border: none; width: 35px; height: 35px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+/* PAINEL DE ATRIBUTOS (O QUE FOI ENCOLHIDO) */
 #panel {
-  position: absolute; 
-  bottom: 75px; 
-  left: 0; 
-  width: 100%; 
-  background: #151515; 
-  z-index: 1000; 
-  max-height: 0; 
-  opacity: 0; 
-  transition: all 0.4s ease; 
-  overflow-y: auto;
-  border-top: 2px solid #ffd700;
-  scrollbar-width: thin;
+  position: absolute; bottom: 55px; left: 0; width: 100%; background: #151515; 
+  z-index: 1000; max-height: 0; opacity: 0; transition: 0.4s; overflow-y: auto; border-top: 2px solid #ffd700;
 }
+#panel.expanded { max-height: 50vh; opacity: 1; padding: 10px 0; }
 
-#panel.expanded { 
-  max-height: 60vh; /* Ajustado para não cobrir a tela toda */
-  opacity: 1; 
-  padding: 10px 0; 
-}
-
-/* LINHA DE ATRIBUTO - MAIS COMPACTA */
 .attribute { 
-  display: flex; 
-  align-items: center; 
-  gap: 4px; /* Reduzido o espaço entre elementos */
-  padding: 6px 8px; 
-  margin: 0 8px 6px 8px; 
-  border-radius: 8px; 
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.05);
-}
-
-/* AJUSTE DOS INPUTS PARA CABEREM NA LINHA */
-.attr-name { 
-  width: 38px !important; /* Nome menor */
-  height: 28px; 
-  font-size: 11px; 
-  border-radius: 4px; 
-  font-weight: 900;
-}
-
-.base, .mult { 
-  width: 32px !important; /* Caixas de número menores */
-  height: 28px; 
-  font-size: 12px;
-  border-radius: 4px;
-}
-
-/* MODIFICADORES EM MINIATURA */
-.mods { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 2px;
-}
-
-.mod-item { 
-  display: flex; 
-  gap: 2px; 
-}
-
-.mod-name { 
-  width: 45px !important; /* Reduzido de 65px */
-  height: 22px; 
-  font-size: 9px; 
-}
-
-.mod-value { 
-  width: 28px !important; /* Reduzido de 35px */
-  height: 22px; 
-  font-size: 10px;
-}
-
-/* BOTÕES DE ADICIONAR/REMOVER MODIFICADORES */
-.add, .rem { 
-  width: 22px; 
-  height: 22px; 
-  font-size: 14px;
-  min-width: 22px;
-}
-
-/* RESULTADO FINAL DA LINHA */
-.result { 
-  font-size: 16px; 
-  min-width: 35px; 
-  color: #ffd700;
-  text-align: right;
-  font-weight: 800;
-}
-
-/* AJUSTE PARA CELULARES MUITO PEQUENOS */
-@media (max-width: 400px) {
-  .attribute { padding: 4px; gap: 2px; }
-  .attr-name { width: 32px !important; }
-  .base, .mult { width: 28px !important; }
-  .mod-name { width: 35px !important; }
-}
+  display: flex; align-items:
