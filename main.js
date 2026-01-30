@@ -1,88 +1,108 @@
 const msgDiv = document.getElementById('messages');
 const input = document.getElementById('chatInput');
 const btn = document.getElementById('sendBtn');
+
 const CHAT_KEY = "com.light-darkness.chat/metadata";
 
+let sceneReady = false;
+
+/* =========================
+   RENDERIZAÇÃO DO CHAT
+========================= */
 function renderChat(messages) {
     if (!messages) return;
-    msgDiv.innerHTML = ''; 
+
+    msgDiv.innerHTML = '';
+
     messages.forEach(msg => {
         const p = document.createElement('p');
-        p.innerHTML = `<strong style="color: #44afff">${msg.user}:</strong> ${msg.text}`;
+        p.innerHTML = `<strong style="color:#44afff">${msg.user}:</strong> ${msg.text}`;
         msgDiv.appendChild(p);
     });
+
     msgDiv.scrollTop = msgDiv.scrollHeight;
 }
 
+/* =========================
+   INICIALIZAÇÃO
+========================= */
 async function init() {
-    if (typeof window.OBR === 'undefined') return;
+    if (!window.OBR) {
+        console.warn("OBR não encontrado");
+        return;
+    }
 
     window.OBR.onReady(async () => {
-        console.log("Chat LD: OBR Pronto. Verificando módulos...");
+        console.log("Chat LD: OBR pronto, aguardando cena...");
 
-        // Aguarda um pequeno delay para garantir que scene e player existam
-        const checkModules = setInterval(async () => {
-            if (window.OBR.scene && window.OBR.player) {
-                clearInterval(checkModules);
-                console.log("Módulos detectados!");
+        // ESSENCIAL
+        await window.OBR.scene.ready();
+        sceneReady = true;
 
-                // ESCUTAR MUDANÇAS
-                window.OBR.scene.onMetadataChange((metadata) => {
-                    const data = metadata[CHAT_KEY];
-                    if (data && data.messages) {
-                        renderChat(data.messages);
-                    }
-                });
+        console.log("Chat LD: Cena pronta e sincronizada!");
 
-                // CARREGAR INICIAL
-                const metadata = await window.OBR.scene.getMetadata();
-                if (metadata[CHAT_KEY]) {
-                    renderChat(metadata[CHAT_KEY].messages);
-                }
+        // Escuta mudanças de metadata (multiplayer)
+        window.OBR.scene.onMetadataChange((metadata) => {
+            const chat = metadata[CHAT_KEY];
+            if (chat?.messages) {
+                renderChat(chat.messages);
             }
-        }, 300);
+        });
+
+        // Carrega histórico inicial
+        const metadata = await window.OBR.scene.getMetadata();
+        if (metadata[CHAT_KEY]?.messages) {
+            renderChat(metadata[CHAT_KEY].messages);
+        }
     });
 }
 
+/* =========================
+   ENVIO DE MENSAGEM
+========================= */
 async function sendMessage() {
+    if (!sceneReady) {
+        console.warn("Cena ainda não está pronta");
+        return;
+    }
+
     const text = input.value.trim();
-    if (!text || !window.OBR.scene || !window.OBR.player) return;
+    if (!text) return;
 
     try {
-        // Fallback seguro para o nome
-        let playerName = "Jogador";
-        try { playerName = await window.OBR.player.getName(); } catch (e) {}
+        const playerName = await window.OBR.player.getName();
 
-        // PEGAR METADATA ATUAL COMPLETO
         const fullMetadata = await window.OBR.scene.getMetadata();
-        
-        // Pega as mensagens ou cria array novo
         const chatData = fullMetadata[CHAT_KEY] || { messages: [] };
 
-        // Adiciona nova mensagem
         chatData.messages.push({
             user: playerName,
-            text: text,
+            text,
             time: Date.now()
         });
 
-        // Limite de 40 mensagens
-        if (chatData.messages.length > 40) chatData.messages.shift();
+        if (chatData.messages.length > 40) {
+            chatData.messages.shift();
+        }
 
-        // O PULO DO GATO: Fazemos o merge para não apagar outros dados da cena
-        const newMetadata = { ...fullMetadata }; // Copia tudo que já existe
-        newMetadata[CHAT_KEY] = chatData;        // Atualiza/Adiciona só o chat
-
-        await window.OBR.scene.setMetadata(newMetadata);
+        await window.OBR.scene.setMetadata({
+            ...fullMetadata,
+            [CHAT_KEY]: chatData
+        });
 
         input.value = '';
         input.focus();
     } catch (err) {
-        console.error("Erro ao sincronizar:", err);
+        console.error("Erro ao enviar mensagem:", err);
     }
 }
 
-btn.onclick = sendMessage;
-input.onkeydown = (e) => { if (e.key === 'Enter') sendMessage(); };
+/* =========================
+   EVENTOS
+========================= */
+btn.addEventListener('click', sendMessage);
+input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
 
 init();
