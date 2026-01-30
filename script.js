@@ -1,53 +1,59 @@
 import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@latest/dist/obr-sdk.js";
 
-const ID_CANAL = "LD_CHAT_ROOM_V2";
+const CHANNEL_ID = "com.light_and_darkness.chat_v2";
 
-function adicionarMensagem(autor, texto, ehMinha) {
+// Função para renderizar as mensagens de forma segura
+function renderMsg(name, text, isMe) {
     const log = document.getElementById("log");
-    if (!log) {
-        console.error("Elemento #log não encontrado!");
-        return;
-    }
+    if (!log) return; // Evita o erro de 'appendChild'
+
     const div = document.createElement("div");
-    div.className = ehMinha ? "msg me" : "msg";
-    div.innerHTML = `<b>${autor}</b>${texto}`;
+    div.className = isMe ? "msg me" : "msg";
+    div.innerHTML = `<b>${name}</b><span>${text}</span>`;
+    
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
 }
 
-// Só roda quando o OBR avisar que está pronto
-OBR.onReady(() => {
-    console.log("LD Chat: OBR Ready!");
+OBR.onReady(async () => {
+    console.log("LD Chat: Iniciado");
     
-    const campo = document.getElementById("chat-input");
+    const input = document.getElementById("chat-input");
+    if (!input) return;
 
-    // Escuta mensagens de outros
-    OBR.room.onMessage(ID_CANAL, (dados) => {
-        if (dados && dados.msg) {
-            adicionarMensagem(dados.nome || "Anônimo", dados.msg, false);
+    // ESCUTAR mensagens de outros
+    OBR.room.onMessage(CHANNEL_ID, (data) => {
+        if (data && data.msg) {
+            renderMsg(data.user || "Inominável", data.msg, false);
         }
     });
 
-    // Envio ao apertar Enter
-    campo.addEventListener("keydown", async (evento) => {
-        if (evento.key === "Enter") {
-            const texto = campo.value.trim();
-            if (!texto) return;
+    // ENVIAR mensagem
+    input.addEventListener("keydown", async (e) => {
+        if (e.key === "Enter") {
+            const message = input.value.trim();
+            if (!message) return;
 
             try {
-                const meuNome = await OBR.player.getName();
-                
+                // Tenta pegar o nome do player, usa "Mestre/Jogador" se falhar
+                let userName = "Jogador";
+                try {
+                    userName = await OBR.player.getName();
+                } catch (e) {
+                    console.warn("Usando nome genérico por restrição de política.");
+                }
+
                 // Envia para a sala
-                await OBR.room.sendMessage(ID_CANAL, { 
-                    nome: meuNome, 
-                    msg: texto 
+                await OBR.room.sendMessage(CHANNEL_ID, { 
+                    user: userName, 
+                    msg: message 
                 });
 
-                // Renderiza localmente
-                adicionarMensagem(meuNome, texto, true);
-                campo.value = "";
-            } catch (erro) {
-                console.error("Falha no envio:", erro);
+                // Mostra na própria tela
+                renderMsg(userName, message, true);
+                input.value = "";
+            } catch (err) {
+                console.error("Erro no fluxo de envio:", err);
             }
         }
     });
