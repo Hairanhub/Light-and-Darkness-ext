@@ -1,5 +1,3 @@
-import OBR from "@owlbear-rodeo/sdk";
-
 const msgDiv = document.getElementById('messages');
 const input = document.getElementById('chatInput');
 const btn = document.getElementById('sendBtn');
@@ -11,24 +9,31 @@ function renderMsg(sender, text) {
     msgDiv.scrollTop = msgDiv.scrollHeight;
 }
 
-// Inicialização direta do SDK
-OBR.onReady(async () => {
-    console.log("Conectado ao Owlbear via Módulo!");
+// O SDK do JSDelivr coloca o OBR direto na window
+async function init() {
+    if (typeof window.OBR === 'undefined') {
+        console.log("Aguardando SDK...");
+        setTimeout(init, 500);
+        return;
+    }
 
-    // Escuta mensagens recebidas
-    OBR.party.onChatMessage((messages) => {
-        messages.forEach(msg => {
-            renderMsg(msg.senderName || "Sistema", msg.text);
+    window.OBR.onReady(() => {
+        console.log("LD Chat Conectado e Pronto!");
+
+        // Escuta mensagens
+        window.OBR.party.onChatMessage((messages) => {
+            messages.forEach(msg => {
+                renderMsg(msg.senderName || "Mestre", msg.text);
+            });
         });
     });
-});
+}
 
 async function sendMessage() {
     const text = input.value.trim();
-    if (text) {
+    if (text && window.OBR) {
         try {
-            // OBR já está disponível pelo import
-            await OBR.party.sendChatMessage([{ text: text }]);
+            await window.OBR.party.sendChatMessage([{ text: text }]);
             input.value = '';
         } catch (err) {
             console.error("Erro ao enviar:", err);
@@ -36,8 +41,9 @@ async function sendMessage() {
     }
 }
 
-// Eventos
 btn.onclick = sendMessage;
 input.onkeydown = (e) => {
     if (e.key === 'Enter') sendMessage();
 };
+
+init();
