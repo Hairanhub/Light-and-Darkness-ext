@@ -2,9 +2,12 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LD Chat</title>
-  <script src="https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@latest/dist/main.js"></script>
+  <script 
+    src="https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@latest/dist/main.js" 
+    onload="console.log('Arquivo do SDK baixado com sucesso!')"
+    onerror="console.error('ERRO: O navegador bloqueou o carregamento do SDK!')">
+  </script>
   <style>
     body { font-family: sans-serif; color: white; background: #242424; padding: 10px; margin: 0; display: flex; flex-direction: column; height: 95vh; }
     #messages { flex-grow: 1; overflow-y: auto; border: 1px solid #444; margin-bottom: 10px; padding: 10px; background: #1a1a1a; }
@@ -20,7 +23,6 @@
     <input type="text" id="chatInput" placeholder="Mensagem...">
     <button id="sendBtn">Enviar</button>
   </div>
-
   <script src="main.js"></script>
 </body>
 </html>
