@@ -1,4 +1,4 @@
-// Configurações do seu Firebase (conforme seu print)
+// CONFIGURAÇÕES DO FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyAtDr19A4a_XkTuCpUotp0ReSgGQ37BNsw",
   authDomain: "light-and-darkness-project.firebaseapp.com",
@@ -57,6 +57,7 @@ function initWidget() {
   let currentAttrColor = "#ffd700";
   const diceModal = document.getElementById("dice-modal");
 
+  // Função para adicionar mensagem visualmente
   function addMsg(sender, text, color) {
     if (!chatLog) return;
     const div = document.createElement("div");
@@ -67,16 +68,18 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // ESCUTAR MENSAGENS EM TEMPO REAL DO FIREBASE
+  // Escuta o Firebase em tempo real
   chatRef.limitToLast(30).on('child_added', (snapshot) => {
-    const msg = snapshot.val();
-    addMsg(msg.sender, msg.text, msg.color);
+    const data = snapshot.val();
+    addMsg(data.sender, data.text, data.color);
   });
 
   function createAttribute(idx) {
     const div = document.createElement("div");
     div.className = "attribute";
-    div.style.background = defaults[idx].c;
+    // Define a cor da borda esquerda conforme o padrão
+    div.style.borderLeft = `4px solid ${defaults[idx].c}`;
+    
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <input type="number" class="base" value="0">
@@ -87,8 +90,10 @@ function initWidget() {
           <input type="number" class="mod-value" value="0">
         </div>
       </div>
-      <button class="add">+</button>
-      <button class="rem">-</button>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <button class="add">+</button>
+        <button class="rem">-</button>
+      </div>
       <div class="result">0</div>
     `;
 
@@ -120,11 +125,13 @@ function initWidget() {
 
   defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
 
+  // Toggle do Painel
   toggleBtn.onclick = () => {
     panel.classList.toggle("expanded");
     toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
   };
 
+  // Abrir Modal de Dados
   compactSpans.forEach((s, i) => {
     if (s) {
       s.onclick = () => {
@@ -139,8 +146,15 @@ function initWidget() {
     }
   });
 
+  // Fechar Modal
   document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
+  
+  // FECHAR AO CLICAR FORA
+  diceModal.onclick = (e) => {
+    if (e.target === diceModal) diceModal.style.display = "none";
+  };
 
+  // Lógica de Rolar Dados
   document.getElementById("roll-button").onclick = () => {
     const q = +document.getElementById("dice-qty").value || 1;
     const f = +document.getElementById("dice-faces").value || 20;
@@ -164,16 +178,16 @@ function initWidget() {
     if (mManual !== 0) detalhes += ` + ${mManual}(Mod)`;
 
     const coloredAttr = `<span style="color: ${currentAttrColor}; font-weight: bold; text-shadow: 1px 1px 2px #000;">${attrName}</span>`;
-    const txt = `rolou ${coloredAttr}: **${total}** ${detalhes}`;
+    const txt = `rolou ${coloredAttr}: <b>${total}</b> <br><small style="color:#888">${detalhes}</small>`;
 
-    document.getElementById("roll-result").innerHTML = `<div style="font-size: 1.8rem; color: #ffd700;">Total: ${total}</div>`;
-
-    // ENVIAR PARA O FIREBASE
+    // Enviar para o Firebase
     chatRef.push({
       sender: playerName,
       text: txt,
       color: playerColor,
       timestamp: Date.now()
     });
+
+    diceModal.style.display = "none";
   };
 }
