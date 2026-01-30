@@ -1,72 +1,20 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Calculadora de Atributos & Dados</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
+  <title>Social Chat</title>
 </head>
 <body>
 
-<div id="setup-screen" class="setup-overlay">
-  <div class="setup-content">
-    <h2 style="color: #ffd700; margin-top: 0; letter-spacing: 1px;">SISTEMA DE MESA</h2>
-    
-    <p style="font-size: 14px; color: #aaa; margin-bottom: 8px;">Nome do Personagem:</p>
-    <input type="text" id="user-name-input" placeholder="Ex: Legolas">
-    
-    <p style="font-size: 14px; color: #aaa; margin-top: 10px; margin-bottom: 8px;">Sua Cor no Chat:</p>
-    <div style="display: flex; justify-content: center;">
-      <input type="color" id="user-color-input" value="#ffd700" style="width: 100%; height: 45px; cursor: pointer; border: none; background: none;">
+  <div id="chat-log">
     </div>
-    
-    <button id="start-btn" style="margin-top: 25px;">ENTRAR NA MESA</button>
+
+  <div class="input-area">
+    <input type="text" id="chat-input" placeholder="Conversar com o grupo..." autocomplete="off">
   </div>
-</div>
 
-<div id="main-content" style="display: none;">
-  <div id="widget">
-    <div id="chat-log"></div>
-
-    <div id="compact">
-      <div class="compact-attrs">
-        <span id="c0"></span><span id="c1"></span><span id="c2"></span>
-        <span id="c3"></span><span id="c4"></span><span id="c5"></span>
-      </div>
-      <button id="toggle">▲</button>
-    </div>
-
-    <div id="panel">
-      <div id="attributes"></div>
-    </div>
-  </div>
-</div>
-
-<div id="dice-modal" class="modal-overlay" style="display: none;">
-  <div id="dice-container" class="modal-content">
-    <button id="close-modal">✖</button>
-    <h3 id="modal-attr-name" style="color: #ffd700; margin-top: 0;">ATRIBUTO</h3>
-    
-    <div class="dice-inputs">
-      <input type="number" id="dice-qty" value="1" min="1">
-      <span style="font-size: 24px; font-weight: bold; color: #888;">d</span>
-      <input type="number" id="dice-faces" value="20" min="2">
-      <span style="font-size: 24px; font-weight: bold; color: #888;">+</span>
-      <input type="number" id="dice-mod" value="0">
-    </div>
-
-    <div class="use-attr-row" style="margin-bottom: 20px;">
-      <label style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <input type="checkbox" id="use-attr-check" checked style="width: 18px; height: 18px;"> 
-        Somar valor: <span id="modal-attr-value" style="font-weight: 800; color: #ffd700;">0</span>
-      </label>
-    </div>
-
-    <button id="roll-button">ROLAR DADOS</button>
-    <div id="roll-result"></div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/@owlbear-rodeo/sdk"></script>
-<script src="script.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
