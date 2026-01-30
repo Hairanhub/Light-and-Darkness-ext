@@ -1,4 +1,3 @@
-// CONFIGURAÇÕES DO FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyAtDr19A4a_XkTuCpUotp0ReSgGQ37BNsw",
   authDomain: "light-and-darkness-project.firebaseapp.com",
@@ -9,7 +8,6 @@ const firebaseConfig = {
   measurementId: "G-1H7M2QN8JZ"
 };
 
-// Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const chatRef = database.ref('mensagens');
@@ -19,22 +17,16 @@ let playerColor = "#ffd700";
 
 window.onload = () => {
   const startBtn = document.getElementById("start-btn");
-  const nameInput = document.getElementById("user-name-input");
-  const colorInput = document.getElementById("user-color-input");
-  const setupScreen = document.getElementById("setup-screen");
-  const mainContent = document.getElementById("main-content");
-
   if (startBtn) {
     startBtn.onclick = () => {
-      const name = nameInput.value.trim();
-      if (name) {
-        playerName = name;
+      const nameInput = document.getElementById("user-name-input");
+      const colorInput = document.getElementById("user-color-input");
+      if (nameInput.value.trim()) {
+        playerName = nameInput.value.trim();
         playerColor = colorInput.value;
-        setupScreen.style.display = "none";
-        mainContent.style.display = "block";
-      } else { 
-        alert("Por favor, digite seu nome!"); 
-      }
+        document.getElementById("setup-screen").style.display = "none";
+        document.getElementById("main-content").style.display = "block";
+      } else { alert("Por favor, introduz o teu nome!"); }
     };
   }
   initWidget();
@@ -45,6 +37,7 @@ function initWidget() {
   const panel = document.getElementById("panel");
   const toggleBtn = document.getElementById("toggle");
   const chatLog = document.getElementById("chat-log");
+  const diceModal = document.getElementById("dice-modal");
   const compactSpans = [0, 1, 2, 3, 4, 5].map(i => document.getElementById(`c${i}`));
 
   const defaults = [
@@ -55,11 +48,8 @@ function initWidget() {
 
   let currentVal = 0;
   let currentAttrColor = "#ffd700";
-  const diceModal = document.getElementById("dice-modal");
 
-  // Função para adicionar mensagem visualmente
   function addMsg(sender, text, color) {
-    if (!chatLog) return;
     const div = document.createElement("div");
     div.className = "chat-msg";
     div.style.setProperty('--user-color', color);
@@ -68,52 +58,41 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  // Escuta o Firebase em tempo real
   chatRef.limitToLast(30).on('child_added', (snapshot) => {
-    const data = snapshot.val();
-    addMsg(data.sender, data.text, data.color);
+    const d = snapshot.val();
+    addMsg(d.sender, d.text, d.color);
   });
 
   function createAttribute(idx) {
     const div = document.createElement("div");
     div.className = "attribute";
-    // Define a cor da borda esquerda conforme o padrão
     div.style.borderLeft = `4px solid ${defaults[idx].c}`;
-    
     div.innerHTML = `
       <input class="attr-name" maxlength="3" value="${defaults[idx].n}">
       <input type="number" class="base" value="0">
       <input type="number" class="mult" value="1">
-      <div class="mods">
-        <div class="mod-item">
-          <input class="mod-name" value="MOD">
-          <input type="number" class="mod-value" value="0">
-        </div>
-      </div>
+      <div class="mods"><div class="mod-item"><input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0"></div></div>
       <div style="display: flex; flex-direction: column; gap: 2px;">
-        <button class="add">+</button>
-        <button class="rem">-</button>
+        <button class="add">+</button><button class="rem">-</button>
       </div>
       <div class="result">0</div>
     `;
 
     const update = () => {
-      const name = div.querySelector(".attr-name").value.toUpperCase();
       const base = +div.querySelector(".base").value || 0;
       const mult = +div.querySelector(".mult").value || 1;
       const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
       const res = (base + mods) * mult;
       div.querySelector(".result").innerText = res;
+      const name = div.querySelector(".attr-name").value.toUpperCase();
       if (compactSpans[idx]) compactSpans[idx].innerText = `${name} ${res}`;
     };
 
     div.addEventListener("input", update);
     div.querySelector(".add").onclick = () => {
-      const m = document.createElement("div");
-      m.className = "mod-item";
+      const m = document.createElement("div"); m.className = "mod-item";
       m.innerHTML = `<input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0">`;
-      div.querySelector(".mods").appendChild(m);
-      update();
+      div.querySelector(".mods").appendChild(m); update();
     };
     div.querySelector(".rem").onclick = () => {
       const items = div.querySelectorAll(".mod-item");
@@ -125,36 +104,29 @@ function initWidget() {
 
   defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
 
-  // Toggle do Painel
   toggleBtn.onclick = () => {
     panel.classList.toggle("expanded");
     toggleBtn.textContent = panel.classList.contains("expanded") ? "▼" : "▲";
   };
 
-  // Abrir Modal de Dados
   compactSpans.forEach((s, i) => {
-    if (s) {
-      s.onclick = () => {
-        const p = s.innerText.split(" ");
-        currentVal = parseInt(p[1]) || 0;
-        currentAttrColor = defaults[i].c;
-        diceModal.style.display = "flex";
-        document.getElementById("modal-attr-name").innerText = p[0];
-        document.getElementById("modal-attr-value").innerText = p[1];
-        document.getElementById("roll-result").innerHTML = "";
-      };
-    }
+    s.onclick = () => {
+      const p = s.innerText.split(" ");
+      currentVal = parseInt(p[1]) || 0;
+      currentAttrColor = defaults[i].c;
+      diceModal.style.display = "flex";
+      document.getElementById("modal-attr-name").innerText = p[0];
+      document.getElementById("modal-attr-value").innerText = p[1];
+    };
   });
 
-  // Fechar Modal
   document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
-  
-  // FECHAR AO CLICAR FORA
-  diceModal.onclick = (e) => {
-    if (e.target === diceModal) diceModal.style.display = "none";
-  };
 
-  // Lógica de Rolar Dados
+  // FECHAR AO CLICAR FORA (MÉTODO ROBUSTO)
+  window.addEventListener('click', (e) => {
+    if (e.target === diceModal) diceModal.style.display = "none";
+  });
+
   document.getElementById("roll-button").onclick = () => {
     const q = +document.getElementById("dice-qty").value || 1;
     const f = +document.getElementById("dice-faces").value || 20;
@@ -165,29 +137,17 @@ function initWidget() {
     for (let i = 0; i < q; i++) {
       let r = Math.floor(Math.random() * f) + 1;
       sum += r;
-      if (r === f) raw.push(`<span class="die-crit">${r}</span>`);
-      else if (r === 1) raw.push(`<span class="die-fail">${r}</span>`);
+      if (r === f) raw.push(`<span style="color:#00ff88;font-weight:bold">${r}</span>`);
+      else if (r === 1) raw.push(`<span style="color:#ff4d4d;font-weight:bold">${r}</span>`);
       else raw.push(r);
     }
 
     const total = sum + bAttr + mManual;
     const attrName = document.getElementById("modal-attr-name").innerText;
-    
-    let detalhes = `${q}d${f}[${raw.join('+')}]`;
-    if (bAttr !== 0) detalhes += ` + ${bAttr}(Atrib)`;
-    if (mManual !== 0) detalhes += ` + ${mManual}(Mod)`;
+    let detalhes = `${q}d${f}[${raw.join('+')}] + ${bAttr}(Atrib) + ${mManual}(Mod)`;
+    const txt = `rolou <span style="color:${currentAttrColor};font-weight:bold">${attrName}</span>: <b>${total}</b><br><small style="color:#888">${detalhes}</small>`;
 
-    const coloredAttr = `<span style="color: ${currentAttrColor}; font-weight: bold; text-shadow: 1px 1px 2px #000;">${attrName}</span>`;
-    const txt = `rolou ${coloredAttr}: <b>${total}</b> <br><small style="color:#888">${detalhes}</small>`;
-
-    // Enviar para o Firebase
-    chatRef.push({
-      sender: playerName,
-      text: txt,
-      color: playerColor,
-      timestamp: Date.now()
-    });
-
+    chatRef.push({ sender: playerName, text: txt, color: playerColor, timestamp: Date.now() });
     diceModal.style.display = "none";
   };
 }
