@@ -1,138 +1,98 @@
-/* RESET E ESTILO GERAL */
-body { 
-  margin: 0; 
-  padding: 0;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-  background-color: #0a0a0b; /* Fundo escuro profundo */
-  background-image: radial-gradient(circle at center, #1a1a1d 0%, #050505 100%);
-  color: #e0e0e0;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  overflow: hidden; /* Evita scroll na página inteira, controlamos nos elementos */
-}
-
-/* CONTAINER PRINCIPAL CENTRALIZADO */
-#widget { 
+/* PAINEL DE ATRIBUTOS EXPANDIDO - AJUSTADO */
+#panel {
+  position: absolute; 
+  bottom: 75px; 
+  left: 0; 
   width: 100%; 
-  max-width: 900px; /* Limita a largura para não esticar demais em monitores grandes */
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: rgba(20, 20, 20, 0.8);
-  border-left: 1px solid #333;
-  border-right: 1px solid #333;
-  box-shadow: 0 0 50px rgba(0,0,0,0.5);
-  position: relative;
+  background: #151515; 
+  z-index: 1000; 
+  max-height: 0; 
+  opacity: 0; 
+  transition: all 0.4s ease; 
+  overflow-y: auto;
+  border-top: 2px solid #ffd700;
+  scrollbar-width: thin;
 }
 
-/* TELA DE LOGIN (SETUP) */
-.setup-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: #0a0a0a;
-  display: flex; justify-content: center; align-items: center; z-index: 9999;
+#panel.expanded { 
+  max-height: 60vh; /* Ajustado para não cobrir a tela toda */
+  opacity: 1; 
+  padding: 10px 0; 
 }
-.setup-content { 
-  text-align: center; padding: 40px; border: 1px solid #ffd700; 
-  border-radius: 20px; background: #151515; 
-  width: 320px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
-}
-.setup-content input[type="text"] { 
-  padding: 12px; border-radius: 8px; border: 1px solid #444; width: 90%; 
-  margin-bottom: 15px; background: #000; color: #fff; text-align: center; font-size: 16px;
-}
-.setup-content button { 
-  padding: 15px; background: #ffd700; border: none; 
-  border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000;
-  text-transform: uppercase; transition: 0.3s;
-}
-.setup-content button:hover { background: #ffea00; transform: scale(1.02); }
 
-/* CHAT LOG - Ocupa a maior parte da tela */
-#chat-log {
-  flex-grow: 1; 
-  overflow-y: auto; 
-  padding: 20px; 
+/* LINHA DE ATRIBUTO - MAIS COMPACTA */
+.attribute { 
+  display: flex; 
+  align-items: center; 
+  gap: 4px; /* Reduzido o espaço entre elementos */
+  padding: 6px 8px; 
+  margin: 0 8px 6px 8px; 
+  border-radius: 8px; 
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* AJUSTE DOS INPUTS PARA CABEREM NA LINHA */
+.attr-name { 
+  width: 38px !important; /* Nome menor */
+  height: 28px; 
+  font-size: 11px; 
+  border-radius: 4px; 
+  font-weight: 900;
+}
+
+.base, .mult { 
+  width: 32px !important; /* Caixas de número menores */
+  height: 28px; 
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* MODIFICADORES EM MINIATURA */
+.mods { 
   display: flex; 
   flex-direction: column; 
-  gap: 12px;
-  scrollbar-width: thin;
-  scrollbar-color: #ffd700 #1a1a1a;
+  gap: 2px;
 }
-#chat-log::-webkit-scrollbar { width: 6px; }
-#chat-log::-webkit-scrollbar-thumb { background: #ffd700; border-radius: 10px; }
 
-.chat-msg { 
-  font-size: 14px; padding: 10px 15px; background: rgba(255,255,255,0.05); 
-  border-radius: 12px; border-left: 4px solid var(--user-color, #ffd700);
-  max-width: 85%; align-self: flex-start;
-  animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-.chat-msg b { color: var(--user-color, #ffd700); font-size: 12px; display: block; margin-bottom: 4px; }
-
-/* BARRA DE RODAPÉ (ATRIBUTOS COMPACTOS) */
-#compact {
-  background: #111; 
-  padding: 15px; 
+.mod-item { 
   display: flex; 
-  gap: 10px; 
-  align-items: center; 
-  border-top: 1px solid #333;
-}
-.compact-attrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex-grow: 1; }
-.compact-attrs span { 
-  padding: 10px; background: #1a1a1a; border-radius: 6px; 
-  font-weight: bold; font-size: 11px; text-align: center;
-  border: 1px solid #2a2a2a; cursor: pointer; transition: 0.2s;
-}
-.compact-attrs span:hover { border-color: #ffd700; background: #222; }
-
-#toggle { 
-  background: #ffd700; border: none; color: #000; width: 40px; height: 40px;
-  border-radius: 8px; cursor: pointer; font-size: 20px; font-weight: bold;
+  gap: 2px; 
 }
 
-/* PAINEL DE EDIÇÃO DE ATRIBUTOS */
-#panel {
-  position: absolute; bottom: 75px; left: 0; width: 100%; 
-  background: #151515; z-index: 1000; max-height: 0; opacity: 0; 
-  transition: all 0.4s ease; overflow-y: auto;
-  border-top: 2px solid #ffd700;
-}
-#panel.expanded { max-height: 70vh; opacity: 1; padding: 20px 0; }
-
-.attribute { 
-  display: flex; align-items: center; gap: 8px; padding: 12px; 
-  margin: 0 15px 10px 15px; border-radius: 10px; background: rgba(0,0,0,0.2);
-}
-.attr-name { width: 50px; height: 32px; border-radius: 6px; text-align: center; font-weight: 900; }
-.base, .mult { width: 45px; height: 32px; border-radius: 6px; text-align: center; font-weight: bold; }
-.result { margin-left: auto; font-size: 20px; font-weight: 900; color: #ffd700; min-width: 40px; text-align: right; }
-
-/* MODAL DE ROLAGEM */
-.modal-overlay { 
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-  background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 10000; 
-}
-.modal-content { 
-  background: #1a1a1a; border: 2px solid #ffd700; border-radius: 20px; 
-  padding: 30px; width: 300px; text-align: center;
-}
-.dice-inputs { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 20px 0; }
-.dice-inputs input { width: 60px; height: 50px; font-size: 24px; text-align: center; background: #000; color: #ffd700; border: 1px solid #444; border-radius: 10px; }
-
-#roll-button { 
-  background: #ffd700; color: #000; padding: 15px; font-size: 18px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; width: 100%;
+.mod-name { 
+  width: 45px !important; /* Reduzido de 65px */
+  height: 22px; 
+  font-size: 9px; 
 }
 
-/* DADOS CRÍTICOS */
-.die-crit { color: #00ff88; text-shadow: 0 0 8px #00ff88; font-weight: bold; }
-.die-fail { color: #ff4d4d; text-shadow: 0 0 8px #ff4d4d; font-weight: bold; }
+.mod-value { 
+  width: 28px !important; /* Reduzido de 35px */
+  height: 22px; 
+  font-size: 10px;
+}
 
-/* MOBILE RESPONSIVE */
-@media (max-width: 600px) {
-  #widget { border: none; }
-  .compact-attrs { grid-template-columns: repeat(2, 1fr); }
+/* BOTÕES DE ADICIONAR/REMOVER MODIFICADORES */
+.add, .rem { 
+  width: 22px; 
+  height: 22px; 
+  font-size: 14px;
+  min-width: 22px;
+}
+
+/* RESULTADO FINAL DA LINHA */
+.result { 
+  font-size: 16px; 
+  min-width: 35px; 
+  color: #ffd700;
+  text-align: right;
+  font-weight: 800;
+}
+
+/* AJUSTE PARA CELULARES MUITO PEQUENOS */
+@media (max-width: 400px) {
+  .attribute { padding: 4px; gap: 2px; }
+  .attr-name { width: 32px !important; }
+  .base, .mult { width: 28px !important; }
+  .mod-name { width: 35px !important; }
 }
