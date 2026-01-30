@@ -1,34 +1,25 @@
-// Canal do Rumble
+// CONFIGURAÇÃO DO CANAL
 const RUMBLE_CHANNEL = "com.battle-system.dice-roller/roll-result";
 
-// Função para rodar o código
-function startBridge() {
+// TENTATIVA DE CONEXÃO MANUAL CASO A SDK NÃO CARREGUE
+if (typeof window.OBR === 'undefined') {
+    window.OBR = window.parent.OBR; 
+}
+
+function iniciarExtensao() {
     const resDiv = document.getElementById("result");
+    const btn = document.getElementById("roll-btn");
 
-    // Verifica se a biblioteca OBR foi carregada pelo HTML
-    if (typeof OBR === "undefined") {
-        if (resDiv) resDiv.innerText = "Erro: SDK não carregada!";
-        console.error("A biblioteca OBR não foi encontrada.");
-        return;
-    }
+    // Tenta se conectar ao Owlbear Rodeo
+    try {
+        OBR.onReady(async () => {
+            console.log("✅ Conectado com sucesso!");
+            if (resDiv) resDiv.innerText = "Pronto para rolar!";
 
-    OBR.onReady(async () => {
-        console.log("✅ Conectado ao Owlbear Rodeo!");
-        if (resDiv) resDiv.innerText = "Pronto para rolar!";
-        
-        const btn = document.getElementById("roll-btn");
-
-        btn.addEventListener("click", async () => {
-            try {
-                // Pega o nome do player
+            btn.addEventListener("click", async () => {
                 const name = await OBR.player.getName();
-                
-                // Rolagem
                 const die = Math.floor(Math.random() * 20) + 1;
                 const total = die + 5;
-
-                // Mostra na tela da extensão
-                if (resDiv) resDiv.innerText = `Total: ${total}`;
 
                 // Envia para o Rumble
                 await OBR.room.sendMessage(RUMBLE_CHANNEL, {
@@ -39,13 +30,16 @@ function startBridge() {
                     type: "PLAYER_ROLL"
                 });
 
+                if (resDiv) resDiv.innerText = `Rolado: ${total}`;
                 console.log("🎲 Enviado ao Rumble!");
-            } catch (err) {
-                console.error("Erro no clique:", err);
-            }
+            });
         });
-    });
+    } catch (err) {
+        console.error("Erro ao conectar:", err);
+        if (resDiv) resDiv.innerText = "Clique aqui para tentar reconectar";
+        resDiv.onclick = () => location.reload();
+    }
 }
 
-// Executa a função após um pequeno delay para garantir que o OBR existe
-setTimeout(startBridge, 500);
+// Espera a página carregar e tenta iniciar
+window.onload = iniciarExtensao;
