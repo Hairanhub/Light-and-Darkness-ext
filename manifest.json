@@ -2,6 +2,7 @@
   "name": "Chat Social & Log",
   "version": "1.0.0",
   "manifest_version": 1,
+  "permissions": ["MESSAGING"],
   "action": {
     "title": "Chat Social",
     "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
