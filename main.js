@@ -2,7 +2,6 @@ const msgDiv = document.getElementById('messages');
 const input = document.getElementById('chatInput');
 const btn = document.getElementById('sendBtn');
 
-// Renderiza na tela
 function render(name, text, color = "#44afff") {
     const p = document.createElement('p');
     p.innerHTML = `<strong style="color:${color}">${name}:</strong> ${text}`;
@@ -10,32 +9,30 @@ function render(name, text, color = "#44afff") {
     msgDiv.scrollTop = msgDiv.scrollHeight;
 }
 
-// Inicia o OBR
 function init() {
     if (!window.OBR) return;
 
     window.OBR.onReady(() => {
-        console.log("Chat LD: Conectado via canal de rádio!");
+        console.log("Chat LD: Conectado!");
 
-        // Escuta direta (Modo Party)
+        // Escuta mensagens de outros jogadores
         window.OBR.party.onChatMessage((msgs) => {
             msgs.forEach(m => render(m.senderName || "Jogador", m.text, "#00ff88"));
         });
     });
 }
 
-// Envia mensagem
 async function sendMessage() {
     const text = input.value.trim();
     if (!text || !window.OBR) return;
 
     try {
-        // Envia via canal de rádio (mais leve que Metadata)
+        // Envia para a Party (todos na sala)
         await window.OBR.party.sendChatMessage([{ text: text }]);
-        render("Você", text); // Mostra para você
+        render("Você", text); 
         input.value = '';
     } catch (e) {
-        console.error("Falha no envio:", e);
+        console.error("Erro ao enviar:", e);
     }
 }
 
