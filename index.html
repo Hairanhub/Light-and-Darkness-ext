@@ -2,22 +2,24 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LD Chat</title>
+  <script src="https://unpkg.com/@owlbear-rodeo/sdk"></script>
   <style>
-    body { font-family: sans-serif; color: white; background: #242424; padding: 10px; margin: 0; }
-    #messages { height: 300px; overflow-y: auto; border: 1px solid #444; margin-bottom: 10px; padding: 10px; background: #1a1a1a; }
+    body { font-family: sans-serif; color: white; background: #242424; padding: 10px; margin: 0; display: flex; flex-direction: column; height: 95vh; }
+    #messages { flex-grow: 1; overflow-y: auto; border: 1px solid #444; margin-bottom: 10px; padding: 10px; background: #1a1a1a; border-radius: 4px; }
     .input-area { display: flex; gap: 5px; }
     input { flex-grow: 1; padding: 8px; background: #333; color: white; border: 1px solid #555; }
-    button { padding: 8px; cursor: pointer; background: #3366ff; color: white; border: none; }
+    button { padding: 8px; cursor: pointer; background: #3366ff; color: white; border: none; font-weight: bold; }
+    p { margin: 4px 0; border-bottom: 1px solid #222; padding-bottom: 2px; font-size: 14px; }
   </style>
 </head>
 <body>
   <div id="messages"></div>
   <div class="input-area">
-    <input type="text" id="chatInput" placeholder="Mensagem...">
+    <input type="text" id="chatInput" placeholder="Sua mensagem...">
     <button id="sendBtn">Enviar</button>
   </div>
-  <script src="https://unpkg.com/@owlbear-rodeo/sdk/dist/obr-sdk.js"></script>
   <script src="./main.js"></script>
 </body>
 </html>
