@@ -1,6 +1,6 @@
 {
   "name": "LD Social Chat",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "manifest_version": 1,
   "action": {
     "title": "Chat LD",
@@ -10,3 +10,4 @@
     "width": 440
   }
 }
+
