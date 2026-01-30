@@ -1,13 +1,13 @@
 {
-  "name": "Chat Social & Log",
-  "version": "1.0.0",
+  "name": "LD Social Chat",
+  "version": "1.1.0",
   "manifest_version": 1,
   "permissions": ["MESSAGING"],
   "action": {
-    "title": "Chat Social",
+    "title": "Chat LD",
     "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
     "popover": "https://hairanhub.github.io/Light-and-Darkness-ext/index.html",
-    "height": 620,
-    "width": 440
+    "height": 600,
+    "width": 400
   }
 }
