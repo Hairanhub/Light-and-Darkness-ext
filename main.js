@@ -1,13 +1,15 @@
 const msgDiv = document.getElementById('messages');
 const input = document.getElementById('chatInput');
 const btn = document.getElementById('sendBtn');
-const CHAT_KEY = "com.ld_social_chat.metadata";
+const CHAT_KEY = "com.light-darkness.chat/metadata";
 
+// Função para desenhar o chat na tela
 function renderChat(messages) {
-    msgDiv.innerHTML = ''; // Limpa para redesenhar o histórico
+    if (!messages) return;
+    msgDiv.innerHTML = ''; 
     messages.forEach(msg => {
         const p = document.createElement('p');
-        p.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
+        p.innerHTML = `<strong style="color: #44afff">${msg.user}:</strong> ${msg.text}`;
         msgDiv.appendChild(p);
     });
     msgDiv.scrollTop = msgDiv.scrollHeight;
@@ -17,20 +19,22 @@ async function init() {
     if (typeof window.OBR === 'undefined') return;
 
     window.OBR.onReady(async () => {
-        console.log("Chat LD: Sincronizando via Metadata...");
+        console.log("Chat LD: Conectado. Aguardando Cena...");
 
-        // 1. Escuta mudanças na cena (quando alguém envia mensagem)
-        window.OBR.scene.onMetadataChange((metadata) => {
-            const chatData = metadata[CHAT_KEY];
-            if (chatData && chatData.messages) {
-                renderChat(chatData.messages);
+        // Verifica se a cena está pronta antes de tentar usar onMetadataChange
+        if (window.OBR.scene) {
+            window.OBR.scene.onMetadataChange((metadata) => {
+                const data = metadata[CHAT_KEY];
+                if (data && data.messages) {
+                    renderChat(data.messages);
+                }
+            });
+
+            // Carregamento inicial
+            const metadata = await window.OBR.scene.getMetadata();
+            if (metadata[CHAT_KEY]) {
+                renderChat(metadata[CHAT_KEY].messages);
             }
-        });
-
-        // 2. Carrega as mensagens existentes ao abrir
-        const metadata = await window.OBR.scene.getMetadata();
-        if (metadata[CHAT_KEY]) {
-            renderChat(metadata[CHAT_KEY].messages);
         }
     });
 }
@@ -40,23 +44,26 @@ async function sendMessage() {
     if (!text || !window.OBR) return;
 
     try {
-        const name = await window.OBR.player.getName();
+        // Fallback seguro para o nome do jogador
+        let playerName = "Jogador";
+        try {
+            playerName = await window.OBR.player.getName();
+        } catch (e) {
+            console.log("Usando nome padrão: Jogador");
+        }
+
         const metadata = await window.OBR.scene.getMetadata();
-        
-        // Pega o que já existe ou cria um chat novo
         const chatData = metadata[CHAT_KEY] || { messages: [] };
-        
-        // Adiciona a nova mensagem
+
         chatData.messages.push({
-            user: name || "Jogador",
+            user: playerName,
             text: text,
             time: Date.now()
         });
 
-        // Limita o histórico para as últimas 50 mensagens (evita travar a cena)
-        if (chatData.messages.length > 50) chatData.messages.shift();
+        // Mantém apenas as últimas 40 mensagens para não pesar o mapa
+        if (chatData.messages.length > 40) chatData.messages.shift();
 
-        // SALVA NA CENA (Sincroniza com todos)
         await window.OBR.scene.setMetadata({
             [CHAT_KEY]: chatData
         });
@@ -64,7 +71,7 @@ async function sendMessage() {
         input.value = '';
         input.focus();
     } catch (err) {
-        console.error("Erro ao sincronizar metadata:", err);
+        console.error("Erro ao enviar metadata:", err);
     }
 }
 
