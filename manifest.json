@@ -1,12 +1,7 @@
 {
   "name": "LD Social Chat",
-  "version": "2.4.9",
+  "version": "2.5.0",
   "manifest_version": 1,
-  "permissions": [
-    { "name": "PARTY" },
-    { "name": "SCENE" },
-    { "name": "PLAYER" }
-  ],
   "action": {
     "title": "Chat LD",
     "icon": "icon.png",
