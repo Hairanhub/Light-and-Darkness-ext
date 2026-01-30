@@ -1,11 +1,11 @@
 {
   "name": "LD Social Chat",
-  "version": "2.5.0",
+  "version": "2.4.9",
   "manifest_version": 1,
   "permissions": [
-    { "party": {} },
-    { "scene": {} },
-    { "player": {} }
+    { "name": "PARTY" },
+    { "name": "SCENE" },
+    { "name": "PLAYER" }
   ],
   "action": {
     "title": "Chat LD",
