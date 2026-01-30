@@ -1,20 +1,17 @@
 {
   "name": "LD Social Chat",
-  "version": "2.4.8",
+  "version": "2.4.6",
   "manifest_version": 1,
+  "permissions": [
+    "PARTY",
+    "SCENE",
+    "PLAYER"
+  ],
   "action": {
     "title": "Chat LD",
-    "icon": "https://hairanhub.github.io/Light-and-Darkness-ext/icon.png",
-    "popover": "https://hairanhub.github.io/Light-and-Darkness-ext/index.html",
+    "icon": "icon.png",
+    "popover": "index.html",
     "height": 600,
     "width": 440
   }
 }
-
-
-
-
-
-
-
-
