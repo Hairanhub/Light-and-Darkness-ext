@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
   <style>
-    body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
-    #log { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-    .msg { background: #333; padding: 8px; border-radius: 8px; font-size: 14px; max-width: 80%; }
-    .msg.me { align-self: flex-end; background: #005f56; border-right: 3px solid #03dac6; }
-    .msg b { display: block; font-size: 10px; color: #bb86fc; margin-bottom: 2px; }
-    .input-box { padding: 10px; background: #222; border-top: 1px solid #444; }
-    input { width: 100%; padding: 10px; border-radius: 20px; border: 1px solid #555; background: #111; color: white; outline: none; box-sizing: border-box; }
+    body { background: #1a1a1a; color: white; font-family: sans-serif; padding: 20px; text-align: center; }
+    button { 
+      background: #6200ee; color: white; border: none; padding: 10px 20px; 
+      border-radius: 5px; cursor: pointer; font-weight: bold; 
+    }
+    button:hover { background: #7c22ff; }
+    #result { margin-top: 15px; font-size: 1.2rem; color: #03dac6; }
   </style>
 </head>
 <body>
-  <div id="log"></div>
-  <div class="input-box">
-    <input type="text" id="chat-input" placeholder="Diga algo...">
-  </div>
+  <h3>Teste Rumble Bridge</h3>
+  <input type="number" id="mod" value="5" style="width: 40px; padding: 5px;">
+  <button id="roll-btn">Rolar 1d20 + Mod</button>
+  <div id="result">--</div>
 
-  <script type="module" src="script.js"></script>
+  <script type="module" src="bridge.js"></script>
 </body>
 </html>
