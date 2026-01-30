@@ -1,53 +1,124 @@
-/* ESTILOS GERAIS */
+/* RESET E ESTILO GERAL */
 body { 
-  margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; 
-  background-color: #0a0a0b; color: #e0e0e0; height: 100vh;
-  display: flex; justify-content: center; overflow: hidden;
+  margin: 0; 
+  padding: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+  background-color: #0a0a0b;
+  background-image: radial-gradient(circle at center, #1a1a1d 0%, #050505 100%);
+  color: #e0e0e0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
 }
 
+/* CONTAINER PRINCIPAL CENTRALIZADO */
 #widget { 
-  width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column;
-  background: rgba(20, 20, 20, 0.95); position: relative; border-left: 1px solid #333; border-right: 1px solid #333;
+  width: 100%; 
+  max-width: 600px; /* Reduzi para ficar mais elegante como um chat */
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 20, 20, 0.9);
+  border-left: 1px solid #333;
+  border-right: 1px solid #333;
+  box-shadow: 0 0 50px rgba(0,0,0,0.5);
+  position: relative;
 }
 
-/* LOGIN */
+/* TELA DE LOGIN (SETUP) */
 .setup-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0a0a;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: #0a0a0a;
   display: flex; justify-content: center; align-items: center; z-index: 9999;
 }
 .setup-content { 
-  text-align: center; padding: 30px; border: 1px solid #ffd700; border-radius: 15px; 
-  background: #151515; width: 280px;
+  text-align: center; padding: 30px; border: 1px solid #ffd700; 
+  border-radius: 20px; background: #151515; 
+  width: 280px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
 }
-.setup-content input { padding: 10px; width: 80%; margin-bottom: 10px; background: #000; color: #fff; border: 1px solid #444; }
-.setup-content button { padding: 12px; background: #ffd700; border: none; width: 100%; cursor: pointer; font-weight: bold; }
 
-/* CHAT */
-#chat-log { 
-  flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px;
-  scrollbar-width: thin; scrollbar-color: #ffd700 #111;
+/* CHAT LOG */
+#chat-log {
+  flex-grow: 1; 
+  overflow-y: auto; 
+  padding: 15px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 10px;
 }
 .chat-msg { 
-  font-size: 13px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px;
-  border-left: 4px solid var(--user-color, #ffd700); align-self: flex-start; max-width: 90%;
+  font-size: 13px; padding: 8px 12px; background: rgba(255,255,255,0.05); 
+  border-radius: 10px; border-left: 4px solid var(--user-color, #ffd700);
+  max-width: 85%; align-self: flex-start;
 }
-.chat-msg b { color: var(--user-color, #ffd700); font-size: 11px; display: block; }
 
-/* RODAPÉ COMPACTO */
-#compact { background: #111; padding: 10px; display: flex; gap: 8px; border-top: 1px solid #333; }
+/* BARRA DE RODAPÉ COMPACTA */
+#compact {
+  background: #111; 
+  padding: 10px; 
+  display: flex; 
+  gap: 8px; 
+  align-items: center; 
+  border-top: 1px solid #333;
+}
 .compact-attrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; flex-grow: 1; }
 .compact-attrs span { 
-  padding: 6px 2px; background: #1a1a1a; border-radius: 4px; font-size: 10px; 
-  text-align: center; border: 1px solid #222; cursor: pointer; font-weight: bold;
+  padding: 6px 2px; background: #1a1a1a; border-radius: 4px; 
+  font-weight: bold; font-size: 10px; text-align: center;
+  border: 1px solid #2a2a2a; cursor: pointer;
 }
-#toggle { background: #ffd700; border: none; width: 35px; height: 35px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-/* PAINEL DE ATRIBUTOS (O QUE FOI ENCOLHIDO) */
-#panel {
-  position: absolute; bottom: 55px; left: 0; width: 100%; background: #151515; 
-  z-index: 1000; max-height: 0; opacity: 0; transition: 0.4s; overflow-y: auto; border-top: 2px solid #ffd700;
+#toggle { 
+  background: #ffd700; border: none; color: #000; width: 35px; height: 35px;
+  border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold;
 }
-#panel.expanded { max-height: 50vh; opacity: 1; padding: 10px 0; }
+
+/* PAINEL DE EDIÇÃO (ENCOLHIDO PARA CABER) */
+#panel {
+  position: absolute; bottom: 55px; left: 0; width: 100%; 
+  background: #151515; z-index: 1000; max-height: 0; opacity: 0; 
+  transition: all 0.4s ease; overflow-y: auto;
+  border-top: 2px solid #ffd700;
+}
+#panel.expanded { max-height: 55vh; opacity: 1; padding: 10px 0; }
 
 .attribute { 
-  display: flex; align-items:
+  display: flex; align-items: center; gap: 4px; padding: 6px 10px; 
+  margin: 0 8px 5px 8px; border-radius: 8px; background: rgba(0,0,0,0.3);
+}
+
+/* INPUTS ENCOLHIDOS */
+.attr-name { width: 35px !important; height: 26px; font-size: 10px; text-align: center; font-weight: bold; border-radius: 4px; border: 1px solid #444; background: #000; color: #fff; }
+.base, .mult { width: 30px !important; height: 26px; font-size: 11px; text-align: center; border-radius: 4px; border: 1px solid #444; background: #000; color: #fff; }
+
+.mods { display: flex; flex-direction: column; gap: 2px; }
+.mod-item { display: flex; gap: 2px; }
+.mod-name { width: 42px !important; height: 20px; font-size: 9px; border-radius: 3px; border: 1px solid #444; background: #000; color: #fff; }
+.mod-value { width: 28px !important; height: 20px; font-size: 10px; border-radius: 3px; border: 1px solid #444; background: #000; color: #fff; }
+
+.add, .rem { 
+  width: 22px; height: 22px; min-width: 22px; border-radius: 4px; border: none; 
+  cursor: pointer; background: #333; color: white; font-size: 14px;
+}
+.result { margin-left: auto; font-size: 15px; font-weight: bold; color: #ffd700; min-width: 35px; text-align: right; }
+
+/* MODAL DE ROLAGEM */
+.modal-overlay { 
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+  background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 10000; 
+}
+.modal-content { 
+  background: #1a1a1a; border: 2px solid #ffd700; border-radius: 20px; 
+  padding: 20px; width: 260px; text-align: center;
+}
+.dice-inputs { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 15px 0; }
+.dice-inputs input { width: 45px; height: 40px; font-size: 20px; text-align: center; background: #000; color: #ffd700; border: 1px solid #444; border-radius: 8px; }
+
+#roll-button { 
+  background: #ffd700; color: #000; padding: 12px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; width: 100%;
+}
+
+/* DADOS CRÍTICOS */
+.die-crit { color: #00ff88; font-weight: bold; }
+.die-fail { color: #ff4d4d; font-
