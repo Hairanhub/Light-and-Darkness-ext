@@ -1,53 +1,44 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rumble Bridge</title>
-    <style>
-        body { 
-            background: #1a1a1a; 
-            color: white; 
-            font-family: sans-serif; 
-            padding: 15px; 
-            text-align: center;
-        }
-        .card { 
-            background: #242424; 
-            padding: 20px; 
-            border-radius: 12px; 
-            border: 1px solid #333;
-        }
-        h3 { margin-top: 0; color: #bb86fc; }
-        button { 
-            background: #6200ee; 
-            color: white; 
-            border: none; 
-            padding: 14px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            width: 100%; 
-            font-size: 1rem;
-        }
-        button:hover { background: #7c22ff; }
-        #result { 
-            margin-top: 15px; 
-            font-size: 1.1rem; 
-            color: #03dac6; 
-            font-weight: bold;
-        }
-    </style>
+  <script src="https://unpkg.com/@owlbear-rodeo/sdk"></script>
+  <style>
+    body { font-family: sans-serif; color: white; background: #242424; padding: 10px; }
+    #messages { height: 150px; overflow-y: auto; border: 1px solid #555; margin-bottom: 10px; padding: 5px; }
+    input { width: 70%; }
+  </style>
 </head>
 <body>
+  ### Mini Chat Teste
+  <div id="messages"></div>
+  <input type="text" id="chatInput" placeholder="Digite algo...">
+  <button onclick="sendMessage()">Enviar</button>
 
-    <div class="card">
-        <h3>Rumble Dice</h3>
-        <button id="roll-btn">Rolar 1d20 + 5</button>
-        <div id="result">Conectando...</div>
-    </div>
+  <script>
+    const OBR = window.OBR;
 
-    <script type="module" src="bridge.js"></script>
+    // Inicializa a extensão
+    OBR.onReady(() => {
+      console.log("Extensão pronta!");
+      
+      // Escuta por mensagens recebidas de outros jogadores
+      OBR.party.onChatMessage((message) => {
+        const msgDiv = document.getElementById('messages');
+        msgDiv.innerHTML += `<p><b>${message.senderName}:</b> ${message.text}</p>`;
+      });
+    });
 
+    // Função para enviar a mensagem
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value;
+      
+      if (text) {
+        // Envia para todos na sala (incluindo você)
+        await OBR.party.sendChatMessage(text);
+        input.value = ''; 
+      }
+    }
+  </script>
 </body>
 </html>
