@@ -2,34 +2,31 @@ import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@latest/dist/obr
 
 const chatLog = document.getElementById("chat-log");
 const chatInput = document.getElementById("chat-input");
-const MSG_CHANNEL = "com.socialchat.plugin/message";
+const CHANNEL = "light-darkness/chat-v1";
 
 OBR.onReady(async () => {
-  // Receber mensagens de outros jogadores
-  OBR.room.onMessage(MSG_CHANNEL, (data) => {
-    appendMessage(data.sender, data.text, false);
+  // Receber mensagens
+  OBR.room.onMessage(CHANNEL, (data) => {
+    renderMessage(data.sender, data.text, false);
   });
 
-  // Enviar mensagem
+  // Enviar mensagens
   chatInput.addEventListener("keydown", async (e) => {
     if (e.key === "Enter" && chatInput.value.trim() !== "") {
       const name = await OBR.player.getName();
-      const text = chatInput.value.trim();
+      const message = chatInput.value.trim();
 
-      OBR.room.sendMessage(MSG_CHANNEL, { sender: name, text: text });
-      appendMessage(name, text, true);
-      
+      OBR.room.sendMessage(CHANNEL, { sender: name, text: message });
+      renderMessage(name, message, true);
       chatInput.value = "";
     }
   });
 });
 
-function appendMessage(sender, text, isMe) {
+function renderMessage(sender, text, isMe) {
   const div = document.createElement("div");
-  div.classList.add("msg");
-  if (isMe) div.classList.add("me");
-  
-  div.innerHTML = `<b>${sender}</b> ${text}`;
+  div.className = isMe ? "msg me" : "msg";
+  div.innerHTML = `<b>${sender}</b>${text}`;
   chatLog.appendChild(div);
   chatLog.scrollTop = chatLog.scrollHeight;
 }
