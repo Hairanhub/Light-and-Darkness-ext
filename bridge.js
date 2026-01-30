@@ -1,35 +1,51 @@
+// Canal do Rumble
 const RUMBLE_CHANNEL = "com.battle-system.dice-roller/roll-result";
 
-// No Chrome, usando a tag <script> no HTML, o OBR fica disponível globalmente
-OBR.onReady(async () => {
-    console.log("✅ AGORA SIM! OBR carregado e pronto.");
-    
-    const btn = document.getElementById("roll-btn");
+// Função para rodar o código
+function startBridge() {
     const resDiv = document.getElementById("result");
 
-    resDiv.innerText = "Conectado ao Owlbear!";
+    // Verifica se a biblioteca OBR foi carregada pelo HTML
+    if (typeof OBR === "undefined") {
+        if (resDiv) resDiv.innerText = "Erro: SDK não carregada!";
+        console.error("A biblioteca OBR não foi encontrada.");
+        return;
+    }
 
-    btn.addEventListener("click", async () => {
-        try {
-            const name = await OBR.player.getName();
-            const die = Math.floor(Math.random() * 20) + 1;
-            const total = die + 5;
+    OBR.onReady(async () => {
+        console.log("✅ Conectado ao Owlbear Rodeo!");
+        if (resDiv) resDiv.innerText = "Pronto para rolar!";
+        
+        const btn = document.getElementById("roll-btn");
 
-            const payload = {
-                name: name,
-                roll: "1d20+5",
-                total: total,
-                result: `[${die}] + 5`,
-                type: "PLAYER_ROLL"
-            };
+        btn.addEventListener("click", async () => {
+            try {
+                // Pega o nome do player
+                const name = await OBR.player.getName();
+                
+                // Rolagem
+                const die = Math.floor(Math.random() * 20) + 1;
+                const total = die + 5;
 
-            // Envia para o Rumble
-            await OBR.room.sendMessage(RUMBLE_CHANNEL, payload);
-            
-            resDiv.innerText = `Total: ${total}`;
-            console.log("🎲 Enviado ao Rumble!", payload);
-        } catch (e) {
-            console.error("Erro ao rolar:", e);
-        }
+                // Mostra na tela da extensão
+                if (resDiv) resDiv.innerText = `Total: ${total}`;
+
+                // Envia para o Rumble
+                await OBR.room.sendMessage(RUMBLE_CHANNEL, {
+                    name: name,
+                    roll: "1d20+5",
+                    total: total,
+                    result: `[${die}] + 5`,
+                    type: "PLAYER_ROLL"
+                });
+
+                console.log("🎲 Enviado ao Rumble!");
+            } catch (err) {
+                console.error("Erro no clique:", err);
+            }
+        });
     });
-});
+}
+
+// Executa a função após um pequeno delay para garantir que o OBR existe
+setTimeout(startBridge, 500);
