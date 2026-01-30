@@ -1,37 +1,38 @@
 import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@latest/dist/obr-sdk.js";
 
-// Este é o canal que extensões da Battle-System (Rumble) costumam observar
+// Canal oficial do sistema de dados da Battle-System (Rumble)
 const RUMBLE_CHANNEL = "com.battle-system.dice-roller/roll-result";
 
-OBR.onReady(() => {
-    const btn = document.getElementById("roll-btn");
-    const resDiv = document.getElementById("result");
+OBR.onReady(async () => {
+    console.log("Bridge do Rumble: Ativa!");
 
+    const btn = document.getElementById("roll-btn");
+    
     btn.addEventListener("click", async () => {
-        const mod = parseInt(document.getElementById("mod").value) || 0;
+        const name = await OBR.player.getName();
         const die = Math.floor(Math.random() * 20) + 1;
+        const mod = 5;
         const total = die + mod;
 
-        const userName = await OBR.player.getName();
-
-        // 1. Mostrar na nossa própria telinha
-        resDiv.innerText = `Resultado: ${total} (${die} + ${mod})`;
-
-        // 2. Tentar enviar para o Rumble
-        // O Rumble espera um objeto com essa estrutura aproximada:
-        const rollData = {
-            name: userName,
-            roll: `1d20 + ${mod}`,
+        // O Rumble espera EXATAMENTE esta estrutura de objeto
+        const payload = {
+            name: name,
+            roll: "1d20+5",
             total: total,
-            result: `[${die}] + ${mod}`,
-            type: "PLAYER_ROLL" 
+            result: `[${die}] + 5`,
+            type: "PLAYER_ROLL" // Ou "CUSTOM"
         };
 
         try {
-            await OBR.room.sendMessage(RUMBLE_CHANNEL, rollData);
-            console.log("Tentativa de envio para o Rumble concluída.");
-        } catch (e) {
-            console.error("O Rumble não parece estar aceitando mensagens externas:", e);
+            // Enviando para o canal do Rumble
+            await OBR.room.sendMessage(RUMBLE_CHANNEL, payload);
+            
+            console.log("Mensagem disparada para o Rumble:", payload);
+            
+            // Feedback visual na sua tela para saber que o clique funcionou
+            document.getElementById("result").innerText = `Enviado: ${total}`;
+        } catch (err) {
+            console.error("Erro ao falar com o Rumble:", err);
         }
     });
 });
