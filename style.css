@@ -5,10 +5,16 @@ body {
 }
 
 #widget { 
-  width: 100%; max-width: 1300px; height: 100vh; 
-  display: flex; flex-direction: column;
-  background: rgba(20, 20, 20, 0.95); border-left: 1px solid #333; border-right: 1px solid #333;
+  width: 1250px !important; /* Trava a largura fixa em 1250px */
+  max-width: 95vw !important; /* Impede que ele suma se a tela for menor que 1400px */
+  height: 100vh !important; 
+  display: flex !important; 
+  flex-direction: column !important;
+  background: rgba(20, 20, 20, 0.95); 
+  border-left: 1px solid #333; 
+  border-right: 1px solid #333;
   position: relative;
+  margin: 0 auto; /* Centraliza o widget na tela */
 }
 
 #version-tag {
