@@ -5,7 +5,7 @@ body {
 }
 
 #widget { 
-  width: 700px !important; /* Trava a largura fixa em 700px */
+  width: 600px !important; /* Trava a largura fixa em 700px */
   max-width: 95vw !important; /* Impede que ele suma se a tela for menor que 1400px */
   height: 100vh !important; 
   display: flex !important; 
@@ -48,7 +48,7 @@ body {
 }
 
 #panel.expanded { 
-  max-height: 50vh; opacity: 1; padding: 20px 0 100px 0; /* Padding extra para não cortar a CON */
+  max-height: 100vh; opacity: 1; padding: 0px 0 0px 0; /* Padding extra para não cortar a CON */
 }
 
 .attribute { 
