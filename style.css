@@ -48,7 +48,7 @@ body {
 }
 
 #panel.expanded { 
-  max-height: 70vh; opacity: 1; padding: 20px 0 100px 0; /* Padding extra para não cortar a CON */
+  max-height: 50vh; opacity: 1; padding: 20px 0 100px 0; /* Padding extra para não cortar a CON */
 }
 
 .attribute { 
