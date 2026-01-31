@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Widget v1.0.0</title>
-    <link rel="stylesheet" href="style.css?v=1.0.0">
+    <title>RPG Widget v1.0.2</title>
+    <link rel="stylesheet" href="style.css?v=1.0.2">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
@@ -14,15 +14,21 @@
         <div class="setup-content">
             <h2>Configurar Personagem</h2>
             <input type="text" id="user-name-input" placeholder="Nome do Personagem">
-            <input type="color" id="user-color-input" value="#ffd700">
-            <button id="start-btn">Entrar no Jogo</button>
+            
+            <label style="display:block; margin: 15px 0 5px; font-size: 14px;">Escolha sua cor:</label>
+            <input type="color" id="user-color-input" list="colorPresets" value="#ffd700">
+            <datalist id="colorPresets">
+                <option>#ff4d4d</option><option>#00ff88</option><option>#0077ff</option>
+                <option>#ffd700</option><option>#ff00ff</option><option>#ffffff</option>
+            </datalist>
+
+            <button id="start-btn" style="margin-top: 20px;">Entrar no Jogo</button>
         </div>
     </div>
 
     <div id="main-content" style="display:none;">
         <div id="widget">
-            <div id="version-tag">v 1.0.0</div>
-            
+            <div id="version-tag">v 1.0.2</div>
             <div id="chat-log"></div>
 
             <div id="panel">
@@ -31,12 +37,8 @@
 
             <div id="compact">
                 <div class="compact-attrs">
-                    <span id="c0">FOR 0</span>
-                    <span id="c1">DEX 0</span>
-                    <span id="c2">DEF 0</span>
-                    <span id="c3">INT 0</span>
-                    <span id="c4">CAR 0</span>
-                    <span id="c5">CON 0</span>
+                    <span id="c0">FOR 0</span><span id="c1">DEX 0</span><span id="c2">DEF 0</span>
+                    <span id="c3">INT 0</span><span id="c4">CAR 0</span><span id="c5">CON 0</span>
                 </div>
                 <button id="toggle">▲</button>
             </div>
@@ -47,27 +49,23 @@
         <div class="modal-content">
             <button id="close-modal">&times;</button>
             <h3 id="modal-attr-name">ATRIBUTO</h3>
-            <p>Valor Base: <span id="modal-attr-value">0</span></p>
-            
+            <p>Base: <span id="modal-attr-value">0</span></p>
             <div class="dice-inputs">
-                <input type="number" id="dice-qty" value="1" title="Quantidade">
+                <input type="number" id="dice-qty" value="1">
                 <span>d</span>
-                <input type="number" id="dice-faces" value="20" title="Faces">
+                <input type="number" id="dice-faces" value="20">
                 <span>+</span>
-                <input type="number" id="dice-mod" value="0" placeholder="Mod" title="Modificador Manual">
+                <input type="number" id="dice-mod" value="0">
             </div>
-
             <div style="margin-bottom: 15px;">
-                <label style="font-size: 12px; cursor: pointer;">
+                <label style="cursor: pointer; font-size: 13px;">
                     <input type="checkbox" id="use-attr-check" checked> Somar Atributo
                 </label>
             </div>
-
-            <button id="roll-button">ROLAR DADO</button>
-            <div id="roll-result" style="margin-top:15px; font-size: 20px; font-weight: bold;"></div>
+            <button id="roll-button">ROLAR</button>
         </div>
     </div>
 
-    <script src="script.js?v=1.0.1"></script>
+    <script src="script.js?v=1.0.2"></script>
 </body>
 </html>
