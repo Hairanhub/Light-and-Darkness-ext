@@ -5,7 +5,7 @@ body {
 }
 
 #widget { 
-  width: 1250px !important; /* Trava a largura fixa em 1250px */
+  width: 900px !important; /* Trava a largura fixa em 1250px */
   max-width: 95vw !important; /* Impede que ele suma se a tela for menor que 1400px */
   height: 100vh !important; 
   display: flex !important; 
