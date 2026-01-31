@@ -19,14 +19,13 @@ window.onload = () => {
   const startBtn = document.getElementById("start-btn");
   if (startBtn) {
     startBtn.onclick = () => {
-      const nameInput = document.getElementById("user-name-input");
-      const colorInput = document.getElementById("user-color-input");
-      if (nameInput.value.trim()) {
-        playerName = nameInput.value.trim();
-        playerColor = colorInput.value;
+      const nameVal = document.getElementById("user-name-input").value.trim();
+      if (nameVal) {
+        playerName = nameVal;
+        playerColor = document.getElementById("user-color-input").value;
         document.getElementById("setup-screen").style.display = "none";
         document.getElementById("main-content").style.display = "block";
-      } else { alert("Por favor, introduz o teu nome!"); }
+      } else { alert("Digite seu nome!"); }
     };
   }
   initWidget();
@@ -38,6 +37,7 @@ function initWidget() {
   const toggleBtn = document.getElementById("toggle");
   const chatLog = document.getElementById("chat-log");
   const diceModal = document.getElementById("dice-modal");
+  const diceContent = document.querySelector(".modal-content");
   const compactSpans = [0, 1, 2, 3, 4, 5].map(i => document.getElementById(`c${i}`));
 
   const defaults = [
@@ -46,8 +46,7 @@ function initWidget() {
     { n: "CAR", c: "#594F1E" }, { n: "CON", c: "#1E592D" }
   ];
 
-  let currentVal = 0;
-  let currentAttrColor = "#ffd700";
+  let currentVal = 0, currentAttrColor = "#ffd700";
 
   function addMsg(sender, text, color) {
     const div = document.createElement("div");
@@ -58,8 +57,8 @@ function initWidget() {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
 
-  chatRef.limitToLast(30).on('child_added', (snapshot) => {
-    const d = snapshot.val();
+  chatRef.limitToLast(30).on('child_added', s => {
+    const d = s.val();
     addMsg(d.sender, d.text, d.color);
   });
 
@@ -72,9 +71,7 @@ function initWidget() {
       <input type="number" class="base" value="0">
       <input type="number" class="mult" value="1">
       <div class="mods"><div class="mod-item"><input class="mod-name" value="MOD"><input type="number" class="mod-value" value="0"></div></div>
-      <div style="display: flex; flex-direction: column; gap: 2px;">
-        <button class="add">+</button><button class="rem">-</button>
-      </div>
+      <div style="display:flex; flex-direction:column; gap:2px;"><button class="add">+</button><button class="rem">-</button></div>
       <div class="result">0</div>
     `;
 
@@ -84,8 +81,7 @@ function initWidget() {
       const mods = [...div.querySelectorAll(".mod-value")].reduce((s, m) => s + (+m.value || 0), 0);
       const res = (base + mods) * mult;
       div.querySelector(".result").innerText = res;
-      const name = div.querySelector(".attr-name").value.toUpperCase();
-      if (compactSpans[idx]) compactSpans[idx].innerText = `${name} ${res}`;
+      if (compactSpans[idx]) compactSpans[idx].innerText = `${div.querySelector(".attr-name").value.toUpperCase()} ${res}`;
     };
 
     div.addEventListener("input", update);
@@ -98,8 +94,7 @@ function initWidget() {
       const items = div.querySelectorAll(".mod-item");
       if (items.length > 1) { items[items.length - 1].remove(); update(); }
     };
-    setTimeout(update, 10);
-    return div;
+    setTimeout(update, 10); return div;
   }
 
   defaults.forEach((_, i) => attrContainer.appendChild(createAttribute(i)));
@@ -120,12 +115,11 @@ function initWidget() {
     };
   });
 
+  // MECÂNICA DE FECHAR
   document.getElementById("close-modal").onclick = () => diceModal.style.display = "none";
-
-  // FECHAR AO CLICAR FORA (MÉTODO ROBUSTO)
-  window.addEventListener('click', (e) => {
-    if (e.target === diceModal) diceModal.style.display = "none";
-  });
+  
+  diceContent.onclick = (e) => e.stopPropagation(); // Impede fechar ao clicar na aba branca/preta
+  diceModal.onclick = () => diceModal.style.display = "none"; // Fecha ao clicar no fundo escuro
 
   document.getElementById("roll-button").onclick = () => {
     const q = +document.getElementById("dice-qty").value || 1;
@@ -143,9 +137,8 @@ function initWidget() {
     }
 
     const total = sum + bAttr + mManual;
-    const attrName = document.getElementById("modal-attr-name").innerText;
-    let detalhes = `${q}d${f}[${raw.join('+')}] + ${bAttr}(Atrib) + ${mManual}(Mod)`;
-    const txt = `rolou <span style="color:${currentAttrColor};font-weight:bold">${attrName}</span>: <b>${total}</b><br><small style="color:#888">${detalhes}</small>`;
+    const details = `${q}d${f}[${raw.join('+')}] + ${bAttr}(Atrib) + ${mManual}(Mod)`;
+    const txt = `rolou <span style="color:${currentAttrColor};font-weight:bold">${document.getElementById("modal-attr-name").innerText}</span>: <b>${total}</b><br><small style="color:#888">${details}</small>`;
 
     chatRef.push({ sender: playerName, text: txt, color: playerColor, timestamp: Date.now() });
     diceModal.style.display = "none";
