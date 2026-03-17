@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light and Darkness - Início</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Quicksand:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --light-color: #ffffff;
+            --dark-color: #333333;
+            --player-green: #2ecc71;
+            --gm-red: #e74c3c;
+            --glass-bg: rgba(0, 0, 0, 0.85);
+            --epic-font: 'Cinzel', serif;
+            --ui-font: 'Quicksand', sans-serif;
+        }
+
+        body {
+            margin: 0; padding: 0; 
+            height: 100vh; width: 100vw;
+            display: flex; justify-content: center; align-items: center;
+            background-color: #050505;
+            /* Preparação para o JS */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: var(--ui-font);
+            overflow: hidden;
+            color: white;
+            transition: background-image 0.8s ease-in-out; /* Transição suave ao carregar */
+        }
+
+        /* Overlay de vinheta para dar profundidade */
+        .vignette {
+            content: ""; position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .setup-overlay {
+            position: relative; 
+            z-index: 10;
+            text-align: center;
+            width: 90%; max-width: 450px;
+        }
+
+        /* LOGO */
+        .logo-title {
+            font-family: var(--epic-font);
+            font-size: 4rem;
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 40px;
+            font-weight: 900;
+            text-transform: uppercase;
+            user-select: none;
+        }
+
+        .text-light {
+            color: var(--light-color);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            letter-spacing: 12px;
+            margin-bottom: -10px;
+        }
+
+        .ampersand {
+            font-size: 1.5rem;
+            color: #a30000;
+            margin: -10px 0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .text-dark {
+            color: #1a1a1a;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+            letter-spacing: 6px;
+            filter: blur(0.5px);
+        }
+
+        /* PAINÉIS */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            animation: fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .glass-panel.active { display: flex; }
+
+        /* BOTÕES */
+        .btn-main {
+            padding: 18px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-family: var(--epic-font);
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+        }
+
+        .btn-player-main:hover { 
+            background: rgba(46, 204, 113, 0.2); 
+            border-color: var(--player-green);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-mestre-main:hover { 
+            background: rgba(231, 76, 60, 0.2); 
+            border-color: var(--gm-red);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* INPUTS */
+        .input-group { text-align: left; display: flex; flex-direction: column; gap: 8px; }
+        
+        .label-style {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+            font-family: var(--epic-font);
+        }
+
+        input[type="text"], input[type="password"] {
+            background: #000;
+            border: 1px solid #333;
+            padding: 14px;
+            border-radius: 6px;
+            color: white;
+            font-family: var(--ui-font);
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: #666; background: #050505; }
+
+        .btn-back {
+            font-size: 0.7rem;
+            cursor: pointer;
+            opacity: 0.5;
+            margin-top: 5px;
+            text-decoration: none;
+            font-family: var(--epic-font);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-back:hover { opacity: 1; color: var(--gm-red); }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="vignette"></div>
+
+    <div class="setup-overlay">
+        <h1 class="logo-title">
+            <span class="text-light">LIGHT</span>
+            <span class="ampersand">&</span>
+            <span class="text-dark">DARKNESS</span>
+        </h1>
+                
+        <div id="step-1" class="glass-panel active">
+            <button class="btn-main btn-player-main" onclick="changeStep(2)">
+                <i class="fa-solid fa-user"></i> EXPLORADOR
+            </button>
+            <button class="btn-main btn-mestre-main" onclick="changeStep(3)">
+                <i class="fa-solid fa-dragon"></i> NARRADOR
+            </button>
+        </div>
+
+        <div id="step-2" class="glass-panel">
+            <h3 style="color: var(--player-green); margin: 0; font-family: var(--epic-font);">NOVO VIAJANTE</h3>
+            
+            <div class="input-group">
+                <span class="label-style">Como te chamam?</span>
+                <input type="text" id="player-name" placeholder="Ex: Aethelred">
+            </div>
+
+            <div class="input-group">
+                <span class="label-style">Cor da sua Aura</span>
+                <div style="display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid #333;">
+                    <input type="color" id="player-color" value="#2ecc71" style="border: none; width: 35px; height: 35px; cursor: pointer; background: none;">
+                    <span style="font-size: 0.75rem; color: #777;">Essa cor brilhará no seu Token.</span>
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="validarEEntrar()" style="background: var(--player-green); color: #000; font-weight: bold; border: none;">
+                DESPERTAR
+            </button>
+            <span class="btn-back" onclick="changeStep(1)"> <i class="fa-solid fa-arrow-left"></i> Voltar</span>
+        </div>
+
+        <div id="step-3" class="glass-panel">
+            <h3 style="font-family: var(--epic-font); color: var(--gm-red); margin: 0;">O OLHO QUE TUDO VÊ</h3>
+            <div class="input-group">
+                <span class="label-style">Chave do Destino</span>
+                <input type="password" id="gm-pass" placeholder="Senha">
+            </div>
+            <button class="btn-main" onclick="verifyGM()" style="background: var(--gm-red); color: #fff; font-weight: bold; border: none;">
+                MANIFESTAR
+            </button>
+            <span class="btn-back" onclick="changeStep(1)"> <i class="fa-solid fa-arrow-left"></i> Voltar</span>
+        </div>
+    </div>
+
+    <script>
+        // Função aprimorada para o Background
+        function aplicarFundoAleatorio() {
+            const totalImagens = 7;
+            const sorteio = Math.floor(Math.random() * totalImagens) + 1;
+            const urlImagem = `assets/backgrounds/bg${sorteio}.png`;
+            
+            // Pré-carregamento simples para evitar "piscada" branca
+            const img = new Image();
+            img.src = urlImagem;
+            img.onload = () => {
+                document.body.style.backgroundImage = `url('${urlImagem}')`;
+            };
+        }
+
+        function changeStep(s) {
+            document.querySelectorAll('.glass-panel').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(`step-${s}`);
+            if(target) target.classList.add('active');
+        }
+
+        function validarEEntrar() {
+            const nomeDigitado = document.getElementById('player-name').value.trim();
+            const cor = document.getElementById('player-color').value;
+            
+            if (!nomeDigitado) {
+                alert("Identifique-se, viajante.");
+                return;
+            }
+
+            // 🔥 1. PADRONIZAÇÃO UNIVERSAL (A Mágica do Title Case)
+            // Primeiro deixa tudo minúsculo (hAiRan -> hairan)
+            let nomePadrao = nomeDigitado.toLowerCase(); 
+            // Depois pega a primeira letra e deixa maiúscula (hairan -> Hairan)
+            nomePadrao = nomePadrao.charAt(0).toUpperCase() + nomePadrao.slice(1);
+
+            // 🔥 2. TRAVA DE SEGURANÇA (Verifica minúsculo para não burlarem digitando 'Mestre')
+            const nomesProibidos = ['mestre', 'narrador', 'admin', 'deus'];
+            if (nomesProibidos.includes(nomePadrao.toLowerCase())) {
+                alert("🚫 Acesso negado: Este nome é reservado para entidades superiores!");
+                return;
+            }
+
+            // Salva apenas o nome perfeitamente formatado para todos os motores usarem!
+            localStorage.setItem('rubi_username', nomePadrao);
+            localStorage.setItem('rubi_role', 'player');
+            localStorage.setItem('rubi_color', cor);
+            
+            window.location.href = 'player.html';
+        }
+
+        function verifyGM() {
+            const pass = document.getElementById('gm-pass').value;
+            if(pass === "L&D") { 
+                localStorage.setItem('rubi_username', 'MESTRE');
+                localStorage.setItem('rubi_role', 'gm');
+                window.location.href = 'mestre.html';
+            } else {
+                alert("A chave está incorreta.");
+            }
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', aplicarFundoAleatorio);
+    </script>
+</body>
+</html>
