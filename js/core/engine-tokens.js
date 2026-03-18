@@ -1,0 +1,558 @@
+/* ============================================================
+   === [ ENGINE DE TOKENS V6.5 - MULTIPLICADOR ISOLADO ] ===
+   ============================================================ */
+(function() {
+    const gridSize = 35; 
+
+    const normalizar = (txt) => String(txt || "").trim().toLowerCase();
+    const getScale = () => window.currentScale || 1; 
+
+    // --- NOVA FUNÇÃO GLOBAL DE SEGURANÇA (BLINDADA) ---
+    window.isDonoOuMestre = function(data, tipo) {
+        const meuNome = localStorage.getItem('rubi_username');
+        const minhaRole = localStorage.getItem('rubi_role'); // Pega estritamente o login
+        
+        // 1. Só é mestre se o login disser que é 'gm'
+        if (minhaRole === 'gm') return true;
+        
+        // 2. Itens e Magias são livres
+        if (tipo === 'itens' || tipo === 'magia') return true; 
+        
+        // 3. Verifica se é dono
+        if (data.dono && meuNome && data.dono.toLowerCase() === meuNome.toLowerCase()) return true;
+        
+        return false;
+    };
+
+    // 🔥 LÊ OS MULTIPLICADORES DO MESTRE EM TEMPO REAL E FORÇA ATUALIZAÇÃO 🔥
+    window.multiplicadoresGlobais = { for: 1, dex: 1, int: 1, def: 4, car: 1, con: 4 }; // Padrão
+    setTimeout(() => {
+        if (window.database) {
+            window.database.ref('configuracoes/multiplicadores').on('value', snap => {
+                if (snap.exists()) {
+                    window.multiplicadoresGlobais = snap.val();
+                    // Força os tokens a atualizarem a tela inteira quando o mestre mudar os valores
+                    document.querySelectorAll('.token-vtt').forEach(tk => {
+                        const id = tk.id.replace('token-', '');
+                        window.mapaRef.child('tokens').child(id).once('value', s => {
+                            if(s.exists()) window.updateTokenDOM(id, s.val());
+                        });
+                    });
+                }
+            });
+        }
+    }, 2000);
+
+    // --- FUNÇÃO PRINCIPAL RESTAURADA ---
+    window.initEngineTokens = function() {
+        if (!window.mapaRef) {
+            setTimeout(window.initEngineTokens, 500);
+            return;
+        }
+        const tokensRef = window.mapaRef.child('tokens');
+        
+        tokensRef.on('child_added', snap => {
+            renderToken(snap.key, snap.val());
+        });
+
+        tokensRef.on('child_changed', snap => {
+            window.updateTokenDOM(snap.key, snap.val());
+        });
+
+        tokensRef.on('child_removed', snap => {
+            const el = document.getElementById(`token-${snap.key}`);
+            if (el) el.remove();
+        });
+    };
+
+    function gerarMetaHTML(data, key) {
+        let tipoRaw = normalizar(data.tipo);
+        let tipo = tipoRaw;
+        if (tipoRaw.includes("item") || data.raridade || data.tipoItem) tipo = "itens";
+        else if (data.custo && !tipoRaw.includes("item")) tipo = "magia";
+        else if (!tipo && data.rank) tipo = "monstros";
+
+        const sStatusLinha = 'display: flex; gap: 2px; align-items: center; color: #fff;';
+        const sSubtituloLong = 'font-size: 4px; opacity: 0.8; font-weight: normal; color: #cccccc; margin-top: 2px; display: block; text-align: left;';
+
+        let statusHTML = '<div class="token-status-container" style="position: absolute; top: -15px; right: -5px; display: flex; gap: 2px; z-index: 20;">';
+        if (data.statusAtivos) {
+            Object.entries(data.statusAtivos).forEach(([idUnico, s]) => {
+                const tipoStatus = s.tipo ? s.tipo.toUpperCase() : "DESCONHECIDO";
+                const def = window.StatusSystem && window.StatusSystem.definitions ? window.StatusSystem.definitions[tipoStatus] : null;
+                statusHTML += `<div class="status-badge" title="${s.tipo}" oncontextmenu="window.mapaRef.child('tokens').child('${key}').child('statusAtivos').child('${idUnico}').remove(); return false;" style="font-size: 14px; background: rgba(0,0,0,0.8); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: 1px solid gold; box-shadow: 0 0 5px black; cursor: pointer;">${def?.icone || '⚠️'}</div>`;
+            });
+        }
+        statusHTML += '</div>';
+
+        let iconesHTML = '';
+        let subInline = ''; 
+        let subBlock = '';  
+
+        if (tipo === 'monstros') {
+            const icones = { fogo:'🔥', agua:'💧', terra:'🧱', vento:'🌪️', natureza:'🌱', gelo:'❄️', raio:'⚡', unico:'🎇', lendario:'🎆' };
+            iconesHTML = `<span>${icones[normalizar(data.elemento)] || '👾'}</span> <span>👑${data.rank || 'F'}</span>`;
+        } else if (tipo === 'magia') {
+            const iconesTipo = { 'melee': '⚔️', 'ranged': '🎯', 'suporte': '🔰', 'reacao': '⏳', 'mobilidade': '💨' };
+            iconesHTML = `<span>🔮</span> <span>${iconesTipo[normalizar(data.tipoMagia)] || '✨'}</span> <span>🔷${data.custo || '0'}</span>`;
+            if (data.descricao) subBlock = `<span style="${sSubtituloLong}">${data.descricao}</span>`;
+        } else if (tipo === 'itens') {
+            const sub = normalizar(data.tipoItem || data.subTipo || "item");
+            const qIcon = { comum: '⚪', raro: '🔵', lendario: '🟡', unico: '🟣' }[normalizar(data.raridade || "comum")] || '⚪';
+            iconesHTML = `<span>${sub === 'arma' ? '🗡️' : sub === 'armadura' ? '🛡️' : '📦'}</span><span>${qIcon}</span>`;
+            if (sub === 'arma') subInline = `<span style="font-size: 0.8em; opacity: 0.7; margin-left: 5px;">(${data.tipoEspecifico || 'Arma'})</span>`;
+        }
+
+        return { status: statusHTML, icones: `<div style="${sStatusLinha}">${iconesHTML}</div>`, inline: subInline, bloco: subBlock };
+    }
+
+    function renderToken(key, data) {
+        const mapContainer = document.getElementById('map-container-vtt');
+        if (!mapContainer) return;
+
+        if (document.getElementById(`token-${key}`)) return;
+        
+        const token = document.createElement('div');
+        token.id = `token-${key}`;
+        
+        let t = normalizar(data.tipo);
+        if (data.raridade || data.tipoItem) t = "itens";
+        else if (data.custo) t = "magia";
+        else if (t === "jogador") t = "jogador";
+        else if (!t) t = "monstros";
+        
+        token.className = `token type-${t} token-vtt`;
+        
+        // 🔥 Salva o dono no DOM para a névoa de guerra
+        token.dataset.dono = (data.dono || "").toLowerCase(); 
+        
+        const movMax = parseInt(data.movimentoMaximo) || 8;
+        const movRest = parseInt(data.movimentoRestante) || movMax;
+        token.dataset.movimentoMaximo = movMax;
+        token.dataset.movimentoRestante = movRest;
+        
+        const startX = data.x !== undefined && !isNaN(data.x) ? Number(data.x) : 200;
+        const startY = data.y !== undefined && !isNaN(data.y) ? Number(data.y) : 200;
+        
+        token.style.position = 'absolute';
+        token.style.left = `${startX}px`;
+        token.style.top = `${startY}px`;
+
+        const tokenImage = document.createElement('div');
+        tokenImage.className = 'token-image-body';
+        tokenImage.style.backgroundImage = `url('${data.url || data.img || ""}')`;
+        token.appendChild(tokenImage);
+
+        const stats = data.atributos || {};
+        
+        // 🔥 A MÁGICA DE SEPARAÇÃO: SÓ APLICA O MULTIPLICADOR SE FOR JOGADOR 🔥
+        const isJogador = (t === 'jogador');
+        const multPadrao = { for: 1, dex: 1, int: 1, def: 1, car: 1, con: 1 };
+        const mult = isJogador ? (window.multiplicadoresGlobais || multPadrao) : multPadrao;
+        
+        // ==========================================
+        // VIDA (COM MULTIPLICADOR VISUAL 1:1)
+        // ==========================================
+        const hpMaxReal = parseInt(data.hpMax) || 20;
+        const hpAtualReal = (data.hpAtual !== undefined) ? parseInt(data.hpAtual) : hpMaxReal;
+        
+        const hpMaxVisual = hpMaxReal * (mult.con || 1);
+        const hpAtualVisual = hpAtualReal * (mult.con || 1);
+        const porcentagemVida = hpMaxVisual > 0 ? (hpAtualVisual / hpMaxVisual) * 100 : 0;
+
+        // ==========================================
+        // MANA
+        // ==========================================
+        const manaMax = parseInt(data.manaMax) || 10;
+        const manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
+        const porcentagemMana = manaMax > 0 ? (manaAtual / manaMax) * 100 : 0;
+
+        const meta = gerarMetaHTML(data, key);
+
+        let nomeFormatado = data.nome || 'Sem Nome';
+        nomeFormatado = nomeFormatado.charAt(0).toUpperCase() + nomeFormatado.slice(1);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'token-info-overlay';
+        overlay.innerHTML = `
+            ${meta.status || ""} 
+            <div class="hp-section">
+                <div class="hp-bar-fill" style="width: ${Math.max(0, Math.min(100, porcentagemVida))}%"></div>
+                <span class="hp-text">${hpAtualVisual}/${hpMaxVisual}</span>
+            </div>
+            
+            <div class="mana-section" style="width: 100%; background: rgba(0,0,0,0.8); border: 1px solid #0055ff; border-radius: 4px; height: 10px; position: relative; overflow: hidden; margin-top: 1px;">
+                <div class="mana-bar-fill" style="width: ${Math.max(0, Math.min(100, porcentagemMana))}%; height: 100%; background: linear-gradient(90deg, #0033cc, #0099ff); transition: width 0.3s;"></div>
+                <span class="mana-text" style="position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 8px; font-weight: bold; color: white; line-height: 10px;">${manaAtual}/${manaMax}</span>
+            </div>  
+            <div class="info-principal" style="display: flex; flex-direction: column; width: 100%; padding: 2px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 8px;">
+                    <div class="nome-linha" style="margin:0; text-align: left; font-size: 11px; text-transform: capitalize;">${nomeFormatado}</div>
+                    <div style="margin-top: -2px;"> ${meta.icones || ""}</div>
+                </div>
+                <div class="legenda-linha" style="margin-top: 2px; font-size: 9px; color: #ccc; text-align: left;">${meta.inline || ""}</div>
+                <div class="meta-linha">${meta.bloco || ""}</div>
+            </div>
+            
+            <div class="atributos-grid">
+                <div class="atrib-box"><label>FOR</label><span>${(stats.for || 0) * (mult.for || 1)}</span></div>
+                <div class="atrib-box"><label>DEX</label><span>${(stats.dex || 0) * (mult.dex || 1)}</span></div>
+                <div class="atrib-box"><label>INT</label><span>${(stats.int || 0) * (mult.int || 1)}</span></div>
+                <div class="atrib-box"><label>DEF</label><span>${(stats.def || 0) * (mult.def || 1)}</span></div>
+                <div class="atrib-box"><label>CAR</label><span>${(stats.car || 0) * (mult.car || 1)}</span></div>
+                <div class="atrib-box"><label>VIDA</label><span>${hpMaxVisual}</span></div> 
+            </div>`;
+        
+        token.appendChild(overlay);
+        
+        token.addEventListener('click', (e) => {
+            if (token.classList.contains('prevent-click')) return;
+            e.stopPropagation();
+            if (window.iniciativa?.modoSelecao) { window.iniciativa.adicionarOuRemover(key); return; }
+            if (window.combate?.modoDelecao) {
+                if(confirm(`Deletar ${data.nome}?`)) window.mapaRef.child('tokens').child(key).remove();
+                return;
+            }
+            if (e.ctrlKey && window.combate && t !== 'itens' && t !== 'magia') { 
+                window.combate.tratarCliqueCombate(e, key); 
+            }
+        });
+
+        if (window.isDonoOuMestre(data, t)) {
+            enableDrag(token, key, data, t, mapContainer);
+            token.style.cursor = 'grab';
+        } else {
+            token.setAttribute('draggable', 'false');
+            token.style.cursor = 'not-allowed';
+            token.addEventListener('mousedown', (e) => e.preventDefault());
+        }
+        
+        mapContainer.appendChild(token);
+        
+        if (window.checkTokenFogVisibility) window.checkTokenFogVisibility(); 
+    }
+
+    function enableDrag(token, key, data, tipoToken, mapContainer) {
+        token.setAttribute('draggable', 'true');
+
+        token.addEventListener('dragstart', (e) => {
+            const isDropable = (tipoToken === 'itens' || tipoToken === 'magia');
+            if (isDropable && !e.ctrlKey) {
+                const itemDataParaInventario = { ...data, key: key };
+                e.dataTransfer.setData('application/json', JSON.stringify(itemDataParaInventario));
+                e.dataTransfer.effectAllowed = "move";
+                window.itemSendoArrastadoData = itemDataParaInventario;
+                window.itemSendoArrastadoIndex = null; 
+            } else {
+                e.preventDefault();
+            }
+        });
+
+        let isMoving = false;
+        let startX, startY, startTokenX, startTokenY;
+        let blocosPermitidos = 999;
+        let emCombate = false;
+        let limitZoneDiv = null; 
+
+        const onMouseDown = (e) => {
+            if (e.button !== 0 || e.target.closest('.status-badge')) return;
+
+            const isDropable = (tipoToken === 'itens' || tipoToken === 'magia');
+            if (isDropable && !e.ctrlKey) return;
+
+            if (!window.isDonoOuMestre(data, tipoToken)) return;
+
+            emCombate = window.iniciativa && window.iniciativa.fila && window.iniciativa.fila.length > 0;
+            const isMestre = localStorage.getItem('rubi_role') === 'gm';
+            
+            let idTurnoAtual = null;
+            if (emCombate && window.iniciativa.fila[window.iniciativa.turnoAtual]) {
+                idTurnoAtual = window.iniciativa.fila[window.iniciativa.turnoAtual].id;
+            }
+            let isMeuTurno = (idTurnoAtual === key);
+
+            if (emCombate && tipoToken !== 'itens' && tipoToken !== 'magia') {
+                if (!isMeuTurno && !isMestre) {
+                    blocosPermitidos = 0; 
+                } else {
+                    blocosPermitidos = parseInt(token.dataset.movimentoRestante);
+                    if (isNaN(blocosPermitidos)) {
+                        blocosPermitidos = parseInt(token.dataset.movimentoMaximo) || 8;
+                    }
+                }
+            } else {
+                blocosPermitidos = 999;
+            }
+
+            if (blocosPermitidos <= 0 && !isDropable) {
+                token.classList.add('error-shake');
+                setTimeout(() => token.classList.remove('error-shake'), 300);
+                return; 
+            }
+
+            isMoving = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            startTokenX = parseInt(token.style.left) || 0;
+            startTokenY = parseInt(token.style.top) || 0;
+
+            if (emCombate && blocosPermitidos > 0 && tipoToken !== 'itens' && tipoToken !== 'magia') {
+                limitZoneDiv = document.createElement('div');
+                const tamanhoZom = (blocosPermitidos * 2 + 1) * 35; 
+                
+                limitZoneDiv.style.position = 'absolute';
+                limitZoneDiv.style.width = `${tamanhoZom}px`;
+                limitZoneDiv.style.height = `${tamanhoZom}px`;
+                limitZoneDiv.style.left = `${startTokenX - (blocosPermitidos * 35)}px`;
+                limitZoneDiv.style.top = `${startTokenY - (blocosPermitidos * 35)}px`;
+                limitZoneDiv.style.backgroundColor = 'rgba(0, 255, 204, 0.1)'; 
+                limitZoneDiv.style.border = '2px dashed #00ffcc';
+                limitZoneDiv.style.borderRadius = '5px';
+                limitZoneDiv.style.pointerEvents = 'none'; 
+                limitZoneDiv.style.zIndex = '5'; 
+                
+                mapContainer.appendChild(limitZoneDiv);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+
+        const onMouseMove = (e) => {
+            const deltaX = (e.clientX - startX) / (window.currentScale || 1);
+            const deltaY = (e.clientY - startY) / (window.currentScale || 1);
+            const dist = Math.hypot(deltaX, deltaY);
+
+            if (!isMoving && dist > 5) {
+                isMoving = true;
+                token.classList.add('is-moving-grid');
+                token.style.zIndex = "9999";
+            }
+
+            if (isMoving) {
+                let squaresX = Math.round(deltaX / 35);
+                let squaresY = Math.round(deltaY / 35);
+
+                if (emCombate) {
+                    squaresX = Math.max(-blocosPermitidos, Math.min(blocosPermitidos, squaresX));
+                    squaresY = Math.max(-blocosPermitidos, Math.min(blocosPermitidos, squaresY));
+                }
+
+                if (isNaN(squaresX)) squaresX = 0;
+                if (isNaN(squaresY)) squaresY = 0;
+
+                let nextX = startTokenX + (squaresX * 35);
+                let nextY = startTokenY + (squaresY * 35);
+                
+                token.style.left = nextX + 'px';
+                token.style.top = nextY + 'px';
+            }
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+
+            if (limitZoneDiv) {
+                limitZoneDiv.remove();
+                limitZoneDiv = null;
+            }
+
+            if (isMoving) {
+                token.classList.remove('is-moving-grid');
+                
+                let rawX = parseInt(token.style.left);
+                let rawY = parseInt(token.style.top);
+
+                if (isNaN(rawX) || isNaN(rawY)) return;
+
+                let finalX = Math.floor(rawX / 35) * 35;
+                let finalY = Math.floor(rawY / 35) * 35;
+
+                let updates = {};
+
+                if (emCombate && tipoToken !== 'itens' && tipoToken !== 'magia') {
+                    let andouX = Math.abs(finalX - startTokenX) / 35;
+                    let andouY = Math.abs(finalY - startTokenY) / 35;
+                    let distAndada = Math.max(andouX, andouY); 
+                    
+                    if (distAndada > 0) {
+                        updates.movimentoRestante = Math.max(0, blocosPermitidos - distAndada);
+                    }
+                }
+
+                if (finalX !== startTokenX || finalY !== startTokenY || updates.movimentoRestante !== undefined) {
+                    updates.x = finalX;
+                    updates.y = finalY;
+                    window.mapaRef.child('tokens').child(key).update(updates);
+                }
+                
+                token.style.left = finalX + 'px';
+                token.style.top = finalY + 'px';
+            }
+        };
+
+        token.addEventListener('mousedown', onMouseDown);
+    }
+
+    window.updateTokenDOM = function(key, data) {
+        const token = document.getElementById(`token-${key}`);
+        if (!token || token.classList.contains('is-moving-grid')) return;
+        
+        token.dataset.dono = (data.dono || "").toLowerCase();
+
+        if (data.x !== undefined && !isNaN(data.x)) token.style.left = `${data.x}px`;
+        if (data.y !== undefined && !isNaN(data.y)) token.style.top = `${data.y}px`;
+
+        const movMax = data.movimentoMaximo !== undefined ? data.movimentoMaximo : 8;
+        const movRest = data.movimentoRestante !== undefined ? data.movimentoRestante : movMax;
+        token.dataset.movimentoMaximo = movMax;
+        token.dataset.movimentoRestante = movRest;
+
+        const stats = data.atributos || {};
+        
+        // 🔥 A MÁGICA DE SEPARAÇÃO NA ATUALIZAÇÃO 🔥
+        const isJogador = token.classList.contains('type-jogador');
+        const multPadrao = { for: 1, dex: 1, int: 1, def: 1, car: 1, con: 1 };
+        const mult = isJogador ? (window.multiplicadoresGlobais || multPadrao) : multPadrao;
+        
+        // ==========================================
+        // ATUALIZA VIDA (VISUAL)
+        // ==========================================
+        const hpMaxReal = parseInt(data.hpMax) || 20;
+        const hpAtualReal = (data.hpAtual !== undefined) ? parseInt(data.hpAtual) : hpMaxReal;
+        
+        const hpMaxVisual = hpMaxReal * (mult.con || 1);
+        const hpAtualVisual = hpAtualReal * (mult.con || 1);
+
+        const bar = token.querySelector('.hp-bar-fill');
+        const hpText = token.querySelector('.hp-text');
+        
+        if (bar) {
+            const perc = hpMaxVisual > 0 ? (hpAtualVisual / hpMaxVisual) * 100 : 0;
+            bar.style.width = `${Math.max(0, Math.min(100, perc))}%`;
+        }
+        if (hpText) hpText.textContent = `${hpAtualVisual}/${hpMaxVisual}`;
+
+        // ==========================================
+        // ATUALIZA MANA
+        // ==========================================
+        const manaMax = parseInt(data.manaMax) || 10;
+        const manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
+        
+        const manaBar = token.querySelector('.mana-bar-fill');
+        const manaText = token.querySelector('.mana-text');
+        
+        if (manaBar) {
+            const percMana = manaMax > 0 ? (manaAtual / manaMax) * 100 : 0;
+            manaBar.style.width = `${Math.max(0, Math.min(100, percMana))}%`;
+        }
+        if (manaText) manaText.textContent = `${manaAtual}/${manaMax}`;
+
+        // ==========================================
+        // ATUALIZA OS ATRIBUTOS (VISUAIS)
+        // ==========================================
+        const boxes = token.querySelectorAll('.atrib-box span');
+        if (boxes.length >= 6) {
+            boxes[0].textContent = (stats.for || 0) * (mult.for || 1);
+            boxes[1].textContent = (stats.dex || 0) * (mult.dex || 1);
+            boxes[2].textContent = (stats.int || 0) * (mult.int || 1);
+            boxes[3].textContent = (stats.def || 0) * (mult.def || 1); 
+            boxes[4].textContent = (stats.car || 0) * (mult.car || 1);
+            boxes[5].textContent = hpMaxVisual; 
+        }
+
+        const meta = gerarMetaHTML(data, key);
+        let statusContainer = token.querySelector('.token-status-container');
+        if (statusContainer) {
+            statusContainer.outerHTML = meta.status;
+        } else {
+            const overlay = token.querySelector('.token-info-overlay');
+            if(overlay) overlay.insertAdjacentHTML('afterbegin', meta.status);
+        }
+        
+        if (window.checkTokenFogVisibility) window.checkTokenFogVisibility();
+    };
+
+    window.spawnTokenGlobal = function(data) {
+        if (!window.mapaRef) {
+            console.error("❌ [SPAWN] Erro: window.mapaRef não inicializada.");
+            return;
+        }
+
+        const posX = (data.x !== undefined) ? Number(data.x) : 200;
+        const posY = (data.y !== undefined) ? Number(data.y) : 200;
+
+        const finalData = { ...data, x: posX, y: posY };
+
+        let t = (data.tipo || "").toString().toLowerCase();
+
+        if (data.raridade || data.tipoItem || t.includes("item")) {
+            t = "itens"; 
+        } else if (data.custo || t.includes("magia")) {
+            t = "magia"; 
+        } else if (!t || t === "undefined" || t === "desconhecido") {
+            t = (data.categoria === "NPC") ? "npcs" : "monstros";
+        }
+        
+        finalData.tipo = t;
+        if (!finalData.nome) finalData.nome = data.identidade?.nome || data.nome || "Token";
+
+        if (finalData.nome) {
+            finalData.nome = finalData.nome.charAt(0).toUpperCase() + finalData.nome.slice(1);
+        }
+
+        if (typeof data.atributos === 'string') {
+            const v = data.atributos.split('/').map(val => parseInt(val.trim()) || 0);
+            finalData.atributos = { for:v[0], dex:v[1], int:v[2], def:v[3], car:v[4], con:v[5] };
+        }
+        
+        if (finalData.hpAtual === undefined) {
+            finalData.hpAtual = parseInt(finalData.atributos?.con) || 10;
+        }
+
+        window.mapaRef.child('tokens').push(finalData);
+    };
+
+    // 🔥 SISTEMA DE INVISIBILIDADE NA NÉVOA (FOG) 🔥
+    window.checkTokenFogVisibility = function() {
+        const role = localStorage.getItem('rubi_role');
+        if (role === 'gm') return; 
+
+        const meuNome = (localStorage.getItem('rubi_username') || "").toLowerCase();
+        const blocks = document.querySelectorAll('.map-block');
+        const tokens = document.querySelectorAll('.token-vtt');
+
+        tokens.forEach(token => {
+            if (token.dataset.dono === meuNome && meuNome !== "") {
+                token.style.display = '';
+                return;
+            }
+
+            const x = parseInt(token.style.left) || 0;
+            const y = parseInt(token.style.top) || 0;
+            
+            const col = Math.floor(x / 280);
+            const row = Math.floor(y / 280);
+            const blockIndex = (row * 4) + col;
+
+            let isFogged = false;
+            if (col >= 0 && col <= 3 && row >= 0 && row <= 3) {
+                const block = blocks[blockIndex];
+                if (block && block.classList.contains('fog')) isFogged = true;
+            }
+
+            if (isFogged) {
+                token.style.display = 'none'; 
+            } else {
+                token.style.display = ''; 
+            }
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.initEngineTokens);
+    } else {
+        window.initEngineTokens();
+    }
+})();

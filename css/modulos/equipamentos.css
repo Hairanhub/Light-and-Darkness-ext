@@ -1,0 +1,173 @@
+/* css/modulos/equipamentos.css */
+
+/* ==========================================================================
+   1. ESTRUTURA GLOBAL (Layout do Dashboard)
+   ========================================================================== */
+#dm-dashboard {
+    display: grid !important;
+    /* Chat: 250px | Mapa: Flexível | Painel: 280px */
+    grid-template-columns: 250px minmax(0, 1fr) 280px !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+}
+
+/* ==========================================================================
+   2. BARRA LATERAL DIREITA (Sidebar)
+   ========================================================================== */
+.sidebar-right {
+    grid-column: 3 !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    height: 100vh !important;
+    background: rgba(10, 10, 10, 0.98) !important;
+    border-left: 2px solid #333 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    z-index: 10000 !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Conteúdo interno da Sidebar */
+.sidebar-right .padding-container, 
+#library-content,
+.scroll-area {
+    padding: 10px;
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Trava para inputs e formulários não estufarem a barra */
+.sidebar-right input, 
+.sidebar-right select, 
+.sidebar-right textarea,
+#reg-atributos, 
+.extra-fields {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* ==========================================================================
+   3. PAPERDOLL (Container de Equipamentos)
+   ========================================================================== */
+.paperdoll-container {
+    display: flex;
+    flex-direction: column; 
+    gap: 15px; 
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    padding: 20px 10px;
+    border: 1px solid #222;
+    margin-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.doll-row {
+    display: flex;
+    justify-content: space-around; 
+    align-items: center;
+    width: 100%;
+}
+
+/* Grid de Atalhos/Magias */
+.quick-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #222;
+}
+
+/* ==========================================================================
+   4. SLOTS (Equipamento e Inventário) - RESTAURADO E CORRIGIDO
+   ========================================================================== */
+
+.equip-slot, .item-slot {
+    width: 60px;  
+    height: 60px;
+    background: #151515;
+    border: 2px solid #333;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative !important;
+    transition: all 0.2s ease-in-out;
+    
+    /* --- INTERAÇÃO (SEM QUEBRAR O VISUAL) --- */
+    pointer-events: auto !important; /* Slot aceita cliques */
+    cursor: pointer !important;
+    user-select: none !important;
+    
+    /* Z-Index: Garante que fique acima de qualquer elemento da sidebar */
+    z-index: 10001 !important; 
+}
+
+/* Variações de tamanho */
+.equip-slot.main-slot { width: 70px; height: 70px; border-color: #444; }
+.equip-slot.small { width: 48px; height: 48px; border-radius: 50%; }
+
+/* Ícones padrão do slot */
+.slot-icon { 
+    color: #444; 
+    font-size: 24px; 
+    /* pointer-events: none; <-- REMOVIDO PARA TESTE */
+}
+
+/* Imagens dos itens */
+.equip-slot img, .item-slot img {
+    width: 85%;
+    height: 85%;
+    object-fit: contain;
+    /* pointer-events: none !important; <-- REMOVIDO PARA TESTE */
+    -webkit-user-drag: none;
+}
+
+/* ==========================================================================
+   5. ESTADOS DE ARRASTE (Drag and Drop)
+   ========================================================================== */
+/* Estado quando o item está sendo arrastado SOBRE o slot */
+.equip-slot.drag-over {
+    border: 2px dashed #4CAF50 !important;
+    background: rgba(76, 175, 80, 0.2) !important;
+    transform: scale(1.05); /* Feedback visual */
+}
+
+/* Faz com que o mouse "atravesse" o ícone e interaja com o slot (div) */
+.slot-icon {
+    pointer-events: none !important;
+}
+
+/* --- FORÇA BRUTA DE DRAG AND DROP --- */
+
+/* 1. Garante que o slot esteja acima de TUDO e aceite cliques */
+.equip-slot {
+    position: relative !important;
+    z-index: 999999 !important;
+    pointer-events: auto !important;
+}
+
+/* 2. Força os containers pais a não bloquearem o mouse */
+.paperdoll-container, .doll-row, .sidebar-right {
+    pointer-events: auto !important;
+}
+
+/* 3. Garante que qualquer ícone dentro do slot não bloqueie o mouse */
+.slot-icon {
+    pointer-events: none !important;
+}

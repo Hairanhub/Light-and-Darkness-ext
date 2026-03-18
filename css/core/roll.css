@@ -1,0 +1,130 @@
+/* ============================================================
+   === [ ROLL.CSS - VERSÃO FINAL OTIMIZADA ] ===
+   ============================================================ */
+
+/* 1. ESTÉTICA DO DADO (SVG E NÚMEROS) */
+.dice-svg path {
+    fill: var(--dice-color, #4a0000) !important; 
+    stroke: var(--dice-glow, #FFD700) !important; 
+    stroke-width: 2px !important;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3));
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dice-wrapper:hover .dice-svg path,
+.dice-rolling .dice-svg path {
+    filter: brightness(1.3) drop-shadow(0 0 8px var(--dice-glow, #FFD700));
+}
+
+.dice-num-display {
+    fill: var(--dice-glow, #FFD700) !important;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    text-anchor: middle;
+    dominant-baseline: central; 
+    text-shadow: 1px 1px 0px #000, 0px 0px 10px rgba(255, 215, 0, 0.5);
+    pointer-events: none;
+}
+
+.dice-blur {
+    filter: blur(1.5px);
+    opacity: 0.8;
+}
+
+/* 2. ESTRUTURA E CALIBRAGEM DOS DADOS */
+.dice-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Ajustes finos de tamanho e alinhamento por tipo de dado */
+.dice-wrapper[onclick*="(4)"] svg  { width: 60px;  height: 60px;  transform: translateY(3px) !important; }
+.dice-wrapper[onclick*="(6)"] svg  { width: 70px;  height: 70px;  transform: translateY(4px) !important; }
+.dice-wrapper[onclick*="(8)"] svg  { width: 67px;  height: 67px;  transform: translateY(-2px) !important; }
+.dice-wrapper[onclick*="(10)"] svg { width: 76px;  height: 76px;  transform: translateY(1px) !important; }
+.dice-wrapper[onclick*="(12)"] svg { width: 71px;  height: 71px;  transform: translateY(-5px) !important; }
+.dice-wrapper[onclick*="(20)"] svg { width: 105px; height: 105px; transform: translateY(6px) !important; }
+
+/* 3. INFO ROW (NOME E CONTADOR) */
+.dice-info-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    margin-top: 15px !important;
+    min-height: 45px;
+}
+
+.dice-wrapper span {
+    order: 1 !important;
+    color: var(--gold, #FFD700);
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.dice-counter {
+    order: 2 !important;
+    width: 18px !important;
+    height: 18px !important;
+    background: #ff4500 !important; 
+    border: 1.5px solid var(--dice-glow, #FFD700) !important;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 8px rgba(255, 69, 0, 0.4);
+}
+
+/* 4. ANIMAÇÕES DO SISTEMA */
+
+/* Tremor do Dado ao Rolar */
+.dice-rolling { 
+    animation: shake-dice 0.1s infinite !important; 
+}
+
+@keyframes shake-dice {
+    0%   { transform: rotate(0deg)   translate(0, 0); }
+    25%  { transform: rotate(4deg)   translate(2px, -2px); }
+    50%  { transform: rotate(0deg)   translate(-2px, 2px); }
+    75%  { transform: rotate(-4deg)  translate(2px, 1px); }
+    100% { transform: rotate(0deg)   translate(0, 0); }
+}
+
+/* Impacto ao terminar rolagens */
+.dice-impact {
+    animation: impact-pop 0.3s ease-out !important;
+}
+
+@keyframes impact-pop {
+    0%   { transform: scale(1.1); }
+    50%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Tremor do Token (Dano) - Resolvido com margin-left para não conflitar com o Mapa */
+.token-alvo {
+    outline: 4px solid #ff4444 !important;
+    box-shadow: 0 0 25px #ff4444 !important;
+    animation: shake-token 0.3s linear !important; 
+    z-index: 9999 !important;
+}
+
+@keyframes shake-token {
+    0% { margin-left: 0px; }
+    20% { margin-left: -6px; }
+    40% { margin-left: 6px; }
+    60% { margin-left: -6px; }
+    80% { margin-left: 6px; }
+    100% { margin-left: 0px; }
+}
