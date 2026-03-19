@@ -1,5 +1,5 @@
 /* ============================================================
-   === [ MOTOR DE COMBATE - V12.3 (TRAVA DE ARMAS & DUAL WIELD) ] ===
+   === [ MOTOR DE COMBATE - V13.0 (AATROX BYPASS DIRETO) ] ===
    ============================================================ */
 
 window.combate = {
@@ -7,10 +7,7 @@ window.combate = {
     modoDelecao: false,
     ataqueSecundarioRealizado: false, 
     
-    // Armazena dados temporários do turno atual
-    snapshot: {
-        temMaoEsquerda: false
-    },
+    snapshot: { temMaoEsquerda: false },
     
     calc: {
         atributoSelecionado: null,
@@ -18,37 +15,34 @@ window.combate = {
         extraMod: 0
     },
 
-    // --- NOVA FUNÇÃO: TRAVA VISUAL DOS BOTÕES ---
+    obterMultiplicadores: function(dadosToken) {
+        const isJogador = (dadosToken.tipo === 'jogador');
+        const multPadrao = { for: 1, dex: 1, int: 1, def: 1, car: 1, con: 1 };
+        return isJogador ? (window.multiplicadoresGlobais || multPadrao) : multPadrao;
+    },
+
     atualizarTravaAtributos: function(idAtacante) {
         const role = localStorage.getItem('rubi_role');
         
-        // Mestre (GM) não tem travas, pode rolar o que quiser
         if (role === 'gm') {
             document.querySelectorAll('.btn-attr').forEach(b => {
-                b.style.pointerEvents = 'auto';
-                b.style.opacity = '1';
-                b.style.filter = 'none';
+                b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
             });
             return;
         }
 
-        // 1. Identifica qual slot olhar (64=Direita, 65=Esquerda)
         const slotId = this.ataqueSecundarioRealizado ? "65" : "63";
         const slotElement = document.querySelector(`[data-slot-index="${slotId}"]`);
         
-        let tipoDanoDaArma = "fisico"; // Padrão se estiver desarmado ou item sem config
+        let tipoDanoDaArma = "fisico";
 
-        // 2. Lê os dados da arma equipada no slot correspondente ao ataque da vez
         if (slotElement && slotElement.dataset.itemFullData) {
             try {
                 const item = JSON.parse(slotElement.dataset.itemFullData);
                 if (item.categoriaDano) tipoDanoDaArma = item.categoriaDano;
-            } catch (e) {
-                console.warn("Erro ao ler arma para trava de atributo", e);
-            }
+            } catch (e) { console.warn("Erro ao ler arma", e); }
         }
 
-        // 3. Aplica a trava nos botões da interface (FOR, DEX, INT...)
         document.querySelectorAll('.btn-attr').forEach(btn => {
             const attr = btn.dataset.attr;
             let permitido = false;
@@ -59,19 +53,16 @@ window.combate = {
                 if (attr === "int") permitido = true;
             }
 
-            // Aplica o visual de "bloqueado"
             btn.style.pointerEvents = permitido ? 'auto' : 'none';
             btn.style.opacity = permitido ? '1' : '0.2';
             btn.style.filter = permitido ? 'none' : 'grayscale(1)';
             
-            // Auto-seleciona para poupar cliques e evitar erros do jogador
             if (permitido && !this.calc.atributoSelecionado) {
                 this.selecionarAtributo(attr);
             }
         });
     },
 
-    // --- 1. ATAQUE EM ÁREA ---
     executarAtaqueArea: async function(idAtacante, idsAlvos) {
         window.mostrarConsoleDados();
         const info = await this.esperarRolagemManual(); 
@@ -79,39 +70,46 @@ window.combate = {
             const snapAtacante = await window.mapaRef.child('tokens').child(idAtacante).once('value');
             const snapAlvo = await window.mapaRef.child('tokens').child(idAlvo).once('value');
             if(!snapAtacante.val() || !snapAlvo.val()) continue;
-            const res = this.processarCombate(snapAtacante.val(), snapAlvo.val(), info);
-            if (res.dano > 0) await window.StatusSystem.modificarHP(idAlvo, -res.dano);
-            this.notificarCombate("DANO DE ÁREA", `${snapAlvo.val().nome} atingido!<br>${res.status}`);
+            
+            const dadosA = snapAtacante.val();
+            const dadosB = snapAlvo.val();
+            const res = this.processarCombate(dadosA, dadosB, info);
+            
+            if (res.dano > 0) {
+                const multAlvo = this.obterMultiplicadores(dadosB);
+                const conMult = multAlvo.con || 1;
+                const danoConvertidoParaBase = res.dano / conMult;
+
+                if (window.StatusSystem && typeof window.StatusSystem.modificarHP === "function") {
+                    await window.StatusSystem.modificarHP(idAlvo, -danoConvertidoParaBase);
+                } else {
+                    const ref = window.mapaRef.child('tokens').child(idAlvo);
+                    const currentHPBase = parseFloat(dadosB.hpAtual ?? dadosB.atributos?.hp ?? 20);
+                    await ref.update({ hpAtual: Math.max(0, currentHPBase - danoConvertidoParaBase) });
+                }
+            }
+            this.notificarCombate("DANO DE ÁREA", `${dadosB.nome} atingido!<br>${res.status}`);
         }
         window.esconderConsoleDados();
         this.resetarCalculadora();
     },
 
-    // --- 2. ATAQUE INDIVIDUAL ---
     executarAtaque: async function(idAtacante, idAlvo, elAlvo) {
         const elAtacante = document.getElementById(`token-${idAtacante}`);
-        
-        if (!elAtacante) {
-            console.error("❌ Token atacante não encontrado.");
-            return;
-        }
+        if (!elAtacante) return;
 
         const snapAtacante = await window.mapaRef.child('tokens').child(idAtacante).once('value');
         const snapAlvo = await window.mapaRef.child('tokens').child(idAlvo).once('value');
         const dadosA = snapAtacante.val();
         const dadosB = snapAlvo.val();
 
-        // --- 📸 SNAPSHOT: SALVA O ESTADO DA ARMA AGORA ---
         if (window.MotorArmas && typeof window.MotorArmas.verificarMaoEsquerda === 'function') {
             this.snapshot.temMaoEsquerda = window.MotorArmas.verificarMaoEsquerda();
         } else {
             const slotEsq = document.querySelector('[data-slot-index="65"]');
             this.snapshot.temMaoEsquerda = (slotEsq && !!slotEsq.dataset.itemFullData);
         }
-        
-        console.log(`📸 [SNAPSHOT] Arma Secundária detectada: ${this.snapshot.temMaoEsquerda ? "SIM" : "NÃO"}`);
 
-        // 🔥 NOVA VALIDAÇÃO DE ALCANCE (NÃO CANCELA O TURNO, APENAS PREPARA PARA ZERAR O DANO)
         let foraDeAlcance = false;
         let msgAlcance = "";
         if (window.MotorArmas && typeof window.MotorArmas.validarAlcance === 'function') {
@@ -119,12 +117,10 @@ window.combate = {
             if (!checagemAlcance.pode) {
                 foraDeAlcance = true;
                 msgAlcance = checagemAlcance.msg;
-                // Avisa que o golpe vai falhar, mas permite rolar o dado para consumir a ação!
                 this.notificarCombate("ALCANCE", `⚠️ O golpe vai falhar: ${msgAlcance}`, "#ff9900");
             }
         }
 
-        // 🛑 STATUS (Sono, etc) - Isso ainda cancela porque o personagem não pode se mover
         if (window.StatusSystem) {
             if (window.StatusSystem.temStatus(dadosA, "SONO")) {
                 this.notificarCombate(dadosA.nome.toUpperCase(), "💤 Está dormindo e perdeu a ação!", "#aaa");
@@ -142,32 +138,77 @@ window.combate = {
             }
         }
 
-        // --- ROLAGEM ---
         window.mostrarConsoleDados();
         const info = await this.esperarRolagemManual(); 
         if (elAlvo) elAlvo.classList.add('token-alvo'); 
 
         const res = this.processarCombate(dadosA, dadosB, info);
 
-        // 🔥 SE ESTAVA FORA DE ALCANCE, FORÇA O DANO ZERO ANTES DE APLICAR
         if (foraDeAlcance) {
             res.dano = 0;
             res.status = `<b style="color: #ff4d4d;">🚫 GOLPE NO VAZIO!</b><br><small>${msgAlcance}</small>`;
-            res.isoldeAtivou = false; // Não pode ativar passivas extras se bateu no vento
+            res.isoldeAtivou = false; 
+            res.curaAtacanteBase = 0; 
         }
 
-        // --- DANO ---
         if (res.dano > 0) {
             let danoFinal = res.dano;
-            if (window.StatusSystem) {
+            
+            const multAlvo = this.obterMultiplicadores(dadosB);
+            const conMult = multAlvo.con || 1;
+
+            if (window.StatusSystem && typeof window.StatusSystem.aplicarReducoesDeDano === "function") {
                 danoFinal = window.StatusSystem.aplicarReducoesDeDano(dadosA, danoFinal);
-                await window.StatusSystem.modificarHP(idAlvo, -danoFinal);
-            } else {
-                const ref = window.mapaRef.child('tokens').child(idAlvo);
-                const currentHP = parseInt(dadosB.hpAtual || dadosB.atributos?.hp || 20);
-                await ref.update({ hpAtual: Math.max(0, currentHP - danoFinal) });
             }
             
+            const danoConvertidoParaBase = danoFinal / conMult;
+
+            if (window.StatusSystem && typeof window.StatusSystem.modificarHP === "function") {
+                await window.StatusSystem.modificarHP(idAlvo, -danoConvertidoParaBase);
+            } else {
+                const ref = window.mapaRef.child('tokens').child(idAlvo);
+                const currentHPBase = parseFloat(dadosB.hpAtual ?? dadosB.atributos?.hp ?? 20);
+                await ref.update({ hpAtual: Math.max(0, currentHPBase - danoConvertidoParaBase) });
+            }
+            
+            // 🔥 AATROX: BYPASS DIRETO PARA O BANCO DE DADOS (COM EFEITO VISUAL) 🔥
+            if (res.curaAtacanteBase > 0) {
+                // Lemos a ficha mais atual possível
+                const snapFresco = await window.mapaRef.child('tokens').child(idAtacante).once('value');
+                const fichaFresca = snapFresco.val();
+                
+                if (fichaFresca) {
+                    const hpMax = parseFloat(fichaFresca.hpMax || fichaFresca.atributos?.con || 20);
+                    const hpAgora = parseFloat(fichaFresca.hpAtual !== undefined ? fichaFresca.hpAtual : hpMax);
+                    
+                    let novoHp = hpAgora + res.curaAtacanteBase;
+                    if (novoHp > hpMax) novoHp = hpMax; // Não deixa passar da vida máxima
+
+                    if (novoHp > hpAgora) {
+                        // IGNORAMOS a função StatusSystem porque ela é bugada com números positivos.
+                        // Atualizamos direto na veia do banco de dados (ambos os campos)!
+                        await window.mapaRef.child('tokens').child(idAtacante).update({ 
+                            hpAtual: novoHp,
+                            "atributos/hp": novoHp 
+                        });
+                        
+                        const mults = this.obterMultiplicadores(fichaFresca);
+                        const conMultA = mults.con || 1;
+                        const curaVisualText = Math.round((novoHp - hpAgora) * conMultA);
+                        
+                        this.notificarCombate("MÁSCARA DE AATROX", `🩸 <b>${fichaFresca.nome}</b> drenou +${curaVisualText} HP!`, "#2ecc71");
+                        
+                        // Faz o token dar um brilho verde na tela!
+                        const pinoAtacante = document.getElementById(`token-${idAtacante}`);
+                        if (pinoAtacante) {
+                            pinoAtacante.style.transition = "box-shadow 0.3s ease";
+                            pinoAtacante.style.boxShadow = "0 0 25px 10px #2ecc71";
+                            setTimeout(() => { pinoAtacante.style.boxShadow = "none"; }, 1000);
+                        }
+                    }
+                }
+            }
+
             const tipoStatusRaw = document.getElementById('reg-magia-status-tipo')?.value || 
                                  (this.calc.atributoSelecionado === "int" ? "Fogo" : null);
             if (tipoStatusRaw && window.StatusSystem) await window.StatusSystem.aplicarStatus(idAlvo, tipoStatusRaw);
@@ -189,40 +230,29 @@ window.combate = {
 
         this.notificarCombate(dadosA.nome.toUpperCase(), msg);
 
-        // --- DECISÃO DE CONTINUIDADE (USA O SNAPSHOT) ---
         setTimeout(() => {
             if (elAlvo) elAlvo.classList.remove('token-alvo');
             
             window.esconderConsoleDados();
             this.resetarCalculadora();
 
-            // 1. ISOLDE (Prioridade Máxima)
             if (res.isoldeAtivou) {
-                console.log("⚡ [ISOLDE] Ativou! Turno reiniciado.");
                 this.notificarCombate("COLAR DE ISOLDE", "⚡ <b>ATAQUE EXTRA!</b> Jogue novamente!", "#00d4ff");
                 return; 
             }
 
-            // 2. DUAL WIELD (Usa a memória do Snapshot)
             if (this.snapshot.temMaoEsquerda && !this.ataqueSecundarioRealizado) {
-                console.log("⚔️ [DUAL WIELD] Ataque secundário disponível.");
                 this.ataqueSecundarioRealizado = true; 
-                
-                // 🔥 TRAVA DA ARMA SECUNDÁRIA (Gatilho 2)
                 this.atualizarTravaAtributos(idAtacante);
-
                 this.notificarCombate("DUAL WIELD", "⚔️ <b>ATAQUE SECUNDÁRIO!</b> Jogue novamente!", "#ff00cc");
                 return;
             }
 
-            // 3. FIM DO TURNO
-            console.log("🏁 [SISTEMA] Fim de Turno.");
             if (elAtacante) elAtacante.classList.remove('token-preparo');
             this.tokenAtivoId = null;
             this.ataqueSecundarioRealizado = false; 
             this.snapshot.temMaoEsquerda = false; 
             
-            // Remove as travas caso tenha finalizado
             document.querySelectorAll('.btn-attr').forEach(b => {
                 b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
             });
@@ -233,7 +263,6 @@ window.combate = {
         }, 1200); 
     },
 
-    // --- FUNÇÕES DE SUPORTE ---
     tratarCliqueCombate: async function(e, tokenId) {
         if (window.iniciativa && window.iniciativa.modoSelecao) {
             window.iniciativa.adicionarOuRemover(tokenId);
@@ -277,8 +306,6 @@ window.combate = {
 
             this.tokenAtivoId = tokenId;
             el.classList.add('token-preparo');
-
-            // 🔥 TRAVA DA ARMA PRINCIPAL (Gatilho 1)
             this.atualizarTravaAtributos(tokenId);
 
         } else {
@@ -315,7 +342,6 @@ window.combate = {
         this.ataqueSecundarioRealizado = false; 
         window.esconderConsoleDados();
         
-        // Remove travas em caso de aborto
         document.querySelectorAll('.btn-attr').forEach(b => {
             b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
         });
@@ -356,7 +382,6 @@ window.combate = {
         if (window.enviarMensagemChat) window.enviarMensagemChat(titulo, msg, cor);
     },
 
-    // --- 3. AUTO AÇÃO ---
     executarAutoAcao: async function(id, el) {
         el.classList.remove('token-preparo');
         el.classList.add('token-auto-acao');
@@ -379,7 +404,6 @@ window.combate = {
             this.resetarCalculadora();
             this.ataqueSecundarioRealizado = false;
             
-            // Remove travas após auto-ação
             document.querySelectorAll('.btn-attr').forEach(b => {
                 b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
             });
@@ -388,7 +412,6 @@ window.combate = {
         }, 1500);
     },
 
-    // --- 4. CÁLCULOS (ATUALIZADO COM TIPO DE DANO DO MONSTRO) ---
     processarCombate: function(dadosAtacante, dadosAlvo, infoRolagem) {
         const face = infoRolagem.lados;
         const valorDado = infoRolagem.resultado;
@@ -397,14 +420,14 @@ window.combate = {
         
         let atributoAtaque = this.calc.atributoSelecionado;
         
-        if (!atributoAtaque && dadosAtacante.tipo === 'monstro') {
+        if (!atributoAtaque && (dadosAtacante.tipo === 'monstro' || dadosAtacante.tipo === 'monstros')) {
             atributoAtaque = (dadosAtacante.tipoDano === 'magico') ? 'int' : 'for';
-            console.log(`🤖 Auto-Ataque do Monstro: Usando ${atributoAtaque.toUpperCase()}`);
         }
 
+        const multAtacante = this.obterMultiplicadores(dadosAtacante);
         let modAtributo = 0;
         if (atributoAtaque && dadosAtacante.atributos) {
-            modAtributo = parseInt(dadosAtacante.atributos[atributoAtaque]) || 0;
+            modAtributo = (parseInt(dadosAtacante.atributos[atributoAtaque]) || 0) * (multAtacante[atributoAtaque] || 1);
         }
         
         let modExtra = parseInt(document.getElementById('extra-mod')?.value) || 0;
@@ -413,44 +436,63 @@ window.combate = {
         let logPassiva = "";
         let multiplicadorDrakar = 1;
         let isoldeTrigger = false;
+        let curaAatroxTotal = 0;
         
         if (window.PassiveSystem && typeof window.PassiveSystem.calcularDanoExtra === "function") {
             const elementoAtaque = document.getElementById('reg-magia-status-tipo')?.value || "FISICO";
-            const elementoMonstro = dadosAlvo.elemento || "";
-            const resultadoPassiva = window.PassiveSystem.calcularDanoExtra(dadosAtacante, elementoAtaque, elementoMonstro);
+            const resultadoPassiva = window.PassiveSystem.calcularDanoExtra(dadosAtacante, elementoAtaque, dadosAlvo);
             
             danoPassivoTotal = resultadoPassiva.danoExtra || 0;
             logPassiva = resultadoPassiva.log || "";
             if (resultadoPassiva.drakarAtivou) multiplicadorDrakar = 2;
             if (resultadoPassiva.isoldeAtivou) isoldeTrigger = true;
+            if (resultadoPassiva.aatroxAtivou) curaAatroxTotal = resultadoPassiva.curaBase || 0;
         }
 
         const totalAtaque = totalDados + modAtributo + modExtra + danoPassivoTotal;
-        const dexAlvo = parseInt(dadosAlvo.atributos?.dex || 0);
+        
+        const multAlvo = this.obterMultiplicadores(dadosAlvo);
+        const dexAlvo = (parseInt(dadosAlvo.atributos?.dex || 0)) * (multAlvo.dex || 1);
 
         if (totalAtaque <= dexAlvo) {
             return { 
                 dano: 0, total: totalAtaque, alvoDefesa: 'ESQUIVA',
                 status: `<b style="color: #ff9900;">💨 ESQUIVOU!</b>` + (logPassiva ? `<br>${logPassiva}` : ''), 
                 detalhe: `${totalDados} + ${modAtributo} + ${modExtra}` + (danoPassivoTotal > 0 ? ` + ${danoPassivoTotal}(P)` : ''),
-                isoldeAtivou: false 
+                isoldeAtivou: false,
+                curaAtacanteBase: 0 
             };
         }
 
-        if (window.StatusSystem) {
+        if (window.StatusSystem && typeof this.verificarStatusCombate === "function") {
             const checkStatus = this.verificarStatusCombate(dadosAtacante, dadosAlvo);
-            if (checkStatus) return { ...checkStatus, total: totalAtaque, isoldeAtivou: false };
+            if (checkStatus) return { ...checkStatus, total: totalAtaque, isoldeAtivou: false, curaAtacanteBase: 0 };
+        }
+
+        if (window.PassiveSystem && typeof window.PassiveSystem.verificarDefesaEspecial === "function") {
+            const defesaEspecial = window.PassiveSystem.verificarDefesaEspecial(dadosAlvo);
+            if (defesaEspecial && defesaEspecial.horuzAtivou) {
+                return { 
+                    dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ',
+                    status: defesaEspecial.log + (logPassiva ? `<br>${logPassiva}` : ''), 
+                    detalhe: 'Ataque completamente anulado!',
+                    isoldeAtivou: isoldeTrigger,
+                    curaAtacanteBase: 0 
+                };
+            }
         }
 
         const ataqueEhMagico = (atributoAtaque === "int" || dadosAtacante.tipoDano === "magico");
         const valorReducao = ataqueEhMagico ? 
-                             parseInt(dadosAlvo.atributos?.int || 0) : 
-                             parseInt(dadosAlvo.atributos?.def || 0);
+                             (parseInt(dadosAlvo.atributos?.int || 0) * (multAlvo.int || 1)) : 
+                             (parseInt(dadosAlvo.atributos?.def || 0) * (multAlvo.def || 1));
 
         let danoBase = Math.max(1, totalAtaque - valorReducao);
         if (multiplicadorDrakar > 1) danoBase *= multiplicadorDrakar;
         
-        if (window.StatusSystem) danoBase = window.StatusSystem.aplicarReducoesDeDano(dadosAtacante, danoBase);
+        if (window.StatusSystem && typeof window.StatusSystem.aplicarReducoesDeDano === "function") {
+            danoBase = window.StatusSystem.aplicarReducoesDeDano(dadosAtacante, danoBase);
+        }
 
         let statusFinal = `💥 Dano: <b>${danoBase}</b>`;
         if (valorDado === face) {
@@ -460,11 +502,13 @@ window.combate = {
         if (logPassiva) statusFinal += `<br>${logPassiva}`;
 
         return { 
-            dano: danoBase, total: totalAtaque, 
+            dano: danoBase, 
+            total: totalAtaque, 
             alvoDefesa: (ataqueEhMagico ? "INT" : "DEF"),
             status: statusFinal, 
-            detalhe: `${totalDados} + ${modAtributo.toString().toUpperCase ? modAtributo : modAtributo} (${atributoAtaque?.toUpperCase() || ''}) + ${modExtra}` + (danoPassivoTotal > 0 ? ` + ${danoPassivoTotal}(P)` : ''),
-            isoldeAtivou: isoldeTrigger
+            detalhe: `${totalDados} + ${modAtributo} (${atributoAtaque?.toUpperCase() || ''}) + ${modExtra}` + (danoPassivoTotal > 0 ? ` + ${danoPassivoTotal}(P)` : ''),
+            isoldeAtivou: isoldeTrigger,
+            curaAtacanteBase: curaAatroxTotal 
         };
     }
 };

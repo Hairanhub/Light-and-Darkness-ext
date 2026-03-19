@@ -46,13 +46,30 @@ window.StatusSystem = {
         const novoHP = Math.max(0, hpAtual + delta);
 
         if (novoHP <= 0) {
+            console.warn(`🚨 [MORTE DETECTADA] O token "${token.nome}" chegou a 0 de vida!`);
+            console.log(`🚨 [TIPO DO TOKEN] Identificado como: "${token.tipo}"`);
+
             if (window.combate) {
                 window.combate.notificarCombate(token.nome.toUpperCase(), "💀 DERROTADO EM COMBATE!", "#ff0000");
             }
             if (window.iniciativa && typeof window.iniciativa.removerToken === 'function') {
                 window.iniciativa.removerToken(tokenId);
             }
-            await ref.remove(); 
+            
+            // Verifica se é monstro e chama a engine de loot
+            if (token.tipo === 'monstro' || token.tipo === 'monstros') {
+                console.warn(`🚨 [LOOT] É um monstro! A janela lootEngine existe? ->`, !!window.lootEngine);
+                if (window.lootEngine) {
+                    window.lootEngine.processarMorte(tokenId, token);
+                } else {
+                    console.error("🚨 [ERRO] window.lootEngine NÃO FOI ENCONTRADO! O script de loot não carregou.");
+                    await ref.remove(); 
+                }
+            } else {
+                console.log(`🚨 [LIMPEZA] Não é monstro. Removendo do mapa direto.`);
+                await ref.remove(); 
+            }
+            
             return 0;
         } else {
             const updates = {};

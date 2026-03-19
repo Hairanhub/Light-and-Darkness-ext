@@ -1,8 +1,10 @@
 /* ============================================================
-   === [ SISTEMA DE PASSIVAS - V5.3 (BLOQUEIO VISUAL EM TEMPO REAL) ] ===
+   === [ SISTEMA DE PASSIVAS - V5.9.1 (AATROX SEM BLOQUEIO) ] ===
    ============================================================ */
 window.PassiveSystem = {
     observadorAtivo: false,
+    ultimoElementoSalvo: undefined, 
+    ultimaPassivaSalva: undefined, 
 
     affinities: {
         "FOGO":     { forte: ["GELO", "NATUREZA"], fraco: ["AGUA", "VENTO"] },
@@ -15,7 +17,6 @@ window.PassiveSystem = {
         "VENENO":   { forte: [], fraco: ["FOGO", "AGUA", "GELO", "TERRA", "NATUREZA", "RAIO", "VENTO"] }
     },
 
-    // --- HELPER: CONTA ARMAS EQUIPADAS ---
     contarArmas: function() {
         let qtd = 0;
         const slotDir = document.querySelector('[data-slot-index="63"]');
@@ -25,7 +26,6 @@ window.PassiveSystem = {
         return Math.max(1, qtd);
     },
 
-    // 1. LER A GAVETA DE PASSIVAS (Slot 67)
     obterPassivaEquipada: function() {
         const slotPassiva = document.querySelector('[data-slot-index="67"]');
         if (!slotPassiva || !slotPassiva.dataset.itemFullData) return null;
@@ -35,9 +35,10 @@ window.PassiveSystem = {
             const textoParaBusca = JSON.stringify(item).toUpperCase();
             const nivel = parseInt(item.nivel) || parseInt(item.level) || 1;
 
-            if (textoParaBusca.includes("DRAKAR")) return { tipo: "DRAKAR", nome: "Anel de Drakar", nivel: nivel };
+            if (textoParaBusca.includes("DRAKAR") || textoParaBusca.includes("DRAKTAR")) return { tipo: "DRAKAR", nome: "Anel de Drakar", nivel: nivel };
             if (textoParaBusca.includes("ISOLDE")) return { tipo: "ISOLDE", nome: "Colar de Isolde", nivel: nivel };
             if (textoParaBusca.includes("HORUZ"))  return { tipo: "HORUZ",  nome: "Anel de Horuz",  nivel: nivel };
+            if (textoParaBusca.includes("AATROX")) return { tipo: "AATROX", nome: "Máscara de Aatrox", nivel: nivel };
 
             let elementoDetectado = null;
             if (textoParaBusca.includes("VENENO")) {
@@ -54,118 +55,144 @@ window.PassiveSystem = {
             }
 
             if (!elementoDetectado) return null;
-
             return { tipo: "ELEMENTAL", elemento: elementoDetectado, nivel: nivel, nomeOriginal: item.nome };
         } catch(e) { return null; }
     },
 
-    // 2. ATUALIZAR VISUAL (AQUI ESTÁ A CORREÇÃO DO BLOQUEIO)
     atualizarVisualPassivas: function() {
         const passiva = this.obterPassivaEquipada();
-        
-        // Slots que podem ser bloqueados: 61 (Colar), 66 (Anel Esq), 68 (Anel Dir)
-        const slotsAlvos = [61, 66, 68];
+        const slotsAlvos = [61, 62, 66, 68];
 
-        // 1. Limpa o bloqueio de todos primeiro (Reset)
         slotsAlvos.forEach(idx => {
             const s = document.querySelector(`[data-slot-index="${idx}"]`);
             if (s) { 
                 s.style.opacity = "1"; 
                 s.style.filter = "none"; 
-                s.style.border = "1px solid #444"; // Borda padrão
+                s.style.border = "1px solid #444"; 
                 s.classList.remove('slot-bloqueado'); 
-                s.title = ""; // Limpa tooltip
+                s.title = ""; 
             }
         });
 
+        let novoElemento = (passiva && passiva.tipo === "ELEMENTAL") ? passiva.elemento : "";
+        let novoTipoPassiva = passiva ? passiva.tipo : "";
+        
+        if (this.ultimoElementoSalvo !== novoElemento || this.ultimaPassivaSalva !== novoTipoPassiva) {
+            this.ultimoElementoSalvo = novoElemento;
+            this.ultimaPassivaSalva = novoTipoPassiva;
+            this.sincronizarElementoNoBanco(novoElemento, novoTipoPassiva);
+        }
+
         if (!passiva) return;
 
-        // 2. Decide qual slot bloquear
         let slotParaBloquear = null;
         let motivo = "";
 
-        if (passiva.tipo === "DRAKAR") { 
-            slotParaBloquear = 68; // Anel Direito
-            motivo = "Bloqueado pelo Anel de Drakar (Passiva)";
-        }
-        if (passiva.tipo === "HORUZ") { 
-            slotParaBloquear = 66; // Anel Esquerdo
-            motivo = "Bloqueado pelo Anel de Horuz (Passiva)";
-        }
-        if (passiva.tipo === "ISOLDE") { 
-            slotParaBloquear = 61; // Colar
-            motivo = "Bloqueado pelo Colar de Isolde (Passiva)";
-        }
+        if (passiva.tipo === "DRAKAR") { slotParaBloquear = 68; motivo = "Bloqueado pelo Anel de Drakar (Passiva)"; }
+        if (passiva.tipo === "HORUZ") { slotParaBloquear = 66; motivo = "Bloqueado pelo Anel de Horuz (Passiva)"; }
+        if (passiva.tipo === "ISOLDE") { slotParaBloquear = 61; motivo = "Bloqueado pelo Colar de Isolde (Passiva)"; }
+        
+        // A MÁSCARA DE AATROX NÃO BLOQUEIA MAIS NENHUM SLOT!
 
-        // 3. Aplica o visual de bloqueio (Igual arma de duas mãos)
         if (slotParaBloquear) {
             const s = document.querySelector(`[data-slot-index="${slotParaBloquear}"]`);
             if (s) {
                 s.style.opacity = "0.4";
                 s.style.filter = "grayscale(100%)";
-                s.style.border = "1px solid #ff0000"; // Borda vermelha pra indicar bloqueio
+                s.style.border = "1px solid #ff0000"; 
                 s.classList.add('slot-bloqueado');
                 s.title = motivo;
             }
         }
     },
 
-    // 3. OBSERVADOR (VIGIA O SLOT 67 EM TEMPO REAL)
+    sincronizarElementoNoBanco: function(elemento, tipoPassiva) {
+        const meuNome = window.usuarioLogadoNome || localStorage.getItem('rubi_username');
+        if (!meuNome || !window.mapaRef) {
+            this.ultimoElementoSalvo = undefined; 
+            this.ultimaPassivaSalva = undefined;
+            return;
+        }
+        window.mapaRef.child('tokens').orderByChild('dono').equalTo(meuNome).once('value', snap => {
+            if (snap.exists()) {
+                snap.forEach(child => {
+                    child.ref.update({ elemento: elemento, passivaAtiva: tipoPassiva });
+                });
+            }
+        });
+    },
+
     iniciarObservador: function() {
         if (this.observadorAtivo) return;
-
         const slotPassiva = document.querySelector('[data-slot-index="67"]');
         if (slotPassiva) {
-            // Cria o vigia
-            const observer = new MutationObserver(() => {
-                // Sempre que mudar algo no slot 67, roda a atualização visual
-                this.atualizarVisualPassivas();
-            });
-
-            // Manda vigiar mudanças nos atributos (ex: quando arrasta um item pra lá)
+            const observer = new MutationObserver(() => { this.atualizarVisualPassivas(); });
             observer.observe(slotPassiva, { attributes: true, attributeFilter: ['data-item-full-data'] });
-            
             this.observadorAtivo = true;
-            this.atualizarVisualPassivas(); // Roda uma vez pra garantir
-            console.log("✅ Sistema de Passivas: Observador Iniciado!");
+            this.atualizarVisualPassivas(); 
         }
     },
 
-    // 4. CÁLCULO DE BÔNUS
-    calcularDanoExtra: function(atacante, tipoAtaque, elementoMonstro) {
-        const passiva = this.obterPassivaEquipada();
-        if (!passiva) return { danoExtra: 0, log: "" };
+    calcularDanoExtra: function(atacante, tipoAtaque, dadosAlvo) {
+        let passiva = null;
 
-        // DRAKAR (25%)
+        if (atacante && (atacante.tipo === 'monstro' || atacante.tipo === 'monstros')) {
+            if (atacante.elemento) {
+                const nivelMonstro = parseInt(atacante.nivel) || 1; 
+                passiva = { tipo: "ELEMENTAL", elemento: atacante.elemento.toUpperCase(), nivel: nivelMonstro };
+            }
+        } else { passiva = this.obterPassivaEquipada(); }
+
+        if (!passiva) return { danoExtra: 0, log: "", curaBase: 0 };
+
+        const modoTeste = window.forcarPassiva ? 1.0 : null;
+
         if (passiva.tipo === "DRAKAR") {
-            if (Math.random() <= 0.25) return { drakarAtivou: true, log: ` <b style="color:#ff4d4d;">[DRAKAR: DANO DOBRADO!]</b>` };
+            if (Math.random() <= (modoTeste || 0.25)) return { drakarAtivou: true, log: ` <b style="color:#ff4d4d;">[DRAKTAR: DANO DOBRADO!]</b>` };
             return { danoExtra: 0, log: "" };
         }
 
-        // ISOLDE (CHECK POR ARMA - DUAL CHANCE)
         if (passiva.tipo === "ISOLDE") {
             const tentativas = this.contarArmas();
             let ativou = false;
             for (let i = 0; i < tentativas; i++) {
-                if (Math.random() <= 0.20) { ativou = true; break; }
+                if (Math.random() <= (modoTeste || 0.20)) { ativou = true; break; }
             }
             if (ativou) return { isoldeAtivou: true, log: ` <b style="color:#00d4ff;">[ISOLDE: ATAQUE DUPLO!]</b>` };
             return { danoExtra: 0, log: "" };
         }
 
-        // ELEMENTAIS
+        if (passiva.tipo === "AATROX") {
+            if (Math.random() <= (modoTeste || 0.25)) {
+                let rankAlvo = "G";
+                if (dadosAlvo) rankAlvo = (dadosAlvo.rank || dadosAlvo.nivel || "G").toString().toUpperCase();
+
+                // Tabela em BASE Atual (1 Base = 4 Visual)
+                const tabelaCuraBase = { "G": 1, "F": 1, "E": 1, "D": 2, "C": 2, "B": 2, "A": 3, "S": 3, "SS": 4, "SSS": 5 };
+                let curaBaseCalculada = tabelaCuraBase[rankAlvo] || 1;
+
+                return { 
+                    aatroxAtivou: true, 
+                    curaBase: curaBaseCalculada, 
+                    log: ` <b style="color:#2ecc71;">[AATROX: ROUBOU SANGUE!]</b>` 
+                };
+            }
+            return { danoExtra: 0, log: "", curaBase: 0 };
+        }
+
         if (passiva.tipo === "ELEMENTAL") {
             const elAtaque = passiva.elemento; 
-            const elMonstro = (elementoMonstro || "").toUpperCase();
+            const elDefensor = dadosAlvo ? (dadosAlvo.elemento || "").toUpperCase() : "";
             const afinidade = this.affinities[elAtaque];
+            
             let danoBaseFlat = (elAtaque === "VENENO") ? 8 : ((passiva.nivel >= 2) ? 12 : 4);
             let log = ` <span style="color:#ffcc00;">(+${danoBaseFlat} ${elAtaque})</span>`;
 
-            if (elAtaque !== "VENENO" && elMonstro && afinidade) {
-                if (afinidade.forte.includes(elMonstro)) {
+            if (elAtaque !== "VENENO" && elDefensor && afinidade) {
+                if (afinidade.forte.includes(elDefensor)) {
                     danoBaseFlat *= 2; 
                     log = ` <span style="color:#f1c40f;"><b>VANTAGEM!</b> (+${danoBaseFlat} ${elAtaque})</span>`;
-                } else if (afinidade.fraco.includes(elMonstro)) {
+                } else if (afinidade.fraco.includes(elDefensor)) {
                     danoBaseFlat = 0;  
                     log = ` <span style="color:#e74c3c;"><b>RESISTIDO!</b> (Imune a ${elAtaque})</span>`;
                 }
@@ -175,16 +202,19 @@ window.PassiveSystem = {
         return { danoExtra: 0, log: "" };
     },
 
-    // 5. DEFESA (HORUZ)
-    verificarDefesaEspecial: function() {
-        const passiva = this.obterPassivaEquipada();
-        if (passiva && passiva.tipo === "HORUZ" && Math.random() <= 0.25) {
-            return { horuzAtivou: true, log: ` <b style="color:#ffffff; text-shadow: 0 0 10px gold;">[HORUZ: ATAQUE IGNORADO!]</b>` };
+    verificarDefesaEspecial: function(dadosAlvo) {
+        let temHoruz = false;
+        if (dadosAlvo && dadosAlvo.passivaAtiva) temHoruz = (dadosAlvo.passivaAtiva === "HORUZ");
+        else {
+            const passivaLoc = this.obterPassivaEquipada();
+            temHoruz = (passivaLoc && passivaLoc.tipo === "HORUZ");
+        }
+        if (temHoruz && Math.random() <= (window.forcarPassiva ? 1.0 : 0.25)) {
+            return { horuzAtivou: true, log: ` <b style="color:#ffffff; text-shadow: 0 0 10px gold;">🛡️ [HORUZ: ATAQUE IGNORADO!]</b>` };
         }
         return null;
     },
 
-    // 6. AURA VENENOSA
     rodarAuraVeneno: function(meuTokenId, posicaoX, posicaoY) {
         const passiva = this.obterPassivaEquipada();
         if (passiva && passiva.elemento === 'VENENO' && passiva.nivel >= 2 && window.mapaRef) {
@@ -209,10 +239,7 @@ window.PassiveSystem = {
     }
 };
 
-// Inicializador Robusto
 document.addEventListener('DOMContentLoaded', () => {
-    // Tenta iniciar imediatamente
     setTimeout(() => { if(window.PassiveSystem) window.PassiveSystem.iniciarObservador(); }, 1000);
-    // Tenta de novo depois (caso a ficha demore a carregar)
     setTimeout(() => { if(window.PassiveSystem) window.PassiveSystem.iniciarObservador(); }, 3000);
 });

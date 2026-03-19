@@ -1,28 +1,45 @@
 /* ============================================================
-   === [ ENGINE DE LOOT E DROPS DINÂMICOS - VERSÃO V2.0 ] ===
+   === [ ENGINE DE LOOT E DROPS DINÂMICOS - VERSÃO V2.3 (MODO TESTE) ] ===
    ============================================================ */
 
 window.lootEngine = {
     
-    // Mapeamento das categorias baseado no resultado do d20
+    // Mapeamento das categorias baseado no resultado de um d20 virtual de sorte
     categorias: {
-        20: "magia",               // Busca na coleção 'magias'
-        19: ["arma", "armadura"],  // Busca na coleção 'itens'
+        20: "magia",               
+        19: ["arma", "armadura"],  
         18: ["acessorio", "anel", "colar"],
-        17: "artefato",
-        16: "artefato",
-        15: "artefato"
+        17: "runa", 
+        16: "runa",
+        15: "runa"
     },
 
-    processarMorte: async function(tokenId, dadosMonstro, resultadoDado) {
-        const categoriaDesejada = this.categorias[resultadoDado];
+    processarMorte: async function(tokenId, dadosMonstro, dadoIgnorado) {
+        console.log(`🎲 [LOOT ENGINE] Iniciando roleta para: ${dadosMonstro.nome}`);
+        
+        // 🔥 MODO TESTE: Lê a variável global se existir
+        let dadoSorte;
+        if (window.forcarDrop !== undefined && window.forcarDrop !== null) {
+            dadoSorte = window.forcarDrop;
+            console.warn(`🛠️ [MODO DE TESTE] O dado de Loot foi FORÇADO para cair: ${dadoSorte}`);
+        } else {
+            dadoSorte = Math.floor(Math.random() * 20) + 1;
+        }
+        
+        console.log(`🎲 [LOOT ENGINE] Dado rolado na sorte: ${dadoSorte}`);
+        
+        const categoriaDesejada = this.categorias[dadoSorte];
+        console.log(`🎲 [LOOT ENGINE] Categoria que caiu: ${categoriaDesejada ? categoriaDesejada : 'NENHUMA (Azar)'}`);
 
-        // 1. Remove o monstro IMEDIATAMENTE do mapa
-        window.mapaRef.child('tokens').child(tokenId).remove();
+        // 1. Remove o monstro
+        window.mapaRef.child('tokens').child(tokenId).remove()
+            .then(() => console.log(`🎲 [LOOT ENGINE] Token removido do banco.`));
+            
         window.enviarMensagemChat("SISTEMA", `💀 <b>${dadosMonstro.nome}</b> foi derrotado!`, "#ff4d4d");
 
-        // 2. Se o dado resultou em drop (15 a 20), inicia a geração
+        // 2. Se caiu loot, tenta gerar
         if (categoriaDesejada) {
+            console.log(`🎲 [LOOT ENGINE] Agendando criação do Drop...`);
             setTimeout(() => {
                 this.gerarDrop(dadosMonstro.x, dadosMonstro.y, categoriaDesejada, dadosMonstro.nome);
             }, 500);
@@ -30,10 +47,9 @@ window.lootEngine = {
     },
 
     gerarDrop: async function(x, y, categoria, nomeInimigo) {
+        console.log(`🎁 [GERAR DROP] Procurando item da categoria:`, categoria);
         if (!window.database) return;
 
-        // --- LÓGICA DE ROTA DINÂMICA ---
-        // Se a categoria for "magia", apontamos para o nó de magias, senão, para itens.
         const eMagia = (categoria === "magia");
         const caminhoFirebase = eMagia ? 'magias' : 'itens';
         
@@ -41,47 +57,38 @@ window.lootEngine = {
         const biblioteca = snap.val();
         
         if (!biblioteca) {
-            console.warn(`Biblioteca ${caminhoFirebase} está vazia ou inacessível.`);
+            console.error(`🎁 [ERRO] A pasta /${caminhoFirebase} está vazia ou não existe!`);
             return;
         }
 
         const categoriasBusca = Array.isArray(categoria) ? categoria : [categoria];
         
-        // Filtra apenas o que está marcado como "marcadoParaDrop"
+        // Filtra
         const itensPossiveis = Object.values(biblioteca).filter(item => {
             const isMarcado = item.marcadoParaDrop === true;
+            if (eMagia) return isMarcado;
             
-            if (eMagia) {
-                // Para magias, basta estar marcada para drop
-                return isMarcado;
-            } else {
-                // Para itens, checa se o subTipo bate com o sorteado no d20
-                const subTipoItem = (item.subTipo || item.tipoItem || "").toLowerCase();
-                return isMarcado && categoriasBusca.includes(subTipoItem);
-            }
+            // Procura pelo subtipo ou tipoItem (em minúsculas para não ter erro)
+            const subTipoItem = (item.subTipo || item.tipoItem || "").toLowerCase();
+            return isMarcado && categoriasBusca.includes(subTipoItem);
         });
 
+        console.log(`🎁 [GERAR DROP] Foram encontrados ${itensPossiveis.length} itens marcados como dropáveis para esta categoria.`);
+
         if (itensPossiveis.length > 0) {
-            // Sorteia um item/magia aleatório dentro dos que sobraram no filtro
             const sorteado = itensPossiveis[Math.floor(Math.random() * itensPossiveis.length)];
+            console.log(`🎁 [GERAR DROP] ✨ ITEM SORTEADO: ${sorteado.nome}! Colocando no mapa...`);
             
-            // Define o tipo corretamente para o engine-tokens saber como renderizar o overlay
             const tipoFinal = eMagia ? "magia" : "itens";
 
-            // Spawn no mapa
             window.spawnTokenGlobal({
-                ...sorteado,
-                x: x,
-                y: y,
-                tipo: tipoFinal,
-                hpAtual: 0, // Itens e Magias dropados não precisam de barra de HP cheia
-                isDrop: true // Ativa a animação de "drop" definida no CSS
+                ...sorteado, x: x, y: y, tipo: tipoFinal, hpAtual: 0, isDrop: true 
             });
 
             const icone = eMagia ? "🔮" : "🎁";
             window.enviarMensagemChat("LOOT", `${icone} O destino sorriu! <b>${sorteado.nome}</b> caiu de ${nomeInimigo}!`, "#ffcc00");
         } else {
-            console.log(`Nenhum drop disponível para a categoria: ${categoria}`);
+            console.warn(`🎁 [GERAR DROP] Falha: O dado caiu na categoria, mas não há NENHUM item dessa categoria com a caixinha 'Drop' marcada no banco.`);
         }
     }
 };

@@ -1,7 +1,7 @@
 /**
  * js/jogador/ficha.js
  * Gerenciamento de Identidade, Foto, Atributos e Inventário Persistente por Usuário
- * Versão: 7.2 - Sistema de Economia, Level, Mana e Correção da Defesa x4 🛡️🔮💰
+ * Versão: 7.3 - Sistema de Economia, Level, Mana e Correção da Defesa (Valores Puros 1:1) 🛡️🔮💰
  */
 
 const FichaJogador = {
@@ -172,12 +172,12 @@ const FichaJogador = {
         const atributosProcessados = {
             for: forTotal, dex: dexTotal, con: conTotal, 
             int: intTotal, 
-            def: defTotal * 4, // 🔥 MULTIPLICA POR 4 SOMENTE PARA O MAPA
+            def: defTotal, // 🔥 PURO 1:1
             car: carTotal
         };
 
         // Calculamos a Vida Total
-        const vidaCalculada = conTotal * 4; 
+        const vidaCalculada = conTotal; // 🔥 PURO 1:1
 
         // Calculamos a Mana (10 base + 3 por nível + bônus de INT)
         const nivel = window.nivelJogadorAtual || 1;
@@ -198,7 +198,7 @@ const FichaJogador = {
         };
 
         tokensRef.push(novoToken)
-            .then(() => console.log("✅ Token invocado com Vida, Mana e Defesax4 cheios!"))
+            .then(() => console.log("✅ Token invocado com valores puros salvos no Banco!"))
             .catch(err => console.error("❌ Erro ao invocar:", err));
     },
 
@@ -271,8 +271,8 @@ window.salvarDadosFicha = function(novosAtributosBase) {
         int: parseInt(novosAtributosBase.int) || 0,
         car: parseInt(novosAtributosBase.car) || 0,
         con: parseInt(novosAtributosBase.con) || 0, 
-        def: parseInt(novosAtributosBase.def) || 0, // 🔥 SALVA PURO PARA NÃO DAR BOLA DE NEVE
-        hpMax: (parseInt(novosAtributosBase.con) || 0) * 4
+        def: parseInt(novosAtributosBase.def) || 0, 
+        hpMax: parseInt(novosAtributosBase.con) || 0 // 🔥 HP PURO 1:1
     };
 
     window.database.ref(`usuarios/${nome}/atributos`).set(atributosCalculados)
@@ -283,7 +283,7 @@ window.salvarDadosFicha = function(novosAtributosBase) {
                     child.ref.update({ 
                         hpMax: atributosCalculados.hpMax,
                         hpAtual: atributosCalculados.hpMax,
-                        'atributos/def': atributosCalculados.def * 4 // 🔥 ATUALIZA SÓ O MAPA COM O X4
+                        'atributos/def': atributosCalculados.def // 🔥 DEFESA PURA 1:1
                     });
                 });
             });
@@ -312,15 +312,11 @@ window.atualizarStatusDaFicha = function(bonusEquipamento) {
             spanTotal.innerText = total;
             spanTotal.style.color = bonus > 0 ? '#f1c40f' : '#fff';
 
-            atributosFinaisParaOMapa[attr] = total;
+            atributosFinaisParaOMapa[attr] = total; // Valor base + bônus puro, sem o x4
         }
     });
 
-    // 🔥 GARANTE QUE A DEFESA VÁ MULTIPLICADA PARA O MAPA
-    atributosFinaisParaOMapa['def'] = (atributosFinaisParaOMapa['def'] || 0) * 4;
-
-    // Calcula novo HP
-    // 🔥 Calcula novo HP (Puro 1:1)
+    // Calcula novo HP (Puro 1:1)
     let conTotal = atributosFinaisParaOMapa['con'] || 0;
     let novoHpMax = conTotal;
 
@@ -342,10 +338,10 @@ window.atualizarStatusDaFicha = function(bonusEquipamento) {
                     encontrou = true;
                     child.ref.update({ 
                         hpMax: novoHpMax,
-                        manaMax: novoManaMax, // Atualiza a mana se mudar o equipamento!
+                        manaMax: novoManaMax, 
                         atributos: atributosFinaisParaOMapa 
                     }).then(() => {
-                        console.log(`✅ [SISTEMA] Token "${token.nome}" atualizado com sucesso! (Vida, Mana e Defesa x4)`);
+                        console.log(`✅ [SISTEMA] Token "${token.nome}" atualizado com sucesso! (1:1 Puro)`);
                     });
                 }
             });
