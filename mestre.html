@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>L&D RPG - Master Panel</title>
+    <meta name="referrer" content="no-referrer">
 
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Oswald:wght@300;500&display=swap" rel="stylesheet">
     
@@ -365,6 +366,36 @@
                             <div class="form-group">
                                 <label><i class="fa-solid fa-image"></i> URL do Token (PNG)</label>
                                 <input type="text" id="reg-url" placeholder="https://link-da-imagem.png">
+                            </div>
+
+                            <div class="form-group" id="token-studio-container" style="display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed #555; margin-top: 10px;">
+                                <label style="color: #f3e520; font-family: 'Cinzel'; margin-bottom: 10px; display: block;">
+                                    <i class="fa-solid fa-crop-simple"></i> Enquadramento do Token
+                                </label>
+                                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                                    <div style="width: 120px; height: 120px; border-radius: 50%; border: 2px solid #fff; overflow: hidden; background: #111; position: relative; flex-shrink: 0; box-shadow: 0 0 10px rgba(0,0,0,0.8);">
+                                        <img id="preview-token-img" src="" style="position: absolute; top: 50%; left: 50%; max-width: 100%; max-height: 100%; width: auto; height: auto; transform-origin: center center;">
+                                    </div>
+                                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <span style="font-size: 10px; color: #aaa; width: 15px;" title="Zoom">🔍</span>
+                                            <input type="range" id="token-zoom" min="0.1" max="8" step="0.1" value="1" style="flex: 1;" oninput="window.atualizarPreviewToken()">
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <span style="font-size: 10px; color: #aaa; width: 15px;" title="Esquerda / Direita">↔️</span>
+                                            <input type="range" id="token-x" min="-150" max="150" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewToken()">
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <span style="font-size: 10px; color: #aaa; width: 15px;" title="Cima / Baixo">↕️</span>
+                                            <input type="range" id="token-y" min="-150" max="150" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewToken()">
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 5px;">
+                                            <span style="font-size: 10px; color: #aaa; width: 15px;" title="Rotação">🔄</span>
+                                            <input type="range" id="token-rot" min="0" max="360" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewToken()">
+                                        </div>
+                                        <button type="button" onclick="window.resetarPreviewToken()" style="background: #444; color: #fff; border: none; padding: 4px; border-radius: 4px; font-size: 10px; cursor: pointer;">RESETAR</button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div id="fields-monstros" class="extra-fields">
@@ -859,7 +890,7 @@
     <script src="js/mestre/biblioteca/npcs.js"></script>
     <script src="js/mestre/biblioteca/itens.js"></script>
     <script src="js/mestre/biblioteca/magias.js"></script>
-    <script src="js/core/engine-mapa.js?v=2.2"></script>
+    <script src="js/core/engine-mapa.js?v=2.3"></script>
 
     <script>
     window.isMestre = true;

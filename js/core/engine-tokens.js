@@ -1,5 +1,5 @@
 /* ============================================================
-   === [ ENGINE DE TOKENS V6.5 - MULTIPLICADOR ISOLADO ] ===
+   === [ ENGINE DE TOKENS V7.3 - ENQUADRAMENTO PERFEITO ] ===
    ============================================================ */
 (function() {
     const gridSize = 35; 
@@ -10,28 +10,22 @@
     // --- NOVA FUNÇÃO GLOBAL DE SEGURANÇA (BLINDADA) ---
     window.isDonoOuMestre = function(data, tipo) {
         const meuNome = localStorage.getItem('rubi_username');
-        const minhaRole = localStorage.getItem('rubi_role'); // Pega estritamente o login
+        const minhaRole = localStorage.getItem('rubi_role'); 
         
-        // 1. Só é mestre se o login disser que é 'gm'
         if (minhaRole === 'gm') return true;
-        
-        // 2. Itens e Magias são livres
         if (tipo === 'itens' || tipo === 'magia') return true; 
-        
-        // 3. Verifica se é dono
         if (data.dono && meuNome && data.dono.toLowerCase() === meuNome.toLowerCase()) return true;
         
         return false;
     };
 
     // 🔥 LÊ OS MULTIPLICADORES DO MESTRE EM TEMPO REAL E FORÇA ATUALIZAÇÃO 🔥
-    window.multiplicadoresGlobais = { for: 1, dex: 1, int: 1, def: 4, car: 1, con: 4 }; // Padrão
+    window.multiplicadoresGlobais = { for: 1, dex: 1, int: 1, def: 4, car: 1, con: 4 }; 
     setTimeout(() => {
         if (window.database) {
             window.database.ref('configuracoes/multiplicadores').on('value', snap => {
                 if (snap.exists()) {
                     window.multiplicadoresGlobais = snap.val();
-                    // Força os tokens a atualizarem a tela inteira quando o mestre mudar os valores
                     document.querySelectorAll('.token-vtt').forEach(tk => {
                         const id = tk.id.replace('token-', '');
                         window.mapaRef.child('tokens').child(id).once('value', s => {
@@ -43,7 +37,6 @@
         }
     }, 2000);
 
-    // --- FUNÇÃO PRINCIPAL RESTAURADA ---
     window.initEngineTokens = function() {
         if (!window.mapaRef) {
             setTimeout(window.initEngineTokens, 500);
@@ -122,8 +115,6 @@
         else if (!t) t = "monstros";
         
         token.className = `token type-${t} token-vtt`;
-        
-        // 🔥 Salva o dono no DOM para a névoa de guerra
         token.dataset.dono = (data.dono || "").toLowerCase(); 
         
         const movMax = parseInt(data.movimentoMaximo) || 8;
@@ -138,21 +129,53 @@
         token.style.left = `${startX}px`;
         token.style.top = `${startY}px`;
 
+        // ==========================================
+        // 🔥 RENDERIZAÇÃO BLINDADA E FLUTUANTE 🔥
+        // ==========================================
         const tokenImage = document.createElement('div');
         tokenImage.className = 'token-image-body';
-        tokenImage.style.backgroundImage = `url('${data.url || data.img || ""}')`;
+        tokenImage.style.position = 'relative';
+        tokenImage.style.overflow = 'hidden'; 
+        tokenImage.style.setProperty('background-image', 'none', 'important'); 
+        tokenImage.style.backgroundColor = 'transparent'; 
+        tokenImage.style.borderRadius = '50%'; 
+
+        const tv = data.tokenVisuais || { zoom: 1, x: 0, y: 0, rot: 0 };
+        const imgSrc = data.url || data.img || "https://placehold.co/150/2c3e50/ffffff?text=Token";
+        
+        const z = Number(tv.zoom) || 1;
+        const rx = Number(tv.x) || 0;
+        const ry = Number(tv.y) || 0;
+        const rrot = Number(tv.rot) || 0;
+        
+        const ratio = 35 / 120; 
+
+        const tokenArt = document.createElement('img');
+        tokenArt.className = 'token-art-vtt';
+        tokenArt.src = imgSrc;
+        
+        // 🔥 AGORA CABE PERFEITAMENTE (Igual ao HTML do painel)
+        tokenArt.style.position = 'absolute';
+        tokenArt.style.top = '50%';
+        tokenArt.style.left = '50%';
+        tokenArt.style.maxWidth = '100%';
+        tokenArt.style.maxHeight = '100%';
+        tokenArt.style.width = 'auto';
+        tokenArt.style.height = 'auto';
+        tokenArt.style.objectFit = 'unset'; 
+        
+        tokenArt.style.transformOrigin = 'center center';
+        tokenArt.style.transform = `translate(calc(-50% + ${rx * ratio}px), calc(-50% + ${ry * ratio}px)) scale(${z}) rotate(${rrot}deg)`;
+        tokenArt.style.pointerEvents = 'none'; 
+
+        tokenImage.appendChild(tokenArt);
         token.appendChild(tokenImage);
 
         const stats = data.atributos || {};
-        
-        // 🔥 A MÁGICA DE SEPARAÇÃO: SÓ APLICA O MULTIPLICADOR SE FOR JOGADOR 🔥
         const isJogador = (t === 'jogador');
         const multPadrao = { for: 1, dex: 1, int: 1, def: 1, car: 1, con: 1 };
         const mult = isJogador ? (window.multiplicadoresGlobais || multPadrao) : multPadrao;
         
-        // ==========================================
-        // VIDA (COM MULTIPLICADOR VISUAL 1:1)
-        // ==========================================
         const hpMaxReal = parseInt(data.hpMax) || 20;
         const hpAtualReal = (data.hpAtual !== undefined) ? parseInt(data.hpAtual) : hpMaxReal;
         
@@ -160,9 +183,6 @@
         const hpAtualVisual = hpAtualReal * (mult.con || 1);
         const porcentagemVida = hpMaxVisual > 0 ? (hpAtualVisual / hpMaxVisual) * 100 : 0;
 
-        // ==========================================
-        // MANA
-        // ==========================================
         const manaMax = parseInt(data.manaMax) || 10;
         const manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
         const porcentagemMana = manaMax > 0 ? (manaAtual / manaMax) * 100 : 0;
@@ -409,16 +429,56 @@
         token.dataset.movimentoMaximo = movMax;
         token.dataset.movimentoRestante = movRest;
 
-        const stats = data.atributos || {};
+        // ==========================================
+        // 🔥 ATUALIZA A ARTE EM TEMPO REAL 🔥
+        // ==========================================
+        let artElement = token.querySelector('.token-art-vtt');
+        const tv = data.tokenVisuais || { zoom: 1, x: 0, y: 0, rot: 0 };
+        const imgSrc = data.url || data.img || "https://placehold.co/150/2c3e50/ffffff?text=Token";
         
-        // 🔥 A MÁGICA DE SEPARAÇÃO NA ATUALIZAÇÃO 🔥
+        const ratio = 35 / 120;
+        const z = Number(tv.zoom) || 1;
+        const rx = Number(tv.x) || 0;
+        const ry = Number(tv.y) || 0;
+        const rrot = Number(tv.rot) || 0;
+
+        if (artElement) {
+            artElement.src = imgSrc;
+            artElement.style.transform = `translate(calc(-50% + ${rx * ratio}px), calc(-50% + ${ry * ratio}px)) scale(${z}) rotate(${rrot}deg)`;
+        } else {
+            const tokenImage = token.querySelector('.token-image-body');
+            if (tokenImage) {
+                tokenImage.style.position = 'relative';
+                tokenImage.style.overflow = 'hidden';
+                tokenImage.style.setProperty('background-image', 'none', 'important');
+                tokenImage.style.backgroundColor = 'transparent';
+                tokenImage.style.borderRadius = '50%';
+
+                artElement = document.createElement('img');
+                artElement.className = 'token-art-vtt';
+                artElement.src = imgSrc;
+                artElement.style.position = 'absolute';
+                artElement.style.top = '50%';
+                artElement.style.left = '50%';
+                artElement.style.maxWidth = '100%';
+                artElement.style.maxHeight = '100%';
+                artElement.style.width = 'auto';
+                artElement.style.height = 'auto';
+                artElement.style.objectFit = 'unset';
+                
+                artElement.style.transformOrigin = 'center center';
+                artElement.style.transform = `translate(calc(-50% + ${rx * ratio}px), calc(-50% + ${ry * ratio}px)) scale(${z}) rotate(${rrot}deg)`;
+                artElement.style.pointerEvents = 'none';
+                
+                tokenImage.appendChild(artElement);
+            }
+        }
+
+        const stats = data.atributos || {};
         const isJogador = token.classList.contains('type-jogador');
-        const multPadrao = { for: 1, dex: 1, int: 1, def: 1, car: 1, con: 1 };
+        const multPadrao = { for: 1, dex: 1, int: 1, def: 1, car: 1, car: 1, con: 1 };
         const mult = isJogador ? (window.multiplicadoresGlobais || multPadrao) : multPadrao;
         
-        // ==========================================
-        // ATUALIZA VIDA (VISUAL)
-        // ==========================================
         const hpMaxReal = parseInt(data.hpMax) || 20;
         const hpAtualReal = (data.hpAtual !== undefined) ? parseInt(data.hpAtual) : hpMaxReal;
         
@@ -434,9 +494,6 @@
         }
         if (hpText) hpText.textContent = `${hpAtualVisual}/${hpMaxVisual}`;
 
-        // ==========================================
-        // ATUALIZA MANA
-        // ==========================================
         const manaMax = parseInt(data.manaMax) || 10;
         const manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
         
@@ -449,9 +506,6 @@
         }
         if (manaText) manaText.textContent = `${manaAtual}/${manaMax}`;
 
-        // ==========================================
-        // ATUALIZA OS ATRIBUTOS (VISUAIS)
-        // ==========================================
         const boxes = token.querySelectorAll('.atrib-box span');
         if (boxes.length >= 6) {
             boxes[0].textContent = (stats.for || 0) * (mult.for || 1);
@@ -514,7 +568,6 @@
         window.mapaRef.child('tokens').push(finalData);
     };
 
-    // 🔥 SISTEMA DE INVISIBILIDADE NA NÉVOA (FOG) 🔥
     window.checkTokenFogVisibility = function() {
         const role = localStorage.getItem('rubi_role');
         if (role === 'gm') return; 

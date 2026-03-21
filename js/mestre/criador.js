@@ -1,10 +1,50 @@
 /* ============================================================
-   === [ CRIADOR E GESTOR DA BIBLIOTECA - V6.3 ] ===
-   === FIX: Memória de Ordem na Edição e Auto-Ordem para Novos ===
+   === [ CRIADOR E GESTOR DA BIBLIOTECA - V6.4 ] ===
+   === FIX: Memória de Ordem + ESTÚDIO DE TOKEN ===
    ============================================================ */
 
 // Variável global temporária para não perder a ordem durante a edição
 window.ordemTemporariaEdicao = null;
+
+// --- ESTÚDIO DE TOKEN: PREVIEW E CONTROLES ---
+document.addEventListener('DOMContentLoaded', () => {
+    const inputUrl = document.getElementById('reg-url');
+    if (inputUrl) {
+        inputUrl.addEventListener('input', (e) => {
+            const url = e.target.value;
+            const studio = document.getElementById('token-studio-container');
+            const img = document.getElementById('preview-token-img');
+            if (url && studio && img) {
+                studio.style.display = 'block';
+                img.src = url;
+                window.resetarPreviewToken(); // Reseta os sliders para a arte nova
+            } else if (studio) {
+                studio.style.display = 'none';
+            }
+        });
+    }
+});
+
+window.atualizarPreviewToken = function() {
+    const img = document.getElementById('preview-token-img');
+    if (!img) return;
+    const z = document.getElementById('token-zoom')?.value || 1;
+    const x = document.getElementById('token-x')?.value || 0;
+    const y = document.getElementById('token-y')?.value || 0;
+    const r = document.getElementById('token-rot')?.value || 0;
+    
+    // 🔥 A NOVA MÁGICA: O calc(-50%) mantém a imagem centralizada, mas solta para arrastar!
+    img.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${z}) rotate(${r}deg)`;
+};
+
+window.resetarPreviewToken = function() {
+    if(document.getElementById('token-zoom')) document.getElementById('token-zoom').value = 1;
+    if(document.getElementById('token-x')) document.getElementById('token-x').value = 0;
+    if(document.getElementById('token-y')) document.getElementById('token-y').value = 0;
+    if(document.getElementById('token-rot')) document.getElementById('token-rot').value = 0;
+    window.atualizarPreviewToken();
+};
+
 
 // --- 1. FUNÇÕES DE UTILIDADE (DELETAR E CANCELAR) ---
 
@@ -24,8 +64,15 @@ window.cancelarEdicao = function() {
     document.getElementById('btn-save-main').innerHTML = "⚔️ Registrar na Biblioteca";
     document.getElementById('btn-cancel-edit').style.display = "none";
     
+    const studio = document.getElementById('token-studio-container');
+    if (studio) studio.style.display = 'none';
+
     window.ordemTemporariaEdicao = null; // Limpa a memória da ordem
     document.getElementById('create-type-selector').value = "monstros";
+    
+    // 🔥 BARREIRA 1: Zera os sliders de edição
+    if (window.resetarPreviewToken) window.resetarPreviewToken(); 
+
     window.toggleCreateFields();
 };
 
@@ -98,6 +145,23 @@ window.prepararEdicao = function(tipo, id) {
         document.getElementById('reg-nome').value = d.nome || "";
         document.getElementById('reg-url').value = d.url || "";
         
+        // 🔥 CARREGA O ESTÚDIO DE TOKEN SE EXISTIR 🔥
+        const tv = d.tokenVisuais || { zoom: 1, x: 0, y: 0, rot: 0 };
+        if (document.getElementById('token-zoom')) document.getElementById('token-zoom').value = tv.zoom;
+        if (document.getElementById('token-x')) document.getElementById('token-x').value = tv.x;
+        if (document.getElementById('token-y')) document.getElementById('token-y').value = tv.y;
+        if (document.getElementById('token-rot')) document.getElementById('token-rot').value = tv.rot;
+        
+        const studio = document.getElementById('token-studio-container');
+        const img = document.getElementById('preview-token-img');
+        if (d.url && studio && img) {
+            studio.style.display = 'block';
+            img.src = d.url;
+            window.atualizarPreviewToken();
+        } else if (studio) {
+            studio.style.display = 'none';
+        }
+
         // 🔥 MEMÓRIA DE ORDEM: Salva a ordem atual para não perder no save
         window.ordemTemporariaEdicao = d.ordem || null;
 
@@ -188,7 +252,14 @@ window.saveToFirebase = async function() {
             def: valores[3], car: valores[4], con: valores[5]
         },
         timestamp: Date.now(),
-        hpAtual: valores[5]
+        hpAtual: valores[5],
+        // 🔥 ESTÚDIO DE TOKEN SALVO AQUI 🔥
+        tokenVisuais: {
+            zoom: parseFloat(document.getElementById('token-zoom')?.value) || 1,
+            x: parseInt(document.getElementById('token-x')?.value) || 0,
+            y: parseInt(document.getElementById('token-y')?.value) || 0,
+            rot: parseInt(document.getElementById('token-rot')?.value) || 0
+        }
     };
 
     // 🔥 LÓGICA DE ORDENAÇÃO NO SAVE:

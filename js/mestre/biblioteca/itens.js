@@ -142,7 +142,9 @@
             card.innerHTML = `
                 <div class="entity-header" style="display: flex; align-items: center; gap: 8px; padding-bottom: 6px;">
                     
-                    <div class="entity-avatar" style="background-image: url('${img}'); flex-shrink: 0;" onclick="spawnItem('${id}')"></div>
+                    <div class="entity-avatar" style="flex-shrink: 0; position: relative; overflow: hidden;" onclick="spawnItem('${id}')">
+                        <img src="${img}" loading="lazy" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; border-radius: inherit;">
+                    </div>
                     
                     <div class="entity-info-text" style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;" onclick="spawnItem('${id}')">
                         <div class="entity-name" title="${nome}" style="font-size: 14px; font-weight: 900; line-height: 1.1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nome}</div>

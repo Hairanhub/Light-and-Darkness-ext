@@ -1,6 +1,20 @@
 /* ================================================================
-   L&D RPG - CÓDICE (V1.6 - FIX TOTAL DE INICIALIZAÇÃO)
+   L&D RPG - CÓDICE (V1.9 - ZOOM COM ANIMAÇÃO FLUIDA)
    ================================================================ */
+
+// 🔥 FIX: Tradutor universal para ler atributos antigos (texto) e novos (objeto)
+function processarAtributosCodice(rawAttr) {
+    let a = [0,0,0,0,0,0];
+    if (typeof rawAttr === 'string') {
+        a = rawAttr.split('/').map(v => parseInt(v.trim()) || 0);
+    } else if (typeof rawAttr === 'object' && rawAttr !== null) {
+        a = [rawAttr.for||0, rawAttr.dex||0, rawAttr.int||0, rawAttr.def||0, rawAttr.car||0, rawAttr.con||0];
+    }
+    return {
+        for: a[0], dex: a[1], int: a[2], 
+        def: a[3], car: a[4], con: a[5]
+    };
+}
 
 const codice = {
     registros: { monstros: {}, npcs: {}, itens: {}, magias: {} },
@@ -10,6 +24,23 @@ const codice = {
     init: function() {
         if (!window.database) return setTimeout(() => this.init(), 500);
         
+        // 🔥 INJETA O CSS DA ANIMAÇÃO (Resolve o problema da imagem vindo da esquerda)
+        if (!document.getElementById('codice-animation-style')) {
+            const style = document.createElement('style');
+            style.id = 'codice-animation-style';
+            style.innerHTML = `
+                @keyframes codiceZoomIn {
+                    0% { opacity: 0; transform: scale(0.85); filter: blur(10px); }
+                    100% { opacity: 1; transform: scale(1); filter: blur(0); }
+                }
+                @keyframes codiceFadeBG {
+                    from { background: rgba(0,0,0,0); }
+                    to { background: rgba(0,0,0,0.9); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         console.log("📜 Códice: Sincronizando com a Grande Biblioteca...");
 
         ['monstros', 'npcs', 'itens', 'magias'].forEach(cat => {
@@ -20,24 +51,45 @@ const codice = {
         });
     },
 
+    // 🔥 FUNÇÃO DE ZOOM REFORMULADA (SEM TRAVAMENTOS)
+    darZoomImagem: function(url) {
+        if (!url) return;
+        
+        const overlayZoom = document.createElement('div');
+        overlayZoom.id = 'codice-zoom-overlay';
+        overlayZoom.style = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 10000; display: flex; align-items: center; justify-content: center;
+            cursor: zoom-out; animation: codiceFadeBG 0.3s forwards;
+        `;
+        
+        // A animação agora é aplicada diretamente e o transform-origin é o centro
+        overlayZoom.innerHTML = `
+            <img src="${url}" style="
+                max-width: 90%; max-height: 90%; 
+                object-fit: contain; border: 3px solid #f3e520; 
+                box-shadow: 0 0 60px #000;
+                animation: codiceZoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            ">
+            <div style="position: absolute; top: 30px; right: 30px; color: white; font-size: 40px; font-family: 'Cinzel'; opacity: 0.6;">✕</div>
+        `;
+        
+        overlayZoom.onclick = () => {
+            overlayZoom.style.opacity = '0';
+            overlayZoom.style.transition = '0.2s';
+            setTimeout(() => overlayZoom.remove(), 200);
+        };
+        document.body.appendChild(overlayZoom);
+    },
+
     abrir: function() { 
         const el = document.getElementById('codice-overlay');
         if (el) {
             el.style.display = 'flex';
-            
-            // 🔥 TRAVA 1: Impede o scroll no corpo da página (Mapa)
             document.body.style.overflow = 'hidden';
             document.body.style.height = '100vh';
-
-            // 🔥 TRAVA 2: Captura o evento de scroll e impede que ele saia do Códice
-            el.onwheel = (e) => {
-                e.stopPropagation();
-            };
-            
+            el.onwheel = (e) => e.stopPropagation();
             this.renderizar();
-        } else {
-            console.error("❌ Erro: Elemento 'codice-overlay' não encontrado no HTML.");
-            alert("Erro: O livro do Códice não foi encontrado na página. Verifique seu HTML.");
         }
     },
 
@@ -45,7 +97,6 @@ const codice = {
         const el = document.getElementById('codice-overlay');
         if (el) {
             el.style.display = 'none';
-            // ✅ LIBERA: Devolve o scroll ao mapa
             document.body.style.overflow = '';
             document.body.style.height = '';
         }
@@ -54,7 +105,6 @@ const codice = {
     setFiltro: function(f) { 
         this.filtroAtual = f; 
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            // Verifica se o texto do botão ou o atributo data bate com o filtro
             btn.classList.toggle('active', btn.innerText.toLowerCase().includes(f.toLowerCase()) || f === 'todos');
         });
         this.renderizar(); 
@@ -75,31 +125,17 @@ const codice = {
         Object.entries(this.registros).forEach(([cat, dados]) => {
             if (this.filtroAtual !== 'todos' && cat !== this.filtroAtual) return;
 
-            // 1. Transforma o objeto do Firebase num Array para podermos ordenar
-            let arrayItens = Object.entries(dados).map(([key, item]) => {
-                return { idFirebase: key, ...item };
-            });
+            let arrayItens = Object.entries(dados).map(([key, item]) => ({ idFirebase: key, ...item }));
 
-            // 2. Ordena usando a propriedade 'ordem' criada na aba do Mestre
-            arrayItens.sort((a, b) => {
-                // Se o item não tiver 'ordem' (itens antigos ou magias), vai para o final (999999)
-                const ordemA = typeof a.ordem === 'number' ? a.ordem : 999999;
-                const ordemB = typeof b.ordem === 'number' ? b.ordem : 999999;
-                return ordemA - ordemB;
-            });
+            arrayItens.sort((a, b) => (a.ordem || 999999) - (b.ordem || 999999));
 
-            // 3. Renderiza os cards já na ordem certa
             arrayItens.forEach(item => {
                 const key = item.idFirebase;
                 if (!item) return;
 
-                // Tenta pegar o nome
                 const nome = item.nome || item.identidade?.nome || "";
-
-                // 🔥 O FILTRO CAÇA-FANTASMAS
                 if (!nome || nome.trim() === "" || nome === "Token" || nome === "???") return;
-
-                if (this.termoBusca && !nome.toLowerCase().includes(this.termoBusca.toLowerCase())) return;
+                if (this.termoBusca && !nome.toLowerCase().includes(this.termoBusca)) return;
 
                 const card = document.createElement('div');
                 const estaDescoberto = item.descoberto || false;
@@ -110,9 +146,10 @@ const codice = {
                 if (window.isMestre || estaDescoberto) {
                     card.className = 'figurinha-card';
                     const imgSrc = item.url || item.identidade?.img || '';
+                    
                     card.innerHTML = `
                         <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #2c1e1a;">
-                            <img src="${imgSrc}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/150?text=Erro'">
+                            <img src="${imgSrc}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: top;" onerror="this.src='https://via.placeholder.com/150?text=Erro'">
                         </div>
                     `;
                     
@@ -124,23 +161,26 @@ const codice = {
                 } else {
                     card.className = 'figurinha-card locked';
                     card.innerHTML = `<div style="font-size: 50px; text-align: center; margin-top: 45%; color: #3e2723; font-family: 'Cinzel', serif;">?</div>`;
-                    card.onclick = () => alert("Este registro ainda não foi descoberto na tua jornada.");
                 }
                 grid.appendChild(card);
             });
         });
 
-        requestAnimationFrame(() => {
-            grid.scrollTop = scrollSalvo;
-        });
+        requestAnimationFrame(() => { grid.scrollTop = scrollSalvo; });
     },
 
     exibirDetalhes: function(item, cat, idDoFirebase) {
         if (!item) return;
 
-        // 1. Renderização de Imagem e Título
         const imgEl = document.getElementById('codice-img');
-        if (imgEl) imgEl.src = item.url || item.identidade?.img || '';
+        const urlFinal = item.url || item.identidade?.img || '';
+        
+        if (imgEl) {
+            imgEl.src = urlFinal;
+            imgEl.style.cursor = "zoom-in";
+            imgEl.title = "Clique para ampliar a arte";
+            imgEl.onclick = () => this.darZoomImagem(urlFinal);
+        }
         
         const tituloEl = document.getElementById('codice-titulo');
         if (tituloEl) tituloEl.innerText = item.nome || item.identidade?.nome || "Desconhecido";
@@ -148,112 +188,64 @@ const codice = {
         const tipoEl = document.getElementById('codice-tipo');
         if (tipoEl) tipoEl.innerText = cat.toUpperCase();
 
-        // 2. CONFIGURAÇÃO DA DESCRIÇÃO
         const campoDesc = document.getElementById('codice-descricao');
         const btnSalvarDesc = document.getElementById('btn-salvar-descricao-publica');
 
         if (campoDesc) {
             const texto = item.descricao || item.subtitulo || "Nenhum relato encontrado.";
-            
-            // TRAVA DE SEGURANÇA: Funciona independente de ser textarea ou div no HTML
-            if (campoDesc.tagName === 'TEXTAREA') {
-                campoDesc.value = texto;
-            } else {
-                campoDesc.innerText = texto;
-            }
+            if (campoDesc.tagName === 'TEXTAREA') campoDesc.value = texto;
+            else campoDesc.innerText = texto;
 
-            // APLICA O VISUAL BEGE E MARROM
-            campoDesc.style.color = "#3e2723"; // Letra marrom
-            campoDesc.style.fontWeight = "bold"; // Negrito
-            campoDesc.style.background = "transparent"; // Fundo bege (pega a cor natural da página)
+            campoDesc.style.color = "#3e2723"; 
+            campoDesc.style.fontWeight = "bold"; 
 
             if (window.isMestre) {
                 if (campoDesc.tagName === 'TEXTAREA') campoDesc.readOnly = false;
-                campoDesc.style.border = "1px dashed #3e2723"; // Borda sutil marrom para mostrar onde clica
-                
+                campoDesc.style.border = "1px dashed #3e2723"; 
                 if (btnSalvarDesc) {
                     btnSalvarDesc.style.display = 'block';
                     btnSalvarDesc.onclick = () => {
                         window.database.ref(`${cat}/${idDoFirebase}`).update({
                             descricao: campoDesc.value || campoDesc.innerText
-                        }).then(() => {
-                            alert("📜 Descrição oficial atualizada!");
-                        });
+                        }).then(() => alert("📜 Descrição oficial atualizada!"));
                     };
                 }
             } else {
                 if (campoDesc.tagName === 'TEXTAREA') campoDesc.readOnly = true;
-                campoDesc.style.border = "none"; // Tira a borda para o jogador, virando texto liso
+                campoDesc.style.border = "none"; 
                 if (btnSalvarDesc) btnSalvarDesc.style.display = 'none';
             }
         }
 
-        // 3. Mini Stats e Badges (Layout em lista ao lado da imagem)
-        const rank = item.rank || item.identidade?.rank || "-";
-        const elemento = item.elemento || item.identidade?.elemento || "Neutro";
-        const tipoDano = item.tipoDano || item.stats?.tipoDano || "Físico";
         const badge = document.getElementById('codice-stats-badge');
-        
         if (badge) {
-            badge.style.display = 'flex';
-            badge.style.flexDirection = 'column';
-            badge.style.gap = '8px';
-            // Aplicado a cor marrom escuro (#3e2723) em todos os spans
+            const rank = (item.rank || item.identidade?.rank || item.raridade || "-").toUpperCase();
+            const elemento = (item.elemento || item.identidade?.elemento || item.tipoItem || item.tipoMagia || "Neutro").toUpperCase();
             badge.innerHTML = `
-                <span style="color: #3e2723;"><i class="fa-solid fa-crown"></i> Rank: <b>${rank}</b></span>
+                <span style="color: #3e2723;"><i class="fa-solid fa-crown"></i> Info: <b>${rank}</b></span>
                 <span style="color: #3e2723;"><i class="fa-solid fa-burst"></i> Tipo: <b>${elemento}</b></span>
-                <span style="color: #3e2723;"><i class="fa-solid fa-hand-fist"></i> Ataque: <b>${tipoDano.toUpperCase()}</b></span>
             `;
         }
 
-        // 4. Atributos (Abaixo da Imagem) - AGORA COM OS 6 STATUS
         const miniStats = document.getElementById('codice-mini-stats');
         if (miniStats) {
-            // Puxa os atributos dependendo de como foram salvos (item ou monstro)
-            const attrBase = item.atributos || item.stats?.atributos || {};
-            
-            const vFor = attrBase.for || 0;
-            const vDex = attrBase.dex || 0;
-            const vInt = attrBase.int || 0;
-            const vDef = attrBase.def || 0;
-            const vCar = attrBase.car || 0;
-            const vCon = attrBase.con || 0;
-            
-            miniStats.style.display = 'flex';
-            miniStats.style.flexWrap = 'wrap';
-            miniStats.style.justifyContent = 'center';
-            miniStats.style.gap = '12px';
-            miniStats.style.marginTop = '10px';
-            miniStats.style.padding = '5px';
-            miniStats.style.background = '#3e2723';
-            miniStats.style.borderRadius = '8px';
-
+            const attrBase = processarAtributosCodice(item.atributos || item.stats?.atributos);
             miniStats.innerHTML = `
-                <span style="color:#ff4d4d; font-weight:bold;" title="Força">🗡️ FOR: ${vFor}</span>
-                <span style="color:#2ecc71; font-weight:bold;" title="Destreza">🏹 DEX: ${vDex}</span>
-                <span style="color:#00f2ff; font-weight:bold;" title="Inteligência">🔮 INT: ${vInt}</span>
-                <span style="color:#f3e520; font-weight:bold;" title="Defesa">🛡️ DEF: ${vDef}</span>
-                <span style="color:#e67e22; font-weight:bold;" title="Carisma">🗣️ CAR: ${vCar}</span>
-                <span style="color:#9b59b6; font-weight:bold;" title="Constituição">❤️ CON: ${vCon}</span>
+                <span style="color:#ff4d4d; font-weight:bold;">🗡️ FOR: ${attrBase.for}</span>
+                <span style="color:#2ecc71; font-weight:bold;">🏹 DEX: ${attrBase.dex}</span>
+                <span style="color:#00f2ff; font-weight:bold;">🔮 INT: ${attrBase.int}</span>
+                <span style="color:#f3e520; font-weight:bold;">🛡️ DEF: ${attrBase.def}</span>
             `;
         }
 
-        // 5. Lógica de Revelar/Ocultar (Mestre)
         const btnRevelar = document.getElementById('btn-revelar-codice');
         if (window.isMestre && btnRevelar) {
             btnRevelar.style.display = 'block';
             const estaDescoberto = item.descoberto || false;
             btnRevelar.innerHTML = estaDescoberto ? '<i class="fa-solid fa-eye-slash"></i> Ocultar' : '<i class="fa-solid fa-eye"></i> Revelar';
-            btnRevelar.onclick = () => {
-                window.database.ref(`${cat}/${idDoFirebase}`).update({ descoberto: !estaDescoberto });
-            };
+            btnRevelar.onclick = () => window.database.ref(`${cat}/${idDoFirebase}`).update({ descoberto: !estaDescoberto });
         }
     }
 };
 
-// ================================================================
-// 🔥 INICIALIZAÇÃO SEGURA: Só carrega depois que o HTML estiver pronto
-// ================================================================
-window.addEventListener('load', () => {
-    codice.init();
-});
+window.addEventListener('load', () => codice.init());
