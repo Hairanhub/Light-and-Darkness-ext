@@ -1,0 +1,10 @@
+/* css/style.css */
+@import url('core/layout.css');
+@import url('core/components.css');
+@import url('vtt/mapa.css');
+@import url('vtt/chat.css');
+
+@import url('modulos/biblioteca.css');
+@import url('vtt/tokens.css');
+@import url('core/aba-mestre.css');
+/* Adicione outros conforme criar, ex: @import url('vtt/chat.css'); */

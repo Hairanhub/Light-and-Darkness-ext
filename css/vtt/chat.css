@@ -1,0 +1,128 @@
+/* ============================================================
+   L&D RPG - CHAT HARMONIZADO (BLINDAGEM VISUAL)
+   ============================================================ */
+
+/* 1. CONTAINER DO PAINEL */
+#bottom-left-panel {
+    background: #0a0a0a;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 2. ÁREA DE LOG (MENSAGENS) */
+#chat-log { 
+    flex-grow: 1; 
+    overflow-y: auto; 
+    padding: 15px;
+    background: #000 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espaço entre os balões */
+    scrollbar-width: thin;
+    scrollbar-color: #333 transparent;
+}
+
+/* 3. AS MENSAGENS (ESTILO BALÃO EM BLOCO) */
+.chat-msg-row {
+    background: rgba(25, 25, 25, 0.8) !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    border-bottom-left-radius: 2px !important;
+    border-left: 4px solid #ffcc00; /* Cor padrão alterada via JS se necessário */
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+    display: flex !important;
+    flex-direction: column;
+    align-self: flex-start;
+    max-width: 95%;
+    word-wrap: break-word;
+}
+
+/* 4. CABEÇALHO DO REMETENTE (NOME NA PARTE DE CIMA) */
+.chat-sender {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+}
+
+/* 5. TEXTO DA MENSAGEM (BLINDADO) */
+.chat-text {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px !important;
+    font-weight: 300;
+    line-height: 1.4;
+    color: #e0e0e0;
+}
+
+/* 🛡️ TRAVA DE SEGURANÇA: Impede que itens zombem do tamanho da fonte */
+.chat-text span, 
+.chat-text i {
+    font-size: 14px !important; 
+    line-height: inherit !important;
+}
+
+/* Tags e Negritos mais elegantes */
+.chat-text b {
+    font-size: 14px !important;
+    font-weight: 500;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+/* 6. INPUT DE MENSAGEM (CÁPSULA) */
+.chat-input-container {
+    padding: 12px;
+    background: #111;
+    border-top: 1px solid #222;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#chat-message-input {
+    flex: 1;
+    background: #000 !important;
+    color: #ffffff !important;
+    border: 1px solid #333 !important;
+    border-radius: 25px !important;
+    padding: 8px 18px !important;
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+}
+
+#chat-message-input:focus {
+    border-color: #ffcc00 !important;
+}
+
+/* 7. BOTÃO ENVIAR REDONDO */
+#btn-send-chat {
+    background: #ffcc00;
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+    flex-shrink: 0;
+}
+
+#btn-send-chat:hover {
+    transform: scale(1.1);
+    background: #ffffff;
+}

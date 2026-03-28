@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L&D RPG - Master Panel</title>
+    <meta name="referrer" content="no-referrer">
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Oswald:wght@300;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/vtt/tokens.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/modulos/biblioteca.css">
+    <link rel="stylesheet" href="css/core/dice.css">
+    <link rel="stylesheet" href="css/core/roll.css">
+    <link rel="stylesheet" href="css/core/aba-mestre.css">
+    <link rel="stylesheet" href="css/modulos/inventario.css">
+    <link rel="stylesheet" href="css/modulos/magias.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+</head>
+
+<body>
+
+<div id="loading-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background-color: #050505; 
+    background-size: cover; background-position: center;
+    z-index: 9999; display: flex; flex-direction: column; 
+    align-items: center; justify-content: center;
+    transition: opacity 0.8s ease;">
+    
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);"></div>
+    
+    <div style="z-index: 1; display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 400px;">
+        
+        <div id="loading-spinner" style="border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 25px;"></div>
+        
+        <h2 id="loading-quote" style="color: white; font-family: 'Cinzel', serif; font-size: 18px; margin-bottom: 15px; letter-spacing: 2px; text-align: center; text-shadow: 2px 2px 4px #000;">
+            Carregando...
+        </h2>
+        
+        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.8);">
+            <div id="loading-bar-fill" style="width: 0%; height: 100%; transition: width 0.3s ease-out;"></div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; width: 100%; color: #aaa; font-family: 'Quicksand', sans-serif; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+            <span id="loading-status">Preparando o mundo...</span>
+            <span id="loading-percentage">0%</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fade-out { opacity: 0; pointer-events: none; }
+</style>
+    
+    <div id="codice-overlay" class="codice-overlay" style="display: none;">
+        <div class="codice-book">
+            <button class="codice-close" onclick="codice.fechar()">&times;</button>
+            
+            <div class="codice-page left-page">
+                <div class="album-header">
+                    <input type="text" id="album-busca" placeholder="Buscar no Códice..." oninput="codice.filtrar(this.value)" style="margin-bottom: 10px;">
+                    
+                    <div class="album-filtros">
+                        <button onclick="codice.setFiltro('todos')" class="filter-btn active">Todos</button>
+                        <button onclick="codice.setFiltro('monstros')" class="filter-btn">Bestas</button>
+                        <button onclick="codice.setFiltro('npcs')" class="filter-btn">NPCs</button>
+                        <button onclick="codice.setFiltro('magias')" class="filter-btn">Magias</button>
+
+                        <button onclick="codice.setFiltro('arma')" class="filter-btn">Armas</button>
+                        <button onclick="codice.setFiltro('armadura')" class="filter-btn">Armaduras</button>
+                        <button onclick="codice.setFiltro('runa')" class="filter-btn">Runas</button>
+                        <button onclick="codice.setFiltro('artefato')" class="filter-btn">Artefatos</button>
+                        <button onclick="codice.setFiltro('poção')" class="filter-btn">Poções</button>
+                        <button onclick="codice.setFiltro('colar')" class="filter-btn">Colares</button>
+                        <button onclick="codice.setFiltro('anel')" class="filter-btn">Anéis</button>
+                        <button onclick="codice.setFiltro('passiva')" class="filter-btn">Passivas</button>
+                    </div>
+                </div>
+
+                <div id="album-grid" class="album-grid">
+                    </div>
+            </div>
+
+            <div class="codice-page right-page" id="codice-detalhes">
+                <div class="codice-detalhes-wrapper" style="width: 100%; height: 100%; align-items: stretch; display: flex; flex-direction: column;">
+                    
+                    <div id="mestre-controls" style="margin-bottom: 15px;">
+                        <button id="btn-revelar-codice" class="filter-btn" style="width: 100%; padding: 8px; background: #3e2723; color: #ffd700; border: 1px solid #ffd700; display: none;">
+                            <i class="fa-solid fa-eye"></i> Revelar no Códice
+                        </button>
+                    </div>
+
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        
+                        <div class="figura-moldura-vertical" style="flex-shrink: 0; width: 140px; height: 190px;">
+                            <img id="codice-img" src="" style="object-fit: contain; width: 100%; height: 100%;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <h1 id="codice-titulo" style="text-align: left; font-size: 26px; margin: 0 0 8px 0;">Selecionar registro</h1>
+                            <div id="codice-stats-badge" class="codice-stats-badget" style="display: none; margin: 0; width: fit-content; font-size: 13px; padding: 6px 8px;"></div>
+                        </div>
+
+                    </div>
+
+                    <div id="codice-mini-stats" class="codice-mini-stats" style="display: none; margin-top: 15px; width: 100%; box-sizing: border-box; justify-content: space-between;"></div>
+
+                    <div class="codice-divider" style="width: 100%; margin: 15px 0;"></div>
+                    
+                    <textarea id="codice-descricao" class="codice-text-content" 
+                            style="width: 100%; flex: 1; min-height: 150px; background: transparent; border: none; outline: none; resize: none; color: #2c1e1a; font-family: 'Crimson Text', serif; text-align: justify;" 
+                            placeholder="Clique em uma figurinha para ler..."></textarea>
+
+                    <button id="btn-salvar-descricao-publica" class="filter-btn" 
+                            style="display: none; width: 100%; margin-top: 10px; background: #3e2723; color: #ffd700; border: 1px solid #ffd700;">
+                        <i class="fa-solid fa-save"></i> Salvar Descrição Oficial
+                    </button>
+
+                </div>
+                
+                <div class="codice-footer">
+                    <span id="codice-tipo">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dice-console-hud" id="dice-hud">
+        
+        <div class="result-glass-viewer" id="dice-viewer">
+            <div class="viewer-header">CONSOLE DE ROLAGEM</div>
+            <div class="viewer-main-number" id="result-val">-</div>
+            <div class="viewer-footer" id="result-log">Selecione o Atributo e a Quantidade</div>
+        </div>
+
+        <div class="dice-row">
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d4" onclick="window.combate.alterarQuantidade('d4', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(4)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d4">
+                        <path fill="#8B0000" d="M50,24 L50,5 L5,85 Z"></path>
+                        <path fill="#5E0000" d="M50,24 L50,5 L95,85 Z"></path>
+                        <path fill="#B22222" d="M50,24 L5,85 L95,85 Z"></path>
+                        <text x="50" y="50" class="dice-num-display" id="num-d4" font-size="38">4</text>
+                    </svg>
+                    <span>D4</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d6" onclick="window.combate.alterarQuantidade('d6', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(6)">
+                    <svg viewBox="0 0 120 120" class="dice-svg" id="svg-d6">
+                        <path fill="#5E0000" d="M10,20 L20,30 L20,100 L10,90 Z"></path>
+                        <path fill="#8B0000" d="M10,20 L80,20 L90,30 L20,30 Z"></path>
+                        <path fill="#B22222" d="M20,30 L90,30 L90,100 L20,100 Z"></path>
+                        <text x="55" y="60" class="dice-num-display" id="num-d6" font-size="38">6</text>
+                    </svg>
+                    <span>D6</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d8" onclick="window.combate.alterarQuantidade('d8', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(8)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d8">
+                        <path fill="#5E0000" d="M50,95 L10,50 L21,62 Z"></path>
+                        <path fill="#5E0000" d="M50,95 L90,50 L79,62 Z"></path>
+                        <path fill="#400000" d="M50,95 L21,62 L79,62 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L10,50 L21,62 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L90,50 L79,62 Z"></path>
+                        <path fill="#B22222" d="M50,5 L21,62 L79,62 Z"></path>
+                        <text x="50" y="42" class="dice-num-display" id="num-d8" font-size="30">8</text>
+                    </svg>
+                    <span>D8</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d10" onclick="window.combate.alterarQuantidade('d10', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(10)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d10">
+                        <path fill="#5E0000" d="M50,68 L26,51 L5,55 L50,95 Z"></path>
+                        <path fill="#400000" d="M50,68 L50,95 L95,55 L74,51 Z"></path>
+                        <path fill="#B22222" d="M50,5 L26,51 L50,68 L74,51 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L5,55 L26,51 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L74,51 L95,55 Z"></path>
+                        <text x="50" y="45" class="dice-num-display" id="num-d10" font-size="28">10</text>
+                    </svg>
+                    <span>D10</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d12" onclick="window.combate.alterarQuantidade('d12', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(12)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d12">
+                        <path d="M50,20.4 L78.9,41.4 L98,35.5 L79,9 L50,0 Z" fill="#8B0000" />
+                        <path d="M78.9,41.4 L67.8,75.4 L79.5,90.5 L97.5,66.5 L98,35.5 Z" fill="#5E0000" />
+                        <path d="M67.8,75.4 L32.2,75.4 L21,91 L51,100 L79.5,90.5 Z" fill="#400000" />
+                        <path d="M32.2,75.4 L21.1,41.4 L2,36 L2,65 L21,91 Z" fill="#5E0000" />
+                        <path d="M21.1,41.4 L50,20.4 L50,0 L20.5,9.5 L2,36 Z" fill="#8B0000" />
+                        <path d="M78.9,41.4 L67.8,75.4 L32.2,75.4 L21.1,41.4 L50,20.4 Z" fill="#B22222" />
+                        <text x="50" y="50" class="dice-num-display" id="num-d12" font-size="28">12</text>
+                    </svg>
+                    <span>D12</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d20" onclick="window.combate.alterarQuantidade('d20', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(20)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d20">
+                        <path d="M50,21 L16,31 L50,11 Z" fill="#8B0000" />
+                        <path d="M50,21 L84,31 L50,11 Z" fill="#8B0000" />
+                        <path d="M50,21 L25,64 L16,31 Z" fill="#5E0000" />
+                        <path d="M50,21 L75,64 L84,31 Z" fill="#5E0000" />
+                        <path d="M16,31 L25,64 L16,69 Z" fill="#400000" />
+                        <path d="M84,31 L75,64 L84,69 Z" fill="#400000" />
+                        <path d="M25,64 L50,89 L16,69 Z" fill="#400000" />
+                        <path d="M75,64 L50,89 L84,69 Z" fill="#400000" />
+                        <path d="M25,64 L75,64 L50,89 Z" fill="#8B0000" />
+                        <path d="M50,21 L25,64 L75,64 Z" fill="#B22222" />
+                        <text x="50" y="50" class="dice-num-display" id="num-d20" font-size="19">20</text>
+                    </svg>
+                    <span>D20</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modifiers-bar">
+            <div class="attr-selectors">
+                <button class="btn-attr" data-attr="for" onclick="window.combate.selecionarAtributo('for')">FOR</button>
+                <button class="btn-attr" data-attr="dex" onclick="window.combate.selecionarAtributo('dex')">DEX</button>
+                <button class="btn-attr" data-attr="def" onclick="window.combate.selecionarAtributo('def')">DEF</button>
+                <button class="btn-attr" data-attr="int" onclick="window.combate.selecionarAtributo('int')">INT</button>
+                <button class="btn-attr" data-attr="car" onclick="window.combate.selecionarAtributo('car')">CAR</button>
+                <button class="btn-attr" data-attr="con" onclick="window.combate.selecionarAtributo('con')">CON</button>
+            </div>
+
+            <div class="skin-selector">
+                <button onclick="mudarSkinDado('rubi')" style="background: #4a0000; border: 1px solid gold; border-radius: 50%; width: 20px; height: 20px;"></button>
+                <button onclick="mudarSkinDado('safira')" style="background: #001a4a; border: 1px solid #00d4ff; border-radius: 50%; width: 20px; height: 20px;"></button>
+                <button onclick="mudarSkinDado('esmeralda')" style="background: #003300; border: 1px solid #00ff88; border-radius: 50%; width: 20px; height: 20px;"></button>
+            </div>
+
+            <div class="extra-group"> <input type="number" id="extra-mod" placeholder="+ MOD" title="Modificador Manual">
+
+                <button class="btn-action-dice btn-close-red" onclick="window.combate.cancelarAcao()" title="Cancelar Ação e Fechar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <button class="btn-action-dice btn-reset-ruby" onclick="window.combate.resetarCalculadora()" title="Resetar Calculadora">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="dice-shelf"></div>
+    </div>
+
+    <div id="dm-dashboard">
+        
+        <aside class="sidebar-left">
+            <section id="top-left-panel">
+                <header class="section-header">
+                    <span><i class="fa-solid fa-map-location-dot"></i> Gestão de Mapa</span>
+                </header>
+                <div class="padding-container">
+                    <button id="btn-toggle-edit" class="btn-primary highlight-border">
+                        🎮 Ativar Modo Edição
+                    </button>
+                    <button id="btn-reset-camera" class="secondary-btn">
+                        🎯 Centralizar Mapa
+                    </button>
+                    <button class="btn-utilitario" onclick="codice.abrir()" title="Códice">
+                        <i class="fa-solid fa-book-skull"></i>
+                    </button>
+                    <div class="grid-save-row">
+                        <div class="form-group">
+                            <label>Visibilidade Grid</label>
+                            <input type="range" id="gridOpacity" min="0" max="0.5" step="0.01" value="0.1" class="input-range-full">
+                        </div>
+                        <button id="btn-save-map" class="btn-primary">💾 Salvar</button>
+                    </div>
+                    <div class="scroll-area list-box" id="map-list-container"></div>
+                    <button id="btn-clear-map" class="btn-primary secondary-style">🧹 Limpar Mapa</button>
+                </div>
+            </section>
+
+            <section id="bottom-left-panel">
+                <header class="section-header">
+                    <span><i class="fa-solid fa-scroll"></i> Log de Batalha</span>
+                </header>
+                <div id="chat-log"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-message-input" placeholder="Mensagem ou /d20...">
+                    <button id="btn-send-chat" onclick="sendMessage()">➔</button>
+                </div>
+            </section>
+        </aside>
+
+        <main id="main-content">
+            <div id="viewport">
+                <div id="outer-frame">
+                    <div id="map-container-vtt"></div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="sidebar-right">
+            <nav class="tab-bar">
+                <button class="tab-btn active" data-tab="jogadores" title="Jogadores">
+                    <i class="fa-solid fa-user"></i>
+                </button>
+                <button class="tab-btn" data-tab="monstros" title="Monstros">
+                    <i class="fa-solid fa-dragon"></i>
+                </button>
+                <button class="tab-btn" data-tab="npcs" title="NPCs">
+                    <i class="fa-solid fa-user-astronaut"></i>
+                </button>
+                <button class="tab-btn" data-tab="magias" title="Magias">
+                    <i class="fa-solid fa-wand-sparkles"></i>
+                </button>
+                <button class="tab-btn" data-tab="itens" title="Inventário">
+                    <i class="fa-solid fa-briefcase"></i>
+                </button>
+                <button class="tab-btn" data-tab="criar" title="Criar Novo">
+                    <i class="fa-solid fa-plus-minus"></i>
+                </button>
+            </nav>
+
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="global-search" placeholder="Pesquisar nesta aba..." onkeyup="filtrarBibliotecaUniversal()">
+                </div>
+            </div>
+
+            <div class="scroll-area" id="library-content">
+                <div class="tab-content active" id="content-jogadores"></div>
+                <div class="tab-content" id="content-monstros"></div>
+                <div class="tab-content" id="content-npcs"></div>
+                <div class="tab-content" id="content-magias"></div>
+                <div class="tab-content" id="content-itens"></div>
+
+                <div class="tab-content" id="content-criar">
+                    <div class="padding-container">
+                        <form id="main-creation-form">
+                            <input type="hidden" id="reg-id" value="">
+
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-tag"></i> Tipo de Registro</label>
+                                <select id="create-type-selector" onchange="toggleCreateFields()">
+                                    <option value="monstros">👾 Monstro</option>
+                                    <option value="npcs">👤 NPC</option>
+                                    <option value="magias">✨ Magia</option>
+                                    <option value="itens">⚔️ Item</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-signature"></i> Nome da Entidade</label>
+                                <input type="text" id="reg-nome" placeholder="Ex: Dragão Ancião...">
+                            </div>
+
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-image"></i> URL do Token (PNG)</label>
+                                <input type="text" id="reg-url" placeholder="https://link-da-imagem.png">
+                            </div>
+
+                            <div class="form-group" id="token-studio-container" style="display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; border: 1px dashed #555; margin-top: 10px;">
+                                <label style="color: #f3e520; font-family: 'Cinzel'; margin-bottom: 15px; display: block; text-align: center;">
+                                    <i class="fa-solid fa-optin-monster"></i> ESTÚDIO DE FORJA HÍBRIDA
+                                </label>
+                                
+                                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                                    
+                                    <div style="display: flex; flex-direction: column; gap: 15px; align-items: center; flex-shrink: 0;">
+                                        
+                                        <div style="width: 100px; height: 150px; border-radius: 6px; border: 2px solid #0055ff; overflow: hidden; background: #050505; position: relative; box-shadow: 0 0 10px rgba(0, 85, 255, 0.2);">
+                                            <img id="preview-inventory-img" src="" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; object-fit: contain; transform-origin: center center;">
+                                        </div>
+                                        
+                                        <div style="width: 95px; height: 95px; border-radius: 50%; border: 2px dashed #f3e520; overflow: hidden; background: #050505; position: relative; box-shadow: 0 0 10px rgba(243, 229, 32, 0.2);">
+                                            <img id="preview-token-img" src="" style="position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; object-fit: contain; transform-origin: center center;">
+                                        </div>
+                                        
+                                    </div>
+                                    
+                                    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                                        
+                                        <div class="control-panel-hibrido" style="background: rgba(0, 85, 255, 0.1); border: 1px solid #0055ff; padding: 10px; border-radius: 6px;">
+                                            <label style="color: #0099ff; font-size: 11px; font-weight: bold; margin-bottom: 8px; display: block;">
+                                                <i class="fa-solid fa-briefcase"></i> 1. AJUSTE DO INVENTÁRIO (Fundo 2:3)
+                                            </label>
+                                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #0099ff; width: 15px;">🔍</span>
+                                                    <input type="range" id="inv-zoom" min="0.1" max="8" step="0.1" value="1" style="flex: 1;" oninput="window.atualizarPreviewHibrido('inventory')">
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #0099ff; width: 15px;">↔️</span>
+                                                    <input type="range" id="inv-x" min="-150" max="150" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewHibrido('inventory')">
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #0099ff; width: 15px;">↕️</span>
+                                                    <input type="range" id="inv-y" min="-150" max="150" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewHibrido('inventory')">
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #0099ff; width: 15px;">🔄</span>
+                                                    <input type="range" id="inv-rot" min="0" max="360" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewHibrido('inventory')">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="control-panel-hibrido" style="background: rgba(243, 229, 32, 0.05); border: 1px solid #f3e520; padding: 10px; border-radius: 6px;">
+                                            <label style="color: #f3e520; font-size: 11px; font-weight: bold; margin-bottom: 8px; display: block;">
+                                                <i class="fa-solid fa-circle-dot"></i> 2. AJUSTE DO TOKEN (Círculo 1:1)
+                                            </label>
+                                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #f3e520; width: 15px;">🔍</span>
+                                                    <input type="range" id="token-zoom" min="0.1" max="8" step="0.1" value="1" style="flex: 1;" oninput="window.atualizarPreviewHibrido('token')">
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #f3e520; width: 15px;">↔️</span>
+                                                    <input type="range" id="token-x" min="-150" max="150" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewHibrido('token')">
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #f3e520; width: 15px;">↕️</span>
+                                                    <input type="range" id="token-y" min="-150" max="150" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewHibrido('token')">
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                    <span style="font-size: 10px; color: #f3e520; width: 15px;">🔄</span>
+                                                    <input type="range" id="token-rot" min="0" max="360" step="1" value="0" style="flex: 1;" oninput="window.atualizarPreviewHibrido('token')">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button type="button" onclick="window.resetarPreviewHibridoCompleto()" style="background: #222; color: #aaa; border: 1px solid #444; padding: 6px; border-radius: 4px; font-size: 10px; cursor: pointer; margin-top: 5px; font-family: 'Cinzel'; transition: 0.2s;" onmouseover="this.style.borderColor='#f3e520'; this.style.color='#fff';" onmouseout="this.style.borderColor='#444'; this.style.color='#aaa';">
+                                            <i class="fa-solid fa-rotate-left"></i> RESETAR AMBOS OS AJUSTES
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="fields-monstros" class="extra-fields">
+                                <div class="grid-3-col" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                                    <div class="form-group">
+                                        <label><i class="fa-solid fa-crown"></i> Rank</label>
+                                        <select id="reg-monstro-rank">
+                                            <option value="G">G</option> <option value="F">F</option>
+                                            <option value="E">E</option> <option value="D">D</option>
+                                            <option value="C">C</option> <option value="B">B</option>
+                                            <option value="A">A</option> <option value="S">S</option>
+                                            <option value="U">U</option> <option value="SS">SS</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label><i class="fa-solid fa-burst"></i> Tipo</label>
+                                        <select id="reg-monstro-elemento">
+                                            <option value="fogo">🔥 Fogo</option>
+                                            <option value="agua">💧 Água</option>
+                                            <option value="terra">🧱 Terra</option>
+                                            <option value="vento">🌪️ Ar</option>
+                                            <option value="natureza">🌱 Natureza</option>
+                                            <option value="gelo">❄️ Gelo</option>
+                                            <option value="raio">⚡ Raio</option>
+                                            <option value="unico">🎇 Único</option>
+                                            <option value="lendario">🎆 Lendário</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label><i class="fa-solid fa-hand-fist"></i> Dano</label>
+                                        <select id="reg-monstro-tipo-dano">
+                                            <option value="fisico">⚔️ Físico (FOR)</option>
+                                            <option value="magico">✨ Mágico (INT)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="fields-npcs" class="extra-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label><i class="fa-solid fa-quote-left"></i> Sub-título / Ocupação</label>
+                                    <input type="text" id="reg-npc-sub" placeholder="Ex: Mestre da Guilda">
+                                </div>
+                            </div>
+
+                            <div id="fields-magias" class="extra-fields" style="display: none;">
+                                <div class="grid-2-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="form-group">
+                                        <label>Tipo de Dano</label>
+                                        <select id="reg-magia-dano">
+                                            <option value="magico">🔮 Mágico</option>
+                                            <option value="fisico">💥 Físico</option>
+                                            <option value="elemental">🔥 Elemental</option>
+                                            <option value="efeito">✨ Apenas Efeito (Não joga dado/dano)</option> </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Categoria</label>
+                                        <select id="reg-magia-tipo">
+                                            <option value="melee">⚔️ Melee</option>
+                                            <option value="ranged">🏹 Ranged</option>
+                                            <option value="suport">✨ Suporte</option>
+                                            <option value="mobilit">🏃 Mobilidade</option>
+                                            <option value="reaction">⚡ Reação</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; border: 1px dashed #444;">
+                                    <label style="color: #aaa; font-size: 10px; display: block; margin-bottom: 5px;">CONDIÇÃO (STATUS PASSIVO)</label>
+                                    <select id="reg-magia-status-tipo" style="width: 100%;">
+                                        <option value="">Nenhum Efeito de Status</option>
+                                        <optgroup label="🔥 Elementais">
+                                            <option value="FOGO">🔥 FOGO</option>
+                                            <option value="AR">🌪️ AR</option>
+                                            <option value="AGUA">🌊 ÁGUA</option>
+                                            <option value="TERRA">🜃 TERRA</option>
+                                            <option value="RAIO">⚡ RAIO</option>
+                                            <option value="NATUREZA">🌱 NATUREZA</option>
+                                            <option value="GELO">❄️ GELO</option>
+                                            <option value="VENENO">🧪 VENENO</option>
+                                        </optgroup>
+                                        <optgroup label="🧠 Mentais / Outros">
+                                            <option value="CEGUEIRA">👁️ CEGUEIRA</option>
+                                            <option value="SANGRAMENTO">🩸 SANGRAMENTO</option>
+                                            <option value="CONFUSAO">🧠 CONFUSÃO</option>
+                                            <option value="SONO">💤 SONO</option>
+                                            <option value="MEDO">😱 MEDO</option>
+                                            <option value="MALDICAO">🕯️ MALDIÇÃO</option>
+                                            <option value="NECROSE">💀 NECROSE</option>
+                                            <option value="SUSPENSO">🎯 SUSPENSO</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <div id="bloco-efeitos-magia" style="margin-top:10px; padding: 10px; background: rgba(20, 20, 20, 0.6); border-radius: 5px; border: 1px solid #444;">
+                                    <label style="color: #00ffcc; font-family: 'Cinzel'; font-size: 11px; display: block; margin-bottom: 10px;">⚡ MECÂNICA DA MAGIA</label>
+                                    
+                                    <div class="efeito-item" style="border-left: 3px solid #5d3fd3; padding-left: 10px; margin-bottom: 15px;">
+                                        <label style="font-size: 10px; color: #b19cd9; display: block; margin-bottom: 5px;">⚔️ NÚMERO DE ATAQUES / PROJÉTEIS</label>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <select id="reg-magia-ataques-tipo">
+                                                <option value="fixo">Quantidade Fixa</option>
+                                                <option value="variavel">Variável (Dados)</option>
+                                            </select>
+                                            <input type="text" id="reg-magia-ataques-val" placeholder="Ex: 3 ou 1d4" style="background: #000; color: #b19cd9; border: 1px solid #5d3fd3; padding: 5px;">
+                                        </div>
+                                    </div>
+
+                                    <div class="efeito-item" style="border-left: 3px solid #ff4d4d; padding-left: 10px; margin-bottom: 15px;">
+                                        <label style="font-size: 10px; color: #eee; display: block; margin-bottom: 5px;">🔴 STATUS NEGATIVO (DEBUFF %)</label>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <select id="reg-magia-debuff-attr">
+                                                <option value="">Nenhum Atributo</option>
+                                                <option value="for">FORÇA</option>
+                                                <option value="dex">DESTREZA</option>
+                                                <option value="int">INTELIGÊNCIA</option>
+                                                <option value="def">DEFESA</option>
+                                                <option value="car">CARISMA</option>
+                                                <option value="con">CONSTITUIÇÃO</option>
+                                            </select>
+                                            <select id="reg-magia-debuff-porcentagem">
+                                                <option value="0">0%</option>
+                                                <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="50">50%</option>
+                                                <option value="60">60%</option><option value="70">70%</option><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="efeito-item" style="border-left: 3px solid #4dff88; padding-left: 10px; margin-bottom: 15px;">
+                                        <label style="font-size: 10px; color: #4dff88; display: block; margin-bottom: 5px;">🟢 STATUS POSITIVO (BUFF %)</label>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <select id="reg-magia-buff-attr">
+                                                <option value="">Nenhum Atributo</option>
+                                                <option value="for">FORÇA</option>
+                                                <option value="dex">DESTREZA</option>
+                                                <option value="int">INTELIGÊNCIA</option>
+                                                <option value="def">DEFESA</option>
+                                                <option value="car">CARISMA</option>
+                                                <option value="con">CONSTITUIÇÃO</option>
+                                            </select>
+                                            <select id="reg-magia-buff-porcentagem">
+                                                <option value="0">0%</option>
+                                                <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="50">50%</option>
+                                                <option value="60">60%</option><option value="70">70%</option><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="efeito-item" style="border-left: 3px solid #00f2ff; padding-left: 10px; margin-bottom: 15px;">
+                                        <label style="font-size: 10px; color: #00f2ff; display: block; margin-bottom: 5px;">💚 BUFF CURATIVO (REGENERAÇÃO)</label>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <input type="text" id="reg-magia-cura-buff-val" placeholder="Valor (Ex: 1d6)" style="background: #000; color: #00f2ff; border: 1px solid #00f2ff; padding: 5px;">
+                                            <input type="number" id="reg-magia-cura-buff-turnos" placeholder="Turnos" style="background: #000; color: #00f2ff; border: 1px solid #00f2ff; padding: 5px;">
+                                        </div>
+                                    </div>
+
+                                    <div class="efeito-item" style="border-left: 3px solid #f3e520; padding-left: 10px;">
+                                        <label style="font-size: 10px; color: #f3e520; display: block; margin-bottom: 5px;">🎲 VALOR DIRETO (DANO OU CURA)</label>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                            <select id="reg-magia-direto-tipo">
+                                                <option value="dano">💥 Dano Bruto</option>
+                                                <option value="cura">💚 Cura/HP</option>
+                                                <option value="escudo">🛡️ Escudo</option>
+                                            </select>
+                                            <input type="text" id="reg-magia-direto-val" placeholder="Ex: 2d10 + 5" style="background: #000; color: #f3e520; border: 1px solid #555; padding: 5px;">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid-2-col" style="display: grid; grid-template-columns: 80px 1fr; gap: 10px; margin-top: 10px;">
+                                    <div class="form-group">
+                                        <label>Custo 🔷</label>
+                                        <input type="number" id="reg-magia-custo" placeholder="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Descrição Breve</label>
+                                        <input type="text" id="reg-magia-desc" placeholder="Ex: Atira 3 dardos de fogo...">
+                                    </div>
+                                </div>
+
+                                <div id="bloco-area-magia" style="margin-top:15px; background: #141414; padding: 12px; border-radius: 5px; border: 1px solid #333;">
+                                    <label style="color: #f3e520; font-family: 'Cinzel'; font-size: 12px; display: block; margin-bottom: 10px;">🪄 PROJEÇÃO E MOVIMENTAÇÃO</label>
+                                    <div style="display: flex; gap: 15px; align-items: flex-start;">
+                                        
+                                        <div id="container-grid-magia" style="min-width: 120px; display: flex; flex-direction: column; align-items: center;">
+                                            <div id="spell-grid-editor" class="spell-grid-editor" style="min-height: 190px; min-width: 118px;"></div>
+                                            <input type="hidden" id="reg-magia-matriz" value="">
+                                        </div>
+
+                                        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                                            <div class="form-group">
+                                                <label style="font-size: 10px; color: #f3e520;">MODO DE CONJURAÇÃO:</label>
+                                                <select id="reg-magia-projecao" onchange="window.toggleAlcanceMagia()" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 8px;">
+                                                    <option value="presa">📍 Magia Presa (No Conjuro)</option>
+                                                    <option value="solta">🎯 Magia Solta (Escolher Alvo)</option>
+                                                    <option value="teleporte">🌀 Teletransporte (Mover Token)</option>
+                                                    <option value="barreira">🛡️ Barreira (Invocação HP)</option> </select>
+                                            </div>
+
+                                            <div id="campo-alcance-magia" style="display:none;">
+                                                <label id="label-alcance-dinamico" style="font-size: 10px; color: #aaa;">DISTÂNCIA MÁXIMA (m):</label>
+                                                <input type="number" id="reg-magia-alcance" value="5" style="width: 100%; background: #000; color: #00f2ff; border: 1px solid #00f2ff;">
+                                                
+                                                <div id="extra-barreira-hp" style="display:none; margin-top:10px;">
+                                                    <label style="font-size: 10px; color: #ffcc00;">HP DA BARREIRA:</label>
+                                                    <input type="text" id="reg-magia-barreira-hp" placeholder="Ex: 50" style="width: 100%; background: #000; color: #ffcc00; border: 1px solid #ffcc00; padding: 5px;">
+                                                </div>
+
+                                                <small id="hint-teleporte" style="display:none; color: #00f2ff; font-size: 9px; margin-top: 4px;">* O token será movido para o local clicado.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="fields-itens" class="extra-fields" style="display:none;">
+                                <label>Tipo de Item:</label>
+                                <select id="reg-item-tipo" class="reg-input" onchange="toggleCreateFields()">
+                                    <option value="colar">Colar</option>
+                                    <option value="anel">Anéis</option>
+                                    <option value="armadura">Armaduras</option>
+                                    <option value="arma">Armas</option>
+                                    <option value="artefato">Artefato</option>
+                                    <option value="pocao">Poção de Cura</option>
+                                    <option value="runa">Runa</option>
+                                    <option value="passiva">Passiva</option>
+                                </select>
+
+                                <label style="margin-top: 10px; display: block;">Raridade:</label>
+                                <select id="reg-item-raridade" class="reg-input">
+                                    <option value="comum">⚪ Comum</option>
+                                    <option value="raro">🔵 Raro</option>
+                                    <option value="lendario">🟡 Lendário</option>
+                                    <option value="unico">🟣 Único</option>
+                                </select>
+
+                                <div id="grupo-armadura" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px;">
+                                    <label>Peso da Armadura:</label>
+                                    <select id="reg-armadura-peso" class="reg-input">
+                                        <option value="leve">7️⃣ Leve</option>
+                                        <option value="media">5️⃣ Média</option>
+                                        <option value="pesada">3️⃣ Pesada</option>
+                                    </select>
+                                </div>
+
+                                <div id="grupo-arma" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px;">
+                                    <div class="form-group">
+                                        <label>Sub-tipo (Ex: Espada Longa):</label>
+                                        <input type="text" id="reg-arma-texto" placeholder="Ex: Machado de Guerra">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Natureza do Dano:</label>
+                                        <select id="reg-arma-dano">
+                                            <option value="fisico">💥 Físico</option>
+                                            <option value="magico">🔮 Mágico</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Mãos:</label>
+                                        <select id="reg-arma-maos">
+                                            <option value="1">1 Mão (✋)</option>
+                                            <option value="2">2 Mãos (🤲)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="grupo-pocao" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border-left: 3px solid #ff4d4d;">
+                                    <div class="form-group">
+                                        <label>❤️ Valor Fixo de Cura (HP):</label>
+                                        <input type="number" id="reg-pocao-cura" class="reg-input" placeholder="Ex: 20">
+                                    </div>
+                                </div>
+
+                                <div id="grupo-runa" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border-left: 3px solid #00f2ff;">
+                                    <div class="form-group">
+                                        <label>✨ Rank da Runa:</label>
+                                        <select id="reg-runa-rank" class="reg-input">
+                                            <option value="F">Rank F</option>
+                                            <option value="E">Rank E</option>
+                                            <option value="D">Rank D</option>
+                                            <option value="C">Rank C</option>
+                                            <option value="B">Rank B</option>
+                                            <option value="A">Rank A</option>
+                                            <option value="S">Rank S</option>
+                                            <option value="SS">Rank SS</option>
+                                            <option value="U">Rank U</option>
+                                        </select>
+                                        <small style="color: #aaa; font-size: 10px;">* Lança mensagem automática no chat ao consumir.</small>
+                                    </div>
+                                </div>
+
+                                <div id="grupo-passiva" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border-left: 3px solid #b19cd9;">
+                                    <div class="form-group">
+                                        <label>🌀 Categoria da Passiva:</label>
+                                        <select id="reg-passiva-categoria" class="reg-input" onchange="window.togglePassivaFields()">
+                                            <option value="elemental">🔥 Elemental (Dano Penetrante +4)</option>
+                                            <option value="lendario">👑 Item Lendário (Efeitos e Bloqueios)</option>
+                                            <option value="divergente">👁️ Divergente (Invisibilidade)</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="sub-passiva-elemental" style="margin-top: 10px;">
+                                        <label>Elemento do Dano:</label>
+                                        <select id="reg-passiva-elemento" class="reg-input">
+                                            <option value="fogo">🔥 Fogo</option>
+                                            <option value="agua">💧 Água</option>
+                                            <option value="terra">🧱 Terra</option>
+                                            <option value="vento">🌪️ Vento</option>
+                                            <option value="natureza">🌱 Natureza</option>
+                                            <option value="gelo">❄️ Gelo</option>
+                                            <option value="raio">⚡ Raio</option>
+                                            <option value="veneno">🧪 veneno</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="sub-passiva-lendario" style="display:none; margin-top: 10px; padding: 10px; background: rgba(255, 215, 0, 0.05); border: 1px dashed #ffd700;">
+                                        <div class="form-group">
+                                            <label>🔒 Slot Bloqueado:</label>
+                                            <select id="reg-passiva-bloqueio" class="reg-input">
+                                                <option value="nenhum">Nenhum</option>
+                                                <option value="colar">Colar</option>
+                                                <option value="anel-1">Anel 1</option>
+                                                <option value="anel-2">Anel 2</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group" style="margin-top: 10px;">
+                                            <label>⚡ Efeito Lendário Ativo:</label>
+                                            <select id="reg-passiva-efeito" class="reg-input">
+                                                <option value="forca">💪 Força (-1d4 Atq | Crítico Dobra Dano)</option>
+                                                <option value="inteligencia">🏹 Velocidade (-1d4 Atq | Crítico Dobra ataque)</option>
+                                                <option value="defesa">🛡️ Defesa (-1d4 def | Bloqueia Dano)</option>
+                                                <option value="demoniaca">👹 Demoníaca (Roubo de Vida)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div id="sub-passiva-divergente" style="display:none; margin-top: 10px;">
+                                        <small style="color: #b19cd9; font-size: 11px;"><i>* Efeito Único: Concede Invisibilidade ao usuário.</i></small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="fields-atributos" class="form-group">
+                                <label><i class="fa-solid fa-dice-d20"></i> Atributos (FOR / DEX / INT / DEF / CAR / CON)</label>
+                                <input type="text" id="reg-atributos" placeholder="10 / 10 / 10 / 10 / 10 / 10">
+                            </div>
+
+                            <button type="button" id="btn-save-main" class="btn-primary" onclick="saveToFirebase()">
+                                ⚔️ Registrar na Biblioteca
+                            </button>
+                            
+                            <button type="button" id="btn-cancel-edit" class="secondary-btn" style="display:none; width: 100%; margin-top: 10px;" onclick="cancelarEdicao()">
+                                <i class="fa-solid fa-xmark"></i> Cancelar Edição
+                            </button>
+                        </form>
+
+                        <div style="width: 100%; height: 1px; background: #444; margin: 30px 0 20px 0;"></div> <div id="section-gestao-jogadores" class="biblioteca-section">
+                            <div class="section-header" style="background: #2c1e1a; padding: 10px; border-left: 4px solid #ff4d4d; display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                                <i class="fa-solid fa-users-slash" style="color: #ff4d4d; font-size: 1.2rem;"></i>
+                                <h3 style="margin: 0; color: #f3e520; font-family: 'Cinzel', serif;">Tribunal de Almas</h3>
+                            </div>
+
+                            <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                                <p style="font-size: 11px; color: #aaa; margin-bottom: 15px; font-style: italic;">
+                                    ⚠️ Apagar um jogador destruirá permanentemente sua ficha e inventário.
+                                </p>
+                                
+                                <div id="lista-jogadores-gestao" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <p style="color: #888; text-align: center;">Procurando almas...</p>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="mestre-bottom-panel" id="panel-mestre">
+        <div class="panel-trigger" onclick="toggleBottomPanel()">
+            <i class="fa-solid fa-chevron-up"></i> CONTROLE DO MESTRE
+        </div>
+        
+        <div class="panel-content">
+            <div id="status-incorporacao" style="display:none; background: rgba(26, 26, 26, 0.9); border: 1px solid #f3e520; padding: 5px 10px; color: #f3e520; font-family: 'Cinzel'; margin-bottom: 10px; border-radius: 4px; font-size: 11px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>
+                        <i class="fa-solid fa-mask"></i> CONTROLANDO: 
+                        <strong id="nome-npc-incorporado" style="color: #fff; margin-left: 5px; text-transform: uppercase;">Nenhum</strong>
+                    </span>
+                    <button onclick="window.spellEngine.desincorporar()" style="background: #cc0000; color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 8px; font-size: 9px; font-weight: bold;">
+                        SOLTAR CORPO
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; width: 100%;">
+                <div class="panel-group" style="min-width: 180px;">
+                    <h3>⚙️ Gestão</h3>
+                    <button class="btn-panel-action danger" onclick="iniciativa.deletarSelecionados()">
+                        <i class="fa-solid fa-trash-arrow-up"></i> Deletar Selecionados
+                    </button>
+
+                    <button class="btn-panel-action danger" onclick="if(confirm('CUIDADO: Deseja apagar TODOS os tokens do mapa?')) window.mapaRef.child('tokens').remove()">
+                        <i class="fa-solid fa-skull-crossbones"></i> Limpar Mapa Total
+                    </button>
+                </div>
+
+                <div class="panel-group" id="painel-multiplicadores" style="min-width: 250px; border-left: 1px solid #444; border-right: 1px solid #444; padding: 0 15px;">
+                    <h3 style="color: #f3e520; font-size: 13px; margin-bottom: 8px;"><i class="fa-solid fa-calculator"></i> Multiplicadores (Mapa)</h3>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px;">
+                        <div title="Multiplicador de Força" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">
+                            <span style="font-size:10px; color:#aaa; font-weight:bold;">FOR</span> 
+                            <input type="number" id="mult-for" value="1" style="width:35px; background:#222; color:#fff; border:1px solid #555; text-align:center; border-radius:3px;">
+                        </div>
+                        <div title="Multiplicador de Destreza" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">
+                            <span style="font-size:10px; color:#aaa; font-weight:bold;">DEX</span> 
+                            <input type="number" id="mult-dex" value="1" style="width:35px; background:#222; color:#fff; border:1px solid #555; text-align:center; border-radius:3px;">
+                        </div>
+                        <div title="Multiplicador de Constituição (Vida)" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">
+                            <span style="font-size:10px; color:#2ecc71; font-weight:bold;">CON</span> 
+                            <input type="number" id="mult-con" value="4" style="width:35px; background:#222; color:#fff; border:1px solid #2ecc71; text-align:center; border-radius:3px;">
+                        </div>
+                        <div title="Multiplicador de Inteligência" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">
+                            <span style="font-size:10px; color:#aaa; font-weight:bold;">INT</span> 
+                            <input type="number" id="mult-int" value="1" style="width:35px; background:#222; color:#fff; border:1px solid #555; text-align:center; border-radius:3px;">
+                        </div>
+                        <div title="Multiplicador de Defesa" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">
+                            <span style="font-size:10px; color:#f3e520; font-weight:bold;">DEF</span> 
+                            <input type="number" id="mult-def" value="4" style="width:35px; background:#222; color:#fff; border:1px solid #f3e520; text-align:center; border-radius:3px;">
+                        </div>
+                        <div title="Multiplicador de Carisma" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 2px 4px; border-radius: 3px;">
+                            <span style="font-size:10px; color:#aaa; font-weight:bold;">CAR</span> 
+                            <input type="number" id="mult-car" value="1" style="width:35px; background:#222; color:#fff; border:1px solid #555; text-align:center; border-radius:3px;">
+                        </div>
+                    </div>
+
+                    <button onclick="salvarMultiplicadoresGlobais()" class="btn-panel-action success" style="width: 100%; margin: 0; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; padding: 6px;">
+                        <i class="fa-solid fa-save"></i> Atualizar Todos
+                    </button>
+                </div>
+
+                <div class="panel-group" style="flex: 1;">
+                    <h3>⚔️ Iniciativa</h3>
+                    <div class="iniciativa-controls" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button id="btn-init-mode" class="btn-panel-action" onclick="iniciativa.toggleModoSelecao()">
+                            <i class="fa-solid fa-mouse-pointer"></i> Selecionar
+                        </button>
+                        
+                        <button id="btn-roll-init" class="btn-panel-action success" style="display:none;" onclick="iniciativa.rolarTodos()">
+                            <i class="fa-solid fa-dice-d20"></i> Rolar Iniciativa
+                        </button>
+
+                        <button class="btn-panel-action danger" onclick="iniciativa.limpar()">
+                            <i class="fa-solid fa-skull"></i> Encerrar Combate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="turn-order-bar" class="turn-bar"></div>
+
+    </div>
+
+    <script src="js/core/firebase-init.js"></script>
+
+    <script src="js/core/statusSystem.js"></script>
+    <script src="js/core/passivesSystem.js"></script>
+    <script src="js/core/dice-engine.js"></script>
+
+    <script src="js/core/engine-chat.js"></script>
+    <script src="js/core/engine-codice.js"></script>
+    <script src="js/core/engine-mapa.js"></script>
+    <script src="js/core/engine-tokens.js"></script>
+    <script src="js/core/engine-loot.js"></script>
+    <script src="js/core/engine-combate.js"></script>
+    <script src="js/core/engine-iniciativa.js"></script>
+
+    <script src="js/mestre/gestao-mapa.js"></script>
+    <script src="js/mestre/spell-engine.js"></script>
+    <script src="js/mestre/biblioteca-abas.js"></script>
+    <script src="js/mestre/criador.js"></script>
+    <script src="js/core/preloader.js"></script>
+
+    <script src="js/mestre/biblioteca/monstros.js"></script>
+    <script src="js/mestre/biblioteca/npcs.js"></script>
+    <script src="js/mestre/biblioteca/itens.js"></script>
+    <script src="js/mestre/biblioteca/magias.js"></script>
+    <script src="js/core/engine-mapa.js?v=2.3"></script>
+
+    <script>
+    window.isMestre = true;
+    
+    // 🔥 Lógica do Multiplicador Global 🔥
+    document.addEventListener('DOMContentLoaded', () => {
+        // Aguarda um pequeno delay para garantir que a janela.database esteja pronta
+        setTimeout(() => {
+            if(!window.database) return;
+            // Fica ouvindo o valor lá do Firebase
+            window.database.ref('configuracoes/multiplicadorCombate').on('value', snap => {
+                const valor = snap.val() || 4; // Se não houver, assume x4 como padrão
+                const inputMult = document.getElementById('input-multiplicador-global');
+                if (inputMult) inputMult.value = valor;
+                window.multiplicadorGlobalAtual = valor; // Deixa super fácil pros outros scripts acharem
+            });
+        }, 1500);
+    });
+
+    // Função que salva no Firebase quando o Mestre clica no botão verde
+    function salvarMultiplicadorGlobal() {
+        const inputVal = parseInt(document.getElementById('input-multiplicador-global').value) || 1;
+        if(window.database) {
+            window.database.ref('configuracoes/multiplicadorCombate').set(inputVal)
+                .then(() => {
+                    // Opcional: Um pequeno feedback no console do mestre (Chat)
+                    if (window.enviarMensagemChat) {
+                        window.enviarMensagemChat("SISTEMA", `⚙️ O Multiplicador Global de Atributos foi alterado para <b>x${inputVal}</b>.`, "#f3e520");
+                    } else {
+                        alert(`✅ Multiplicador de Combate alterado para x${inputVal} em todo o mapa!`);
+                    }
+                });
+        }
+    }
+    </script>
+
+</body>
+</html>

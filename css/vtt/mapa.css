@@ -1,0 +1,233 @@
+/* ============================================================
+   1. VARIÁVEIS E TEMA (CONFIGURAÇÃO DO GRID)
+   ============================================================ */
+:root {
+    --grid-size: 35px;         /* Base do tabuleiro */
+    --accent: #00ffcc;         /* Neon */
+    --danger: #ff4444;         
+    --bg-dark: #050505;        
+    --grid-alpha: 0.1;         
+}
+
+/* ============================================================
+   2. VIEWPORT E TABULEIRO (NÃO MEXER NOS CÁLCULOS)
+   ============================================================ */
+#viewport {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-dark);
+    overflow: hidden;
+}
+
+#outer-frame {
+    /* Moldura: 34 grids de 35px */
+    width: calc(var(--grid-size) * 34) !important;
+    height: calc(var(--grid-size) * 34) !important;
+    background-color: #1a1a1a;
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+}
+
+#map-container-vtt {
+    /* Área de jogo: 32 grids de 35px */
+    width: calc(var(--grid-size) * 32) !important;
+    height: calc(var(--grid-size) * 32) !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-rows: repeat(4, 1fr) !important;
+    gap: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+}
+
+.map-block {
+    position: relative !important;
+    display: grid !important;
+    grid-template-columns: repeat(8, 1fr) !important;
+    grid-template-rows: repeat(8, 1fr) !important;
+    background-size: 100% 100%;
+    cursor: pointer;
+    box-sizing: border-box !important;
+    border: none !important;
+    outline: 1px solid rgba(255, 255, 255, 0.05);
+    transform-origin: center center;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transition: outline 0.2s ease;
+}
+
+body.modo-edicao .map-block:hover {
+    outline: 2px solid var(--accent) !important;
+    z-index: 10;
+}
+
+/* Girar, Névoa e Unidade de Grid */
+.rotate-btn {
+    position: absolute;
+    top: 5px; right: 5px;
+    background: rgba(0,0,0,0.8);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+}
+
+body.modo-edicao .map-block:hover .rotate-btn { display: flex; }
+
+/* Localize esta regra no seu CSS e adicione a linha marcada */
+.map-block.fog::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #000;
+    z-index: 5;
+    opacity: 0.9;
+    /* Adicione isso para o clique "atravessar" a névoa */
+    pointer-events: none; 
+}
+
+.grid-unit {
+    border: 0.1px solid rgba(255, 255, 255, var(--grid-alpha));
+    pointer-events: none;
+}
+
+/* ============================================================
+   3. INTERFACE (SIDEBAR E COMPONENTES) - UNIFICADO
+   ============================================================ */
+.sidebar-left {
+    width: 300px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background-color: #1a1a1a;
+    padding-bottom: 20px;
+    border-right: 1px solid #333;
+}
+
+/* Scrollbar Amarela Estilo RPG */
+.sidebar-left::-webkit-scrollbar, 
+#map-list-container::-webkit-scrollbar { width: 4px; }
+.sidebar-left::-webkit-scrollbar-thumb,
+#map-list-container::-webkit-scrollbar-thumb {
+    background: #ffcc00;
+    border-radius: 10px;
+}
+
+.section-header {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+    background: #111 !important;
+    color: #eee;
+    text-transform: uppercase;
+}
+
+.padding-container {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#top-left-panel { flex-shrink: 0; }
+
+/* Botões Compactos */
+.sidebar-left button, .btn-primary, .secondary-btn {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+    margin-bottom: 2px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+/* LADO A LADO: Grid + Salvar */
+.grid-save-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.grid-save-row .form-group {
+    flex: 1;
+    margin-bottom: 0 !important;
+}
+
+.grid-save-row label { font-size: 10px !important; margin-bottom: 0 !important; }
+
+#btn-save-map {
+    height: 30px !important;
+    width: auto !important;
+    background-color: #28a745 !important; /* Verde */
+    color: white !important;
+    padding: 0 12px !important;
+    font-weight: bold;
+    margin: 0 !important;
+    white-space: nowrap;
+}
+
+/* BIBLIOTECA DE MAPAS COM SCROLL */
+#map-list-container {
+    min-height: 80px;
+    max-height: 130px !important;
+    overflow-y: auto !important;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #333;
+    margin: 5px 0 !important;
+}
+
+.map-item {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    border-bottom: 1px solid #222;
+}
+
+.chat-input-container {
+    display: flex;
+    gap: 5px;
+    padding: 8px;
+    background: #111;
+    border-top: 1px solid #333;
+}
+
+#chat-message-input {
+    flex: 1; /* Ocupa todo o espaço disponível */
+    background: #000;
+    border: 1px solid #444;
+    color: #00ffcc;
+    padding: 8px;
+    border-radius: 4px;
+    outline: none;
+}
+
+#btn-send-chat {
+    background: #222;
+    color: #00ffcc;
+    border: 1px solid #444;
+    padding: 0 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+#btn-send-chat:hover {
+    background: #00ffcc;
+    color: #000;
+}

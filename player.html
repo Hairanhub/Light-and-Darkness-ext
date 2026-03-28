@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L&D RPG - Player Panel</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Oswald:wght@300;500&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/vtt/tokens.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/modulos/biblioteca.css">
+    <link rel="stylesheet" href="css/core/dice.css">
+    <link rel="stylesheet" href="css/core/roll.css">
+    <link rel="stylesheet" href="css/core/aba-mestre.css">
+    <link rel="stylesheet" href="css/modulos/inventario.css">
+    <link rel="stylesheet" href="css/modulos/magias.css">
+    <link rel="stylesheet" href="css/modulos/equipamentos.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        (function TravaDeSegurancaPlayer() {
+            const nomeSalvo = localStorage.getItem('rubi_username');
+            
+            // Se não tiver nome salvo, ou se o nome salvo for 'mestre', expulsa para o lobby!
+            if (!nomeSalvo || nomeSalvo.toLowerCase() === 'mestre' || nomeSalvo.toLowerCase() === 'narrador') {
+                console.warn("🚫 Acesso irregular detectado. Redirecionando para o lobby...");
+                localStorage.removeItem('rubi_username'); // Limpa o "crachá" falso
+                localStorage.removeItem('rubi_role');
+                window.location.href = 'index.html'; 
+            }
+        })();
+    </script>
+
+    <style>
+        /* Estilos rápidos para o novo Perfil */
+        .player-profile-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(20, 20, 20, 0.5);
+            border-radius: 4px;
+        }
+        .profile-header {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .profile-photo {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #8B0000;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        .profile-info h2 {
+            font-family: 'Cinzel';
+            font-size: 16px;
+            margin: 0;
+            color: #fff;
+        }
+        .profile-info span {
+            font-size: 11px;
+            color: #b22222;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .profile-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .stat-box {
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        .stat-box label {
+            display: block;
+            font-size: 9px;
+            color: #888;
+        }
+        .stat-box b {
+            font-size: 13px;
+            color: #eee;
+        }
+        .map-actions-mini {
+            margin-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 10px;
+        }
+
+        /* Ajustes de Estrutura Crítica */
+        #dm-dashboard {
+            display: grid;
+            grid-template-columns: 250px 1fr 280px;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        .sidebar-left, .sidebar-right {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            background: rgba(10, 10, 10, 0.95);
+            z-index: 10;
+        }
+
+        .sidebar-left { border-right: 2px solid #333; }
+        .sidebar-right { border-left: 2px solid #333; }
+
+        /* GRID CORRIGIDO: 4 colunas perfeitas para 280px */
+        .inventory-full-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important; 
+            gap: 6px !important;
+            width: 100% !important;
+            padding-bottom: 20px; /* Espaço no fim do scroll */
+            box-sizing: border-box !important;
+        }
+
+        /* Slots redimensionáveis para não cortar */
+        .item-slot, .equip-slot {
+            aspect-ratio: 1/1 !important;
+            width: 100% !important;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #444;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Ajuste para imagens de itens não estourarem */
+        .item-slot img {
+            max-width: 85%;
+            max-height: 85%;
+            object-fit: contain;
+        }
+
+        #main-content {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background: #111;
+        }
+
+        #viewport, #outer-frame, #map-container-vtt {
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-invocar-token {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Oswald', sans-serif;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        .btn-invocar-token:hover { background: #27ae60; }
+
+        .stat-box-rpg {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #333;
+            padding: 2px;
+            border-radius: 2px;
+            text-align: center;
+        }
+        .stat-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8px;
+            margin-bottom: 1px;
+        }
+        .stat-base-val { color: #888; }
+        .stat-mod-val { color: #2ecc71; }
+        .stat-label { color: #aaa; font-weight: bold; font-size: 7px; }
+        .stat-main-val b { font-size: 16px; color: #fff; font-family: 'Oswald', sans-serif; }
+
+        /* Scrollbar fina para não ocupar espaço lateral */
+        .padding-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .padding-container::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+        }
+
+        /* --- BARRA DE INICIATIVA (JOGADOR) --- */
+        #turn-order-bar {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none; /* O JS muda para flex quando o combate começa */
+            gap: 10px;
+            background: rgba(15, 15, 15, 0.95);
+            padding: 8px 15px;
+            border-radius: 12px;
+            border: 1px solid #00ffcc;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.9);
+            z-index: 99999; /* Fica acima de todas as abas e mapas */
+        }
+
+        #turn-order-bar .turn-item {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            background-color: #222;
+            transition: all 0.3s ease;
+            background-position: center;
+            background-size: cover;
+            cursor: default; /* Jogador não clica para passar o turno */
+        }
+
+        #turn-order-bar .turn-item.active {
+            border-color: #00ffcc;
+            box-shadow: 0 0 15px #00ffcc;
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+
+<body>
+<div id="loading-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background-color: #050505; 
+    background-size: cover; background-position: center;
+    z-index: 9999; display: flex; flex-direction: column; 
+    align-items: center; justify-content: center;
+    transition: opacity 0.8s ease;">
+    
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);"></div>
+    
+    <div style="z-index: 1; display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 400px;">
+        
+        <div class="spinner" style="border: 3px solid rgba(255,255,255,0.1); border-left-color: #f3e520; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 25px;"></div>
+        
+        <h2 id="loading-quote" style="color: white; font-family: 'Cinzel', serif; font-size: 18px; margin-bottom: 15px; letter-spacing: 2px; text-align: center; text-shadow: 2px 2px 4px #000;">
+            Acessando o Tabuleiro...
+        </h2>
+        
+        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin-bottom: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+            <div id="loading-bar-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #2ecc71, #f3e520); transition: width 0.3s ease-out;"></div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; width: 100%; color: #aaa; font-family: 'Quicksand', sans-serif; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+            <span id="loading-status">Calculando Névoa...</span>
+            <span id="loading-percentage" style="color: #f3e520;">0%</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fade-out { opacity: 0; pointer-events: none; }
+</style>
+    
+    <div id="codice-overlay" class="codice-overlay" style="display: none;">
+        <div class="codice-book">
+            <button class="codice-close" onclick="codice.fechar()">&times;</button>
+            
+            <div class="codice-page left-page">
+                <div class="album-header">
+                    <input type="text" id="album-busca" placeholder="Buscar no Códice..." oninput="codice.filtrar(this.value)">
+                    
+                    <div class="album-filtros">
+                        <button onclick="codice.setFiltro('todos')" class="filter-btn active">Todos</button>
+                        <button onclick="codice.setFiltro('monstros')" class="filter-btn">Bestas</button>
+                        <button onclick="codice.setFiltro('npcs')" class="filter-btn">NPCs</button>
+                        <button onclick="codice.setFiltro('magias')" class="filter-btn">Magias</button>
+
+                        <button onclick="codice.setFiltro('arma')" class="filter-btn">Armas</button>
+                        <button onclick="codice.setFiltro('armadura')" class="filter-btn">Armaduras</button>
+                        <button onclick="codice.setFiltro('runa')" class="filter-btn">Runas</button>
+                        <button onclick="codice.setFiltro('artefato')" class="filter-btn">Artefatos</button>
+                        <button onclick="codice.setFiltro('poção')" class="filter-btn">Poções</button>
+                        <button onclick="codice.setFiltro('colar')" class="filter-btn">Colares</button>
+                        <button onclick="codice.setFiltro('anel')" class="filter-btn">Anéis</button>
+                        <button onclick="codice.setFiltro('passiva')" class="filter-btn">Passivas</button>
+                    </div>
+                </div>
+
+                <div id="album-grid" class="album-grid">
+                    </div>
+            </div>
+
+            <div class="codice-page right-page" id="codice-detalhes">
+                <div class="codice-detalhes-wrapper" style="width: 100%; height: 100%; align-items: stretch; display: flex; flex-direction: column;">
+                    
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        
+                        <div class="figura-moldura-vertical" style="flex-shrink: 0; width: 140px; height: 190px;">
+                            <img id="codice-img" src="" style="object-fit: contain; width: 100%; height: 100%;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <h1 id="codice-titulo" style="text-align: left; font-size: 26px; margin: 0 0 8px 0;">Selecionar registro</h1>
+                            <div id="codice-stats-badge" class="codice-stats-badget" style="display: none; margin: 0; width: fit-content; font-size: 13px; padding: 6px 8px;"></div>
+                        </div>
+
+                    </div>
+
+                    <div id="codice-mini-stats" class="codice-mini-stats" style="display: none; margin-top: 15px; width: 100%; box-sizing: border-box; justify-content: space-between;"></div>
+
+                    <div class="codice-divider" style="width: 100%; margin: 15px 0;"></div>
+                    
+                    <textarea id="codice-descricao" class="codice-text-content" 
+                            style="width: 100%; flex: 1; min-height: 150px; background: transparent; border: none; outline: none; resize: none; color: #2c1e1a; font-family: 'Crimson Text', serif; text-align: justify;" 
+                            readonly placeholder="Clique em uma figurinha para ler..."></textarea>
+
+                </div>
+                
+                <div class="codice-footer">
+                    <span id="codice-tipo">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="dice-console-hud" id="dice-hud">
+        
+        <div class="result-glass-viewer" id="dice-viewer">
+            <div class="viewer-header">CONSOLE DE ROLAGEM</div>
+            <div class="viewer-main-number" id="result-val">-</div>
+            <div class="viewer-footer" id="result-log">Selecione o Atributo e a Quantidade</div>
+        </div>
+
+        <div class="dice-row">
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d4" onclick="window.combate.alterarQuantidade('d4', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(4)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d4">
+                        <path fill="#8B0000" d="M50,24 L50,5 L5,85 Z"></path>
+                        <path fill="#5E0000" d="M50,24 L50,5 L95,85 Z"></path>
+                        <path fill="#B22222" d="M50,24 L5,85 L95,85 Z"></path>
+                        <text x="50" y="50" class="dice-num-display" id="num-d4" font-size="38">4</text>
+                    </svg>
+                    <span>D4</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d6" onclick="window.combate.alterarQuantidade('d6', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(6)">
+                    <svg viewBox="0 0 120 120" class="dice-svg" id="svg-d6">
+                        <path fill="#5E0000" d="M10,20 L20,30 L20,100 L10,90 Z"></path>
+                        <path fill="#8B0000" d="M10,20 L80,20 L90,30 L20,30 Z"></path>
+                        <path fill="#B22222" d="M20,30 L90,30 L90,100 L20,100 Z"></path>
+                        <text x="55" y="60" class="dice-num-display" id="num-d6" font-size="38">6</text>
+                    </svg>
+                    <span>D6</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d8" onclick="window.combate.alterarQuantidade('d8', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(8)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d8">
+                        <path fill="#5E0000" d="M50,95 L10,50 L21,62 Z"></path>
+                        <path fill="#5E0000" d="M50,95 L90,50 L79,62 Z"></path>
+                        <path fill="#400000" d="M50,95 L21,62 L79,62 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L10,50 L21,62 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L90,50 L79,62 Z"></path>
+                        <path fill="#B22222" d="M50,5 L21,62 L79,62 Z"></path>
+                        <text x="50" y="42" class="dice-num-display" id="num-d8" font-size="30">8</text>
+                    </svg>
+                    <span>D8</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d10" onclick="window.combate.alterarQuantidade('d10', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(10)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d10">
+                        <path fill="#5E0000" d="M50,68 L26,51 L5,55 L50,95 Z"></path>
+                        <path fill="#400000" d="M50,68 L50,95 L95,55 L74,51 Z"></path>
+                        <path fill="#B22222" d="M50,5 L26,51 L50,68 L74,51 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L5,55 L26,51 Z"></path>
+                        <path fill="#8B0000" d="M50,5 L74,51 L95,55 Z"></path>
+                        <text x="50" y="45" class="dice-num-display" id="num-d10" font-size="28">10</text>
+                    </svg>
+                    <span>D10</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d12" onclick="window.combate.alterarQuantidade('d12', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(12)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d12">
+                        <path d="M50,20.4 L78.9,41.4 L98,35.5 L79,9 L50,0 Z" fill="#8B0000" />
+                        <path d="M78.9,41.4 L67.8,75.4 L79.5,90.5 L97.5,66.5 L98,35.5 Z" fill="#5E0000" />
+                        <path d="M67.8,75.4 L32.2,75.4 L21,91 L51,100 L79.5,90.5 Z" fill="#400000" />
+                        <path d="M32.2,75.4 L21.1,41.4 L2,36 L2,65 L21,91 Z" fill="#5E0000" />
+                        <path d="M21.1,41.4 L50,20.4 L50,0 L20.5,9.5 L2,36 Z" fill="#8B0000" />
+                        <path d="M78.9,41.4 L67.8,75.4 L32.2,75.4 L21.1,41.4 L50,20.4 Z" fill="#B22222" />
+                        <text x="50" y="50" class="dice-num-display" id="num-d12" font-size="28">12</text>
+                    </svg>
+                    <span>D12</span>
+                </div>
+            </div>
+
+            <div class="dice-group">
+                <div class="dice-counter" id="count-d20" onclick="window.combate.alterarQuantidade('d20', 1)">0</div>
+                <div class="dice-wrapper" onclick="rollEngine(20)">
+                    <svg viewBox="0 0 100 100" class="dice-svg" id="svg-d20">
+                        <path d="M50,21 L16,31 L50,11 Z" fill="#8B0000" />
+                        <path d="M50,21 L84,31 L50,11 Z" fill="#8B0000" />
+                        <path d="M50,21 L25,64 L16,31 Z" fill="#5E0000" />
+                        <path d="M50,21 L75,64 L84,31 Z" fill="#5E0000" />
+                        <path d="M16,31 L25,64 L16,69 Z" fill="#400000" />
+                        <path d="M84,31 L75,64 L84,69 Z" fill="#400000" />
+                        <path d="M25,64 L50,89 L16,69 Z" fill="#400000" />
+                        <path d="M75,64 L50,89 L84,69 Z" fill="#400000" />
+                        <path d="M25,64 L75,64 L50,89 Z" fill="#8B0000" />
+                        <path d="M50,21 L25,64 L75,64 Z" fill="#B22222" />
+                        <text x="50" y="50" class="dice-num-display" id="num-d20" font-size="19">20</text>
+                    </svg>
+                    <span>D20</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modifiers-bar">
+            <div class="attr-selectors">
+                <button class="btn-attr" data-attr="for" onclick="window.combate.selecionarAtributo('for')">FOR</button>
+                <button class="btn-attr" data-attr="dex" onclick="window.combate.selecionarAtributo('dex')">DEX</button>
+                <button class="btn-attr" data-attr="def" onclick="window.combate.selecionarAtributo('def')">DEF</button>
+                <button class="btn-attr" data-attr="int" onclick="window.combate.selecionarAtributo('int')">INT</button>
+                <button class="btn-attr" data-attr="car" onclick="window.combate.selecionarAtributo('car')">CAR</button>
+                <button class="btn-attr" data-attr="con" onclick="window.combate.selecionarAtributo('con')">CON</button>
+            </div>
+
+            <div class="skin-selector">
+                <button onclick="mudarSkinDado('rubi')" style="background: #4a0000; border: 1px solid gold; border-radius: 50%; width: 20px; height: 20px;"></button>
+                <button onclick="mudarSkinDado('safira')" style="background: #001a4a; border: 1px solid #00d4ff; border-radius: 50%; width: 20px; height: 20px;"></button>
+                <button onclick="mudarSkinDado('esmeralda')" style="background: #003300; border: 1px solid #00ff88; border-radius: 50%; width: 20px; height: 20px;"></button>
+            </div>
+
+            <div class="extra-group"> <input type="number" id="extra-mod" placeholder="+ MOD" title="Modificador Manual">
+
+                <button class="btn-action-dice btn-close-red" onclick="window.combate.cancelarAcao()" title="Cancelar Ação e Fechar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <button class="btn-action-dice btn-reset-ruby" onclick="window.combate.resetarCalculadora()" title="Resetar Calculadora">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="dice-shelf"></div>
+    </div>
+        
+    <div id="dm-dashboard">
+
+        <aside class="sidebar-left">
+            <section id="top-left-panel">
+                <header class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-user-shield"></i> Perfil do Personagem</span>
+                    <button id="btn-reset-camera" title="Centralizar Mapa" style="background: none; border: none; color: #2ecc71; cursor: pointer; font-size: 14px; padding: 0 5px;">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </button>
+                    <button class="btn-utilitario" onclick="codice.abrir()" title="Códice">
+                        <i class="fa-solid fa-book-skull"></i>
+                    </button>
+                </header>
+
+                <div class="padding-container">
+                    <div class="player-profile-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0px; width: 100%;">
+
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="width: 60px; height: 60px; border: 2px solid #108b00; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative;" onclick="FichaJogador.alterarFoto()">
+                                <img src="https://via.placeholder.com/60" id="player-photo-display" style="width: 100%; height: 100%; object-fit: cover;">
+                                <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.7); width: 100%; font-size: 8px; text-align: center; color: #fff; font-family: sans-serif; padding: 2px 0;">EDITAR</div>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <h2 id="player-name-display" style="margin: 0; font-size: 16px; color: #fff; font-family: 'Cinzel'; line-height: 1.1;">CARREGANDO...</h2>
+                                <span id="player-title-display" style="color: #108b00; font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; line-height: 1;">VIAJANTE</span>
+                                
+                                <div id="player-level-display" style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                                    <div style="background: linear-gradient(135deg, #f1c40f, #d35400); color: #000; font-weight: bold; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid #fff; box-shadow: 0 0 8px rgba(241, 196, 15, 0.4);">
+                                        <span id="txt-nivel">1</span>
+                                    </div>
+                                    <span style="color: #ccc; font-size: 10px; letter-spacing: 1px; font-family: 'Cinzel', serif; text-transform: uppercase;">Nível</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            
+                            <div id="player-wallet-display" style="display: flex; gap: 6px; background: #000; padding: 4px 8px; border-radius: 4px; border: 1px solid #444;">
+                                <span style="color: #ffd700; font-weight: bold; font-size: 12px;" title="Ouro"><span id="txt-gold">0</span>g</span>
+                                <span style="color: #c0c0c0; font-weight: bold; font-size: 12px;" title="Prata"><span id="txt-silver">0</span>s</span>
+                                <span style="color: #cd7f32; font-weight: bold; font-size: 12px;" title="Bronze"><span id="txt-bronze">0</span>b</span>
+                                <span style="color: #b87333; font-weight: bold; font-size: 12px;" title="Cobre"><span id="txt-copper">0</span>c</span>
+                            </div>
+
+                            <button onclick="FichaJogador.invocarMeuToken()" class="btn-invocar-token" style="margin-top: 0px; padding: 5px 15px; font-size: 12px;">
+                                <i class="fa-solid fa-user-plus"></i> ENTRAR
+                            </button>
+                        </div>
+
+                    </div>
+                    <div class="profile-stats-grid">
+                        <div class="stat-box-rpg">
+                            <div class="stat-header-row">
+                                <span id="base-for" class="stat-base-val">0</span>
+                                <span class="stat-label">FOR</span>
+                                <span id="bonus-for" class="stat-mod-val">+0</span>
+                            </div>
+                            <div class="stat-main-val"><b id="stat-for">0</b></div>
+                        </div>
+
+                        <div class="stat-box-rpg">
+                            <div class="stat-header-row">
+                                <span id="base-dex" class="stat-base-val">0</span>
+                                <span class="stat-label">DEX</span>
+                                <span id="bonus-dex" class="stat-mod-val">+0</span>
+                            </div>
+                            <div class="stat-main-val"><b id="stat-dex">0</b></div>
+                        </div>
+
+                        <div class="stat-box-rpg special-attr">
+                            <div class="stat-header-row">
+                                <span id="base-con" class="stat-base-val">0</span>
+                                <span class="stat-label">CON</span>
+                                <span id="bonus-con" class="stat-mod-val">+0</span>
+                            </div>
+                            <div class="stat-main-val"><b id="stat-con">0</b></div>
+                        </div>
+
+                        <div class="stat-box-rpg">
+                            <div class="stat-header-row">
+                                <span id="base-int" class="stat-base-val">0</span>
+                                <span class="stat-label">INT</span>
+                                <span id="bonus-int" class="stat-mod-val">+0</span>
+                            </div>
+                            <div class="stat-main-val"><b id="stat-int">0</b></div>
+                        </div>
+
+                        <div class="stat-box-rpg special-attr">
+                            <div class="stat-header-row">
+                                <span id="base-def" class="stat-base-val">0</span>
+                                <span class="stat-label">DEF</span>
+                                <span id="bonus-def" class="stat-mod-val">+0</span>
+                            </div>
+                            <div class="stat-main-val"><b id="stat-def">0</b></div>
+                        </div>
+
+                        <div class="stat-box-rpg">
+                            <div class="stat-header-row">
+                                <span id="base-car" class="stat-base-val">0</span>
+                                <span class="stat-label">CAR</span>
+                                <span id="bonus-car" class="stat-mod-val">+0</span>
+                            </div>
+                            <div class="stat-main-val"><b id="stat-car">0</b></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="bottom-left-panel" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <header class="section-header">
+                    <span><i class="fa-solid fa-scroll"></i> Log de Batalha</span>
+                </header>
+                <div id="chat-log" style="flex: 1; overflow-y: auto;"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-message-input" placeholder="Mensagem...">
+                    <button id="btn-send-chat" onclick="sendMessage()">➔</button>
+                </div>
+            </section>
+        </aside>
+
+        <main id="main-content">
+            <div id="viewport">
+                <div id="outer-frame">
+                    <div id="map-container-vtt"></div>
+                </div>
+            </div>
+        </main>
+        <aside class="sidebar-right">
+            <section id="aba-equipamentos">
+                <header class="section-header">
+                    <span><i class="fa-solid fa-shield-halved"></i> Equipamentos</span>
+                </header>
+
+                <div class="padding-container">
+                    <div class="paperdoll-container">
+                        <div class="doll-row">
+                            <div class="equip-slot" data-slot-index="60" data-slot="pot" data-tipo-aceito="consumivel" title="Poção">
+                                <i class="fa-solid fa-flask-vial slot-icon"></i>
+                            </div>
+                            <div class="equip-slot" data-slot-index="61" data-slot="colar" data-tipo-aceito="acessorio" title="Colar">
+                                <i class="fa-solid fa-gem slot-icon"></i>
+                            </div>
+                            <div class="equip-slot" data-slot-index="62" data-slot="runa" data-tipo-aceito="runa" title="Runa">
+                                <i class="fa-solid fa-scroll slot-icon"></i>
+                            </div>
+                        </div>
+
+                        <div class="doll-row">
+                            <div class="equip-slot main-slot" data-slot-index="63" data-slot="mao-dir" data-tipo-aceito="arma" title="Arma Principal">
+                                <i class="fa-solid fa-gavel slot-icon fa-2xl"></i>
+                            </div>
+                            <div class="equip-slot main-slot armor-slot" data-slot-index="64" data-slot="torso" data-tipo-aceito="armadura" title="Armadura">
+                                <i class="fa-solid fa-shirt slot-icon"></i>
+                            </div>
+                            <div class="equip-slot main-slot" data-slot-index="65" data-slot="mao-esq" data-tipo-aceito="escudo" title="Mão Secundária / Escudo">
+                                <i class="fa-solid fa-shield-halved slot-icon"></i>
+                            </div>
+                        </div>
+
+                        <div class="doll-row">
+                            <div class="equip-slot" data-slot-index="66" data-slot="anel-1" data-tipo-aceito="anel" title="Anel 1">
+                                <i class="fa-solid fa-ring slot-icon"></i>
+                            </div>
+                            <div class="equip-slot" data-slot-index="67" data-slot="passiva" data-tipo-aceito="passiva" title="Habilidade Passiva">
+                                <i class="fa-solid fa-dna slot-icon"></i>
+                            </div>
+                            <div class="equip-slot" data-slot-index="68" data-slot="anel-2" data-tipo-aceito="anel" title="Anel 2">
+                                <i class="fa-solid fa-ring slot-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="quick-slots-grid">
+                        <div class="equip-slot small" data-slot-index="69" data-slot="magia-1" data-tipo-aceito="magia" title="Magia 1" onclick="prepararMagiaJogador('magia-1')">
+                            <i class="fa-solid fa-wand-sparkles slot-icon"></i>
+                        </div>
+                        <div class="equip-slot small" data-slot-index="70" data-slot="magia-2" data-tipo-aceito="magia" title="Magia 2" onclick="prepararMagiaJogador('magia-2')">
+                            <i class="fa-solid fa-wand-sparkles slot-icon"></i>
+                        </div>
+                        <div class="equip-slot small" data-slot-index="71" data-slot="magia-3" data-tipo-aceito="magia" title="Magia 3" onclick="prepararMagiaJogador('magia-3')">
+                            <i class="fa-solid fa-wand-sparkles slot-icon"></i>
+                        </div>
+                        <div class="equip-slot small" data-slot-index="72" data-slot="magia-4" data-tipo-aceito="magia" title="Magia 4" onclick="prepararMagiaJogador('magia-4')">
+                            <i class="fa-solid fa-wand-sparkles slot-icon"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="aba-inventario-scroll" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid #333;">
+                <header class="section-header">
+                    <span title="Inventário"><i class="fa-solid fa-bag-shopping"></i> Inventário</span>
+                </header>
+                <div class="padding-container" style="overflow-y: auto; flex: 1; padding: 10px;">
+                    <div id="grid-principal" class="inventory-full-grid">
+                        </div>
+                </div>
+            </section>
+        </aside>
+
+    </div> 
+    
+    <div id="turn-order-bar" class="turn-bar"></div>
+
+    <script src="js/core/firebase-init.js"></script>
+    <script src="js/core/statusSystem.js"></script>
+    
+    <script src="js/core/engine-mapa.js"></script>
+    <script src="js/core/engine-codice.js"></script>
+    <script src="js/core/engine-tokens.js"></script>
+    <script src="js/core/engine-chat.js"></script>
+    <script src="js/core/dice-engine.js"></script>
+    
+    <script src="js/core/passivesSystem.js"></script>
+    <script src="js/core/engine-loot.js"></script>
+    <script src="js/core/engine-combate.js"></script>
+    <script src="js/core/engine-iniciativa.js"></script>
+    <script src="js/core/armasSystem.js"></script>
+    <script src="js/core/preloader.js"></script>
+
+    <script src="js/mestre/gestao-mapa.js"></script>
+    <script src="js/mestre/spell-engine.js"></script>
+    <script src="js/mestre/biblioteca-abas.js"></script>
+    <script src="js/mestre/biblioteca/itens.js"></script>
+    <script src="js/jogador/ficha.js"></script>
+    <script src="js/jogador/inventario.js"></script>
+    <script src="js/jogador/equipamentos.js"></script>
+    
+    <script>
+        // Define explicitamente para o Códice que este não é o mestre
+        window.isMestre = false;
+        
+        // ... sua lógica existente de login/autenticação ...
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                const userId = user.uid;
+                
+                // Referências existentes
+                const refInventario = firebase.database().ref(`usuarios/${userId}/inventario`);
+                
+                // --- ADICIONE ESTA REFERÊNCIA ---
+                const refEquipamentos = firebase.database().ref(`usuarios/${userId}/equipamentos`);
+                // ---------------------------------
+
+                // ... inicialização do inventário existente ...
+
+                // --- INICIALIZE O NOVO GERENCIADOR AQUI ---
+                window.gerenciadorEquipamentos = new GerenciadorEquipamentos(refInventario, refEquipamentos);
+                // ------------------------------------------
+            }
+        });
+    </script>
+</body>
+</html>

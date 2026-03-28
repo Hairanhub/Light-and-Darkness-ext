@@ -1,0 +1,241 @@
+/* ============================================================
+   === [ ESTILIZAÇÃO DOS TOKENS - V5.0 - FINAL UNIFICADA ] ===
+   ============================================================ */
+
+/* 1. CONTAINER PAI (O "Fantasma" do Grid) */
+.token {
+    width: 35px;
+    height: 35px;
+    position: absolute;
+    z-index: 100;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible !important;
+    background: none !important;
+    border: none !important;
+    transition: transform 0.1s;
+}
+
+/* 2. CORPO DA IMAGEM (Onde o visual acontece) */
+.token-image-body {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+/* --- [ FORMATOS GEOMÉTRICOS ] --- */
+
+/* REDONDO: Jogadores e NPCs */
+.token.type-jogador .token-image-body, 
+.token.type-npcs .token-image-body,
+.token.type-npc .token-image-body {
+    border-radius: 50%;
+    border: 2px solid;
+}
+.token.type-jogador .token-image-body { border-color: #4caf50; background-color: #2e7d32; }
+.token.type-npcs .token-image-body,
+.token.type-npc .token-image-body { border-color: #48a0db; background-color: #1565c0; }
+
+/* OCTÓGONO: Monstros */
+.token.type-monstros .token-image-body,
+.token.type-monstro .token-image-body {
+    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+    background-color: #333;
+    border: none;
+}
+
+/* LOSANGO: Itens */
+.token.type-itens .token-image-body,
+.token.type-item .token-image-body {
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    background-color: #f3e520;
+    border: none;
+}
+
+/* QUADRADO RECUADO: Magias */
+.token.type-magia .token-image-body,
+.token.type-magias .token-image-body {
+    width: 80%;
+    height: 80%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(100, 50, 200, 0.7);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* --- [ 3. A JANELA (OVERLAY/GLASS) ] --- */
+.token-info-overlay {
+    position: absolute;
+    bottom: 55px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 170px;
+    background: rgba(20, 20, 20, 0.85) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 15px;
+    padding: 4px 6px;
+    z-index: 100;
+    display: none;
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.token:hover .token-info-overlay { display: block !important; }
+
+/* HP e Barras */
+.hp-section {
+    width: 100%;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50px;
+    margin-bottom: 2px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hp-section .hp-bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, #ff4b2b, #ed1c24);
+    border-radius: 50px;
+    z-index: 1;
+    transition: width 0.3s ease-out;
+}
+
+/* Se for item, a barra fica azul/ciano */
+.token.type-itens .hp-bar-fill,
+.token.type-item .hp-bar-fill { background: linear-gradient(90deg, #2196f3, #00bcd4) !important; }
+
+.hp-text {
+    position: relative;
+    z-index: 2;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    text-shadow: 1px 1px 2px #000;
+}
+
+/* Informações e Atributos */
+.info-principal { padding: 2px 4px 0px 4px; color: white; text-align: left; }
+
+.nome-linha {
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.2;
+    margin-bottom: 0px !important;
+}
+
+.legenda-linha { font-size: 9px; color: #bbb; margin: 0 0 2px 0; }
+
+.atributos-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 2px;
+    padding: 2px 4px 4px 4px !important;
+}
+
+.atrib-box {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 0 !important;
+}
+
+.atrib-box label { font-size: 7px; color: #aaa; font-weight: bold; text-transform: uppercase; }
+.atrib-box span { font-size: 10px; color: #fff; font-weight: bold; }
+
+/* --- [ STATUS E ANIMAÇÕES ] --- */
+
+.token-status-container {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.status-mini-icon {
+    font-size: 14px;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid #ffcc00;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 5px black;
+    animation: floatingStatus 2s ease-in-out infinite;
+}
+
+/* --- [ ESTADOS DE SELEÇÃO E DANO ] --- */
+
+.token-preparo { outline: 4px solid #f3e520 !important; box-shadow: 0 0 20px #f3e520 !important; z-index: 100; }
+.token-auto-acao { outline: 4px solid #0fac0f !important; box-shadow: 0 0 20px rgba(0, 255, 0, 0.6) !important; z-index: 110 !important; }
+
+.token-alvo {
+    outline: 4px solid #ff4444 !important;
+    box-shadow: 0 0 25px #ff4444 !important;
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    filter: brightness(1.2);
+    z-index: 150;
+}
+
+.tomando-dano {
+    animation: shake 0.2s ease-in-out 0s 2;
+    filter: brightness(2) sepia(1) hue-rotate(-50deg) !important;
+}
+
+/* --- [ KEYFRAMES ] --- */
+@keyframes floatingStatus {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    25% { transform: translate(-1px, -2px) rotate(-1deg); }
+    50% { transform: translate(-3px, 0px) rotate(1deg); }
+    100% { transform: translate(1px, 1px) rotate(0deg); }
+}
+
+/* --- [ INVENTÁRIO E SLOTS ] --- */
+.item-slot {
+    pointer-events: all !important;
+    user-select: none;
+}
+
+.item-slot img {
+    pointer-events: all !important;
+    cursor: grab !important;
+    -webkit-user-drag: element !important;
+    display: block;
+    position: relative;
+    z-index: 50;
+}
+
+.item-slot img:active { cursor: grabbing !important; }

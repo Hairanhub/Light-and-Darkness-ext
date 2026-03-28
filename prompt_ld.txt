@@ -1,0 +1,99 @@
+📘 THE LIGHT AND DARKNESS VTT - MASTER BLUEPRINT
+Contexto Geral e Tech Stack
+
+Projeto: Um Virtual Tabletop (VTT) focado em imersão com automação de combate e separação lógica entre Tokens (mapa) e Paperdoll/Inventário (ficha).
+
+Tech Stack: HTML5, CSS3 Modular, Vanilla JavaScript (JS), Firebase Realtime Database.
+
+Autenticação Local: Uso de localStorage (rubi_username, rubi_role) para definir permissões dinâmicas de Mestre vs. Jogador.
+
+📁 Estrutura de Diretórios e Arquivos
+Raiz (Interfaces)
+
+index.html: Lobby, login e trava de segurança de nomes.
+
+mestre.html: Dashboard do GM, Códice, Estúdio de Forja e controle global.
+
+player.html: Interface restrita do jogador, Paperdoll (equipamentos) e Inventário.
+
+Pastas JavaScript (/js/)
+
+/js/core/: firebase-init.js, engine-mapa.js, engine-tokens.js, engine-combate.js, engine-iniciativa.js, engine-loot.js, engine-chat.js, engine-codice.js, dice-engine.js, statusSystem.js, passivesSystem.js, armasSystem.js, preloader.js.
+
+/js/mestre/: criador.js, gestao-mapa.js, spell-engine.js, engine-magia-editor.js, biblioteca-abas.js, magias.js, monstros.js, npcs.js, itens.js.
+
+/js/jogador/: ficha.js, inventario.js, equipamentos.js.
+
+Pastas CSS (/css/)
+
+/css/core/: layout.css, components.css, dice.css, roll.css, aba-mestre.css.
+
+/css/vtt/: mapa.css, tokens.css, chat.css.
+
+/css/modulos/: biblioteca.css, equipamentos.css, inventario.css, magias.css.
+
+⚖️ Regras de Ouro (Core Mechanics)
+A "Magia" Matemática (The Ratio):
+
+O sistema separa os visuais: tokenVisuais (Proporção 1:1 - Mapa) vs inventarioVisuais (Proporção 2:3 - Paperdoll).
+
+Equipamentos: Slots críticos (63, 64, 65) são forçados via CSS a manter 60x90px. Conversão do editor (100px) para slot (60px) usa o fator multiplicador 60/100.
+
+Itens/Tokens: Slots quadrados (1:1). Conversão usa o fator 60/95.
+
+Estrutura de Banco de Dados (Firebase):
+
+biblioteca/: Dados estáticos (modelos de monstros, magias, itens).
+
+mapa/tokens/: Dados dinâmicos (instâncias ativas em jogo).
+
+usuarios/[nome]/: Ficha, inventário persistente e status equipado.
+
+configuracoes/multiplicadores: Fatores aplicados aos atributos puros (Ex: CON x 4 = HP Máximo).
+
+🧠 Lógica de Interfaces (HTML)
+Mestre (mestre.html)
+
+Controle Global: Pode criar registros no Estúdio de Forja (que possui dois previews simultâneos para 1:1 e 2:3).
+
+Incorporação: Pode assumir o controle de NPCs (incorporarToken) para rodar dados e lançar magias por eles.
+
+Ferramentas: Acesso exclusivo ao editor de grid de magias (spell-grid-editor), gerenciamento de Névoa de Guerra (Fog) e barra de iniciativa editável.
+
+Jogador (player.html)
+
+Paperdoll: Interface de equipamentos com trava de tipos (arma no slot de arma) e proteção contra Dual Wield quebrado (armasSystem.js).
+
+Inventário: Grid 4xN restrito. Os itens equipados enviam bônus calculados para o Firebase para que o Mestre veja.
+
+Segurança: Restrição de movimento de tokens (só pode mover o seu próprio) e invisibilidade de tokens sob a Névoa de Guerra.
+
+⚙️ Motores do Sistema (JS & Sistemas Avançados)
+Combate e Interação:
+
+engine-combate: Processa rolagens de ataque, defesa, furtividade ("Assassinato" garante crítico) e multiplicadores de classe (Drakar).
+
+spell-engine: Executa o "Modo Mira", calcula alvos no mapa e aplica status temporários ou dano direto.
+
+engine-mapa & engine-tokens: Renderizam tudo com object-fit: unset. Aplicam a vida visual lendo a CON (1:1) do banco multiplicada pela regra global do Mestre.
+
+engine-loot: Rola um D20 virtual interno para sortear drops ao matar monstros, lendo itens com a flag marcadoParaDrop.
+
+Regras Passivas e Status:
+
+statusSystem: Loop de 10s que aplica dano passivo (Sangramento, Veneno) e remove efeitos expirados automaticamente.
+
+passivesSystem: Motor de afinidades elementais (ex: Fogo vs Natureza) e auras passivas em área.
+
+dice-engine: Animações SVGs rápidas (0.4s) com suporte a skins (Rubi, Safira, Esmeralda).
+
+🎨 Identidade Visual (CSS)
+Arquitetura Visual:
+
+mapa.css: Grid travado em 35px. Moldura do tabuleiro cravada em 34x34 grids.
+
+equipamentos.css: display: grid com 280px fixos. Uso pesado de flex-shrink: 0 para impedir quebra responsiva de imagens.
+
+tokens.css: Formas arredondadas para jogadores, quadradas para monstros. Keyframes para tremores ao tomar dano e brilhos coloridos na seleção.
+
+layout.css & components.css: Estética de pergaminho antigo (--paper, --brown-old), blindagem visual com 100vh e custom scrollbars.
