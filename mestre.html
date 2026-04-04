@@ -65,14 +65,20 @@
             
             <div class="codice-page left-page">
                 <div class="album-header">
-                    <input type="text" id="album-busca" placeholder="Buscar no Códice..." oninput="codice.filtrar(this.value)" style="margin-bottom: 10px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                        <input type="text" id="album-busca" placeholder="Buscar no Códice..." oninput="codice.filtrar(this.value)" style="flex: 1; margin-bottom: 0;">
+                        
+                        <button onclick="codice.setFiltro('regras')" class="filter-btn" 
+                                style="background: #1a0f0d; color: #f3e520; border: 2px solid #f3e520; font-family: 'Cinzel'; font-size: 14px; padding: 8px 15px; margin: 0; white-space: nowrap; box-shadow: 0 0 10px rgba(243, 229, 32, 0.2);">
+                            <i class="fa-solid fa-book-open"></i> LIVRO DE REGRAS
+                        </button>
+                    </div>
                     
                     <div class="album-filtros">
                         <button onclick="codice.setFiltro('todos')" class="filter-btn active">Todos</button>
                         <button onclick="codice.setFiltro('monstros')" class="filter-btn">Bestas</button>
                         <button onclick="codice.setFiltro('npcs')" class="filter-btn">NPCs</button>
                         <button onclick="codice.setFiltro('magias')" class="filter-btn">Magias</button>
-
                         <button onclick="codice.setFiltro('arma')" class="filter-btn">Armas</button>
                         <button onclick="codice.setFiltro('armadura')" class="filter-btn">Armaduras</button>
                         <button onclick="codice.setFiltro('runa')" class="filter-btn">Runas</button>
@@ -91,21 +97,16 @@
             <div class="codice-page right-page" id="codice-detalhes">
                 <div class="codice-detalhes-wrapper" style="width: 100%; height: 100%; align-items: stretch; display: flex; flex-direction: column;">
                     
-                    <div id="mestre-controls" style="margin-bottom: 15px;">
-                        <button id="btn-revelar-codice" class="filter-btn" style="width: 100%; padding: 8px; background: #3e2723; color: #ffd700; border: 1px solid #ffd700; display: none;">
-                            <i class="fa-solid fa-eye"></i> Revelar no Códice
-                        </button>
-                    </div>
-
-                    <div style="display: flex; gap: 20px; align-items: center;">
+                    <div style="position: relative; width: 100%; min-height: 200px;">
                         
-                        <div class="figura-moldura-vertical" style="flex-shrink: 0; width: 140px; height: 190px;">
+                        <div class="figura-moldura-vertical" style="position: absolute; left: 0; top: 0; width: 140px; height: 190px; margin: 0;">
                             <img id="codice-img" src="" style="object-fit: contain; width: 100%; height: 100%;">
                         </div>
                         
-                        <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <h1 id="codice-titulo" style="text-align: left; font-size: 26px; margin: 0 0 8px 0;">Selecionar registro</h1>
-                            <div id="codice-stats-badge" class="codice-stats-badget" style="display: none; margin: 0; width: fit-content; font-size: 13px; padding: 6px 8px;"></div>
+                        <div style="position: absolute; left: 160px; top: 0; right: 0;">
+                            <div id="codice-titulo" style="display: flex; flex-direction: column; gap: 8px; width: 100%; font-family: 'Cinzel', serif; font-weight: bold; color: #3e2723; font-size: 26px; margin: 0;">Selecionar registro</div>
+                            
+                            <div id="codice-stats-badge" class="codice-stats-badget" style="display: none; margin-top: 8px; width: fit-content; font-size: 13px; padding: 6px 8px;"></div>
                         </div>
 
                     </div>
@@ -116,11 +117,21 @@
                     
                     <textarea id="codice-descricao" class="codice-text-content" 
                             style="width: 100%; flex: 1; min-height: 150px; background: transparent; border: none; outline: none; resize: none; color: #2c1e1a; font-family: 'Crimson Text', serif; text-align: justify;" 
-                            placeholder="Clique em uma figurinha para ler..."></textarea>
+                            readonly placeholder="Clique em uma figurinha para ler..."></textarea>
 
                     <button id="btn-salvar-descricao-publica" class="filter-btn" 
-                            style="display: none; width: 100%; margin-top: 10px; background: #3e2723; color: #ffd700; border: 1px solid #ffd700;">
-                        <i class="fa-solid fa-save"></i> Salvar Descrição Oficial
+                            style="display: none; width: 100%; margin-top: 10px; background: #3e2723; color: #ffd700; border: 1px solid #ffd700; cursor: pointer; padding: 8px; font-family: 'Oswald', sans-serif;">
+                        <i class="fa-solid fa-save"></i> Salvar Descrição Oficial / Regra
+                    </button>
+                    
+                    <button id="btn-revelar-codice" class="filter-btn" 
+                            style="display: none; width: 100%; margin-top: 5px; background: #000; color: #fff; border: 1px solid #555; cursor: pointer; padding: 8px; font-family: 'Oswald', sans-serif;">
+                        <i class="fa-solid fa-eye"></i> Revelar
+                    </button>
+
+                    <button id="btn-deletar-regra" class="filter-btn" 
+                            style="display: none; width: 100%; margin-top: 5px; background: #8B0000; color: #fff; border: 1px solid #ff4d4d; cursor: pointer; padding: 8px; font-family: 'Oswald', sans-serif;">
+                        <i class="fa-solid fa-trash"></i> Excluir Regra
                     </button>
 
                 </div>
@@ -131,7 +142,6 @@
             </div>
         </div>
     </div>
-
     <div class="dice-console-hud" id="dice-hud">
         
         <div class="result-glass-viewer" id="dice-viewer">

@@ -1,11 +1,9 @@
 /* ============================================================
-   === [ SISTEMA COMPLETO DE MAGIAS V5.3 ] ===
-   === Fixes: Drama na Conjuração (Cegueira/Confusão Pós-Rolagem)
+   === [ SISTEMA COMPLETO DE MAGIAS V5.7 ] ===
+   === Fixes: Magias que zeram no escudo agora aplicam status e não param o loop
+   === Feat: Magia Cruel + Estilhaçar 30% + Passivas (Maldição/Veneno/Sorte)
    ============================================================ */
 
-// ------------------------------------------------------------
-// 1. ENGINE DE CRIAÇÃO (O EDITOR DE GRID)
-// ------------------------------------------------------------
 window.spellEditor = {
     colunas: 5,
     linhas: 8,
@@ -77,7 +75,6 @@ window.spellEditor = {
     }
 };
 
-// CSS dinâmico
 if (!document.getElementById('spell-editor-style')) {
     const style = document.createElement('style');
     style.id = 'spell-editor-style';
@@ -92,9 +89,6 @@ if (!document.getElementById('spell-editor-style')) {
     document.head.appendChild(style);
 }
 
-// ------------------------------------------------------------
-// 2. ENGINE DE CONJURAÇÃO (O MOTOR NO MAPA)
-// ------------------------------------------------------------
 window.spellEngine = {
     magiaAtiva: null,
     direcaoAtual: 'norte',
@@ -132,7 +126,7 @@ window.spellEngine = {
     prepararConjuracao: function(id) {
         if (!this.tokenControlado) return alert("Mestre, incorpore um token primeiro!");
         
-        // 🛑 JUIZ DA CONJURAÇÃO (Parte 1): Verifica Hard CC (Terra, Gelo, Sono)
+        // 🛑 JUIZ DA CONJURAÇÃO (Parte 1) - Gelo não trava mais a mira inicial, pois é 50% de erro na rolagem
         const tokenDOM = document.getElementById(`token-${this.tokenControlado.id}`);
         if (tokenDOM && tokenDOM.dataset.statusAtivos && window.StatusSystem) {
             let statusAtualizados = {};
@@ -144,7 +138,7 @@ window.spellEngine = {
                 if (!s || !s.tipo) continue;
                 let def = window.StatusSystem.definitions[s.tipo.toUpperCase()];
                 
-                if ((def && def.travaTurno) || ['TERRA', 'GELO', 'SONO'].includes(s.tipo.toUpperCase())) {
+                if ((def && def.travaTurno) || ['TERRA', 'SONO', 'SUSPENSO'].includes(s.tipo.toUpperCase())) {
                     statusBloqueador = def ? def.nome : s.tipo.toUpperCase();
                     break;
                 }
@@ -153,7 +147,7 @@ window.spellEngine = {
                 if (window.combate && window.combate.notificarCombate) {
                     window.combate.notificarCombate(this.tokenControlado.nome.toUpperCase(), `🛑 <b>CONJURAÇÃO BLOQUEADA!</b><br>Impedido por: ${statusBloqueador}.`, "#ff3333");
                 }
-                return; // ⛔ Aborta a magia aqui!
+                return; 
             }
         }
 
@@ -275,7 +269,7 @@ window.spellEngine = {
                 for (let sId in dadosConjurador.statusAtivos) {
                     let s = dadosConjurador.statusAtivos[sId];
                     let def = window.StatusSystem.definitions[s.tipo.toUpperCase()];
-                    if ((def && def.travaTurno) || ['TERRA', 'GELO', 'SONO'].includes(s.tipo.toUpperCase())) {
+                    if ((def && def.travaTurno) || ['TERRA', 'SONO', 'SUSPENSO'].includes(s.tipo.toUpperCase())) {
                         statusBloqueador = def ? def.nome : s.tipo.toUpperCase();
                         break;
                     }
@@ -292,7 +286,6 @@ window.spellEngine = {
             const custoMana = parseInt(this.magiaAtiva.custo) || 0; 
             const isJogador = dadosConjurador.tipo === 'jogador' || dadosConjurador.manaMax > 0;
             
-            // Verifica a mana disponível, mas só vai DESCONTAR depois do dado rolar.
             if (isJogador && custoMana > 0) {
                 const manaAtual = parseInt(dadosConjurador.manaAtual) || 0;
                 
@@ -322,13 +315,11 @@ window.spellEngine = {
         if (window.mostrarConsoleDados) window.mostrarConsoleDados();
         
         try {
-            // 🎲 Rola o Dado! O Jogador confirmou a ação.
             const rolagem = await window.combate.esperarRolagemManual();
             
             const snapAtacante = await window.mapaRef.child('tokens').child(this.tokenControlado.id).once('value');
             const dadosAtacante = snapAtacante.val();
 
-            // Gasta a Mana AGORA (Ele tentou fazer a magia, a energia foi gasta)
             const custoMana = parseInt(this.magiaAtiva.custo) || 0; 
             const isJogador = dadosAtacante.tipo === 'jogador' || dadosAtacante.manaMax > 0;
             if (isJogador && custoMana > 0) {
@@ -352,18 +343,24 @@ window.spellEngine = {
                             "#ff4d4d"
                         );
                         falhou = true;
-                        break; // Se errou, errou. Sai do loop.
+                        break;
+                    }
+                }
+
+                // ❄️ JUIZ DO GELO: 50% DE CHANCE DE FALHAR A MAGIA
+                if (!falhou && window.StatusSystem.temStatus(dadosAtacante, "GELO")) {
+                    if (Math.random() < 0.5) {
+                        window.combate.notificarCombate(this.tokenControlado.nome.toUpperCase(), `🎲 <i>Rolou ${rolagem.resultado}... mas</i><br>❌ <b>FALHOU!</b> O gelo congelou suas mãos! (50% de erro)`, "#00ffff");
+                        falhou = true;
                     }
                 }
 
                 if (falhou) {
-                    // A magia foi gasta e rolada, mas nada aconteceu (errou / ficou cego)
                     if (window.iniciativa && window.iniciativa.fila.length > 0) setTimeout(() => window.iniciativa.proximoTurno(), 1500);
                     return; 
                 }
             }
 
-            // Se sobreviveu à roleta do status, calcula o dano final
             const multAtacante = window.combate.obterMultiplicadores(dadosAtacante);
             const attrSelecionado = window.combate.calc.atributoSelecionado;
             
@@ -379,6 +376,10 @@ window.spellEngine = {
             const poderFinal = rolagem.resultado + valorAtributo;
 
             window.combate.notificarCombate(this.tokenControlado.nome.toUpperCase(), `✨ LANÇOU <b>${this.magiaAtiva.nome}</b> (Poder: ${poderFinal})`, "#f3e520");
+
+            if (window.StatusSystem) {
+                await window.StatusSystem.aplicarDanoReacao(this.tokenControlado.id);
+            }
 
             for (const idAlvo of alvosIDs) {
                 await this.processarDanoAlvo(idAlvo, poderFinal, rolagem.resultado, valorAtributo, nomeExibicaoAttr, this.magiaAtiva);
@@ -415,13 +416,60 @@ window.spellEngine = {
             
             const resMagica = Math.max(defBruta, intBruta);
 
+            // Se a magia não passar da esquiva, ela retorna antes de calcular as passivas.
+            // Isso já resolve automaticamente o problema do veneno procar em "erro" para magias!
             if (poderAtaque > 0 && poderAtaque <= dexAlvo) {
-                window.combate.notificarCombate(dadosAlvo.nome.toUpperCase(), `💨 ESQUIVOU!`, "#aaa");
-                return;
+                window.combate.notificarCombate(dadosAlvo.nome.toUpperCase(), `💨 ESQUIVOU DA MAGIA!`, "#aaa");
+                return; 
+            }
+
+            // 💤 VERIFICA SONO E ❄️ GELO
+            let alvoDormindo = false;
+            let alvoCongelado = false;
+            if (window.StatusSystem) {
+                if (window.StatusSystem.temStatus(dadosAlvo, "SONO")) alvoDormindo = true;
+                if (window.StatusSystem.temStatus(dadosAlvo, "GELO")) alvoCongelado = true;
             }
 
             let danoBase = Math.max(0, poderAtaque - resMagica);
             let danoFinal = danoBase;
+
+            // --- LEITURA DAS PASSIVAS NAS MAGIAS ---
+            let logPassiva = "";
+            let passivaMaldicao = false;
+            let passivaVeneno = false;
+            let passivaSorte = null;
+            let danoExtraPassiva = 0;
+            let condicaoElementalAtivou = null;
+            
+            if (window.PassiveSystem && this.tokenControlado) {
+                const snapAtac = await window.mapaRef.child('tokens').child(this.tokenControlado.id).once('value');
+                // Adicionados os novos parâmetros: ataqueAcertou (true) e tipoArma ("magia")
+                const resPassiva = window.PassiveSystem.calcularDanoExtra(snapAtac.val(), "magia", dadosAlvo, true, "magia");
+                logPassiva = resPassiva.log || "";
+                
+                if (resPassiva.maldicaoAtivou) passivaMaldicao = true;
+                if (resPassiva.venenoAtivou) passivaVeneno = true;
+                if (resPassiva.aplicarStatusSorte) passivaSorte = resPassiva.aplicarStatusSorte;
+                
+                // Resgata os novos dados das passivas elementais
+                if (resPassiva.danoExtra) danoExtraPassiva = resPassiva.danoExtra;
+                if (resPassiva.condicaoElementalAtivou) condicaoElementalAtivou = resPassiva.condicaoElementalAtivou;
+            }
+
+            // 🛌🔮 CRÍTICO MÁGICO AUTOMÁTICO (Dormindo ou com Marca da Maldição)
+            let foiCriticoMagico = alvoDormindo || passivaMaldicao;
+            if (foiCriticoMagico && danoFinal > 0) {
+                danoFinal *= 2; 
+            }
+
+            // ❄️ BÔNUS DE DANO: GELO ESTILHAÇADO (+30%)
+            if (alvoCongelado && danoFinal > 0) {
+                danoFinal = Math.floor(danoFinal * 1.3);
+            }
+
+            // 🔥 Adiciona o dano flat elemental da passiva (4 ou 12) ao dano final da magia
+            danoFinal += danoExtraPassiva;
 
             const tipoStatus = dadosMagia.statusTipo ? dadosMagia.statusTipo.toUpperCase() : "";
             
@@ -467,11 +515,36 @@ window.spellEngine = {
                         danoFinal += bonusColisao;
                         
                         await window.StatusSystem.modificarHP(tokenColisaoId, -bonusColisao);
-                        window.combate.notificarCombate("COLISÃO", `💥 Impacto! Ambos recebem +${bonusColisao} de dano extra.`, "#ff9900");
+                        window.combate.notificarCombate("COLISÃO MÁGICA", `💥 Impacto! Ambos recebem +${bonusColisao} de dano extra.`, "#ff9900");
                     } else {
                         await window.mapaRef.child('tokens').child(idAlvo).update({ x: destinoX, y: destinoY });
                     }
                 }
+            }
+            
+            // --- APLICA OS STATUS DAS PASSIVAS (MESMO SE O DANO FOR ZERO) ---
+            if (passivaVeneno && window.StatusSystem) {
+                 setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, "VENENO", 1), 500);
+            }
+            if (passivaSorte && window.StatusSystem) {
+                 setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, passivaSorte, 1), 600);
+            }
+            // ⚡ Aplica a Condição Elemental dos 10%
+            if (condicaoElementalAtivou && window.StatusSystem) {
+                 setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, condicaoElementalAtivou, 1), 700);
+            }
+
+            let msgDefesa = "";
+            if (danoFinal <= 0) {
+                 msgDefesa = `🛡️ RESISTIU À MAGIA! A proteção mágica anulou o dano do ataque.`;
+                 if (alvoDormindo) msgDefesa += `<br><b style="color: #fff;">🔔 Mas o impacto o ACORDOU!</b>`;
+                 if (alvoCongelado) msgDefesa += `<br><b style="color: #00ffff;">❄️ E o gelo foi ESTILHAÇADO!</b>`;
+            }
+
+            // 🔔 REMOVE STATUS DE CONTROLE (Apenas se ele realmente tinha o status, não remove da maldição)
+            if (window.StatusSystem && typeof window.StatusSystem.removerStatus === 'function') {
+                if (alvoDormindo) await window.StatusSystem.removerStatus(idAlvo, "SONO");
+                if (alvoCongelado) await window.StatusSystem.removerStatus(idAlvo, "GELO");
             }
 
             let hpAtual = parseFloat(dadosAlvo.hpAtual !== undefined ? dadosAlvo.hpAtual : (dadosAlvo.atributos?.hp || 20));
@@ -484,36 +557,60 @@ window.spellEngine = {
             const danoConvertido = danoFinal / conMult;
             const novoHP = Math.max(0, hpAtual - danoConvertido);
             
-            await window.mapaRef.child('tokens').child(idAlvo).update({
-                hpAtual: novoHP,
-                "atributos/hp": novoHP 
-            });
+            if (danoFinal > 0) {
+                await window.mapaRef.child('tokens').child(idAlvo).update({
+                    hpAtual: novoHP,
+                    "atributos/hp": novoHP 
+                });
+            }
 
             if (window.StatusSystem && tipoStatus) {
-                await window.StatusSystem.aplicarStatus(idAlvo, tipoStatus);
+                await window.StatusSystem.aplicarStatus(idAlvo, tipoStatus, danoFinal);
             }
 
+            let hpVisualAntes = Math.round(hpAtual * conMult);
+            let hpVisualDepois = Math.round(novoHP * conMult);
+            
+            let mensagemRica = "";
+            
+            // Tratamento das mensagens visuais de forma independente
             if (danoFinal > 0) {
-                let hpVisualAntes = Math.round(hpAtual * conMult);
-                let hpVisualDepois = Math.round(novoHP * conMult);
-                
-                let mensagemRica = `💥 DANO: -${danoFinal} HP <br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
-                window.combate.notificarCombate(dadosAlvo.nome.toUpperCase(), mensagemRica, "#ff4d4d");
+                if (alvoDormindo) {
+                    mensagemRica = `🛌 <b style="color:#ff4d4d;">MAGIA CRUEL (CRÍTICO)!</b> -${danoFinal} HP <br>`;
+                } else if (passivaMaldicao) {
+                    mensagemRica = `🔮 <b style="color:#9b59b6;">MAGIA AMALDIÇOADA (CRÍTICO 100%)!</b> -${danoFinal} HP <br>`;
+                } else if (alvoCongelado) {
+                    mensagemRica = `❄️ <b style="color:#00ffff;">ESTILHAÇADO (+30% DANO BÔNUS)!</b> -${danoFinal} HP <br>`;
+                } else {
+                    mensagemRica = `💥 DANO: -${danoFinal} HP <br>`;
+                }
+            } else {
+                mensagemRica = `${msgDefesa}<br>`;
             }
+            
+            mensagemRica += logPassiva; 
+            
+            if (danoFinal > 0) {
+                mensagemRica += `<span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
+            }
+            
+            window.combate.notificarCombate(dadosAlvo.nome.toUpperCase(), mensagemRica, danoFinal > 0 ? "#ff4d4d" : "#aaa");
 
             if (novoHP <= 0) {
-                window.combate.notificarCombate(dadosAlvo.nome.toUpperCase(), "💀 DERROTADO!", "#ff0000");
+                window.combate.notificarCombate(dadosAlvo.nome.toUpperCase(), "💀 DERROTADO PELA MAGIA!", "#ff0000");
                 if (window.lootEngine) window.lootEngine.processarMorte(idAlvo, dadosAlvo, 10);
             }
 
-            const elAlvo = document.getElementById(`token-${idAlvo}`);
-            if (elAlvo) {
-                elAlvo.classList.add('token-damaged');
-                setTimeout(() => elAlvo.classList.remove('token-damaged'), 600);
+            if (danoFinal > 0) {
+                const elAlvo = document.getElementById(`token-${idAlvo}`);
+                if (elAlvo) {
+                    elAlvo.classList.add('token-damaged');
+                    setTimeout(() => elAlvo.classList.remove('token-damaged'), 600);
+                }
             }
             
         } catch (e) {
-            console.error("Erro ao processar dano/empurrão:", e);
+            console.error("Erro ao processar magia:", e);
         }
     }
 };

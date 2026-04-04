@@ -1,5 +1,6 @@
 /* ============================================================ 
    === [ ENGINE DE INICIATIVA - V5.9 (TRAVA DE PERNA) ] === 
+   === Fix: Leitura Profunda de Passiva (Slot 67) e Furtividade
    ============================================================ */
 
 window.iniciativa = {
@@ -108,7 +109,21 @@ window.iniciativa = {
             let total = d20 + dex;
             const nomePersonagem = dados.nome || "Token";
 
-            if (dados.passivaAtiva === "MALDICAO") {
+            // 🔥 DETECTA A MALDIÇÃO PELO TOKEN OU PELO INVENTÁRIO DO JOGADOR (Slot 67)
+            let temMaldicao = false;
+            if (dados.passivaAtiva && String(dados.passivaAtiva).toUpperCase().includes("MALDICAO")) {
+                temMaldicao = true;
+            } else if (dados.dono) {
+                try {
+                    const donoFormatado = String(dados.dono).trim();
+                    const invSnap = await window.database.ref('usuarios').child(donoFormatado).child('inventario').child('67').once('value');
+                    if (invSnap.exists() && JSON.stringify(invSnap.val()).toUpperCase().includes("MALDICAO")) {
+                        temMaldicao = true;
+                    }
+                } catch(e) { console.warn("Erro ao checar passiva no inventário", e); }
+            }
+
+            if (temMaldicao) {
                 total = 999; 
                 await window.mapaRef.child('tokens').child(id).update({ furtivo: true });
                 
@@ -353,6 +368,18 @@ window.initEngineIniciativa = function() {
                 el.style.filter = "none";
             }
         }
+    });
+
+    // 🔥 TRAVA VISUAL: Garante que os tokens continuem invisíveis mesmo se a página for recarregada
+    window.mapaRef.child('tokens').on('child_added', (snap) => {
+        setTimeout(() => { 
+            const data = snap.val();
+            const el = document.getElementById(`token-${snap.key}`);
+            if (el && data.furtivo) {
+                el.style.opacity = "0.4";
+                el.style.filter = "drop-shadow(0 0 10px #8a2be2)";
+            }
+        }, 500); 
     });
 };
 

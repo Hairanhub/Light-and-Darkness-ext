@@ -1,35 +1,44 @@
 /* ============================================================
-   === [ MOTOR DE ARMAS - V5.1 (RANGE DINÂMICO DUAL WIELD) ] ===
+   === [ MOTOR DE ARMAS - V5.2 (PASSIVAS E RANGE DINÂMICO) ] ===
    ============================================================ */
 
 window.MotorArmas = {
     observadores: [], // Array para guardar os vigias
 
     catalogo: {
-        // (Catálogo mantido)
-        "espadão":    { tipo: "melee", duasMaos: true,  efeito: "Sangramento" },
-        "espada":     { tipo: "melee", duasMaos: false, efeito: "Sangramento" },
-        "machadão":   { tipo: "melee", duasMaos: true,  efeito: "Medo" },
-        "machado":    { tipo: "melee", duasMaos: false, efeito: "Medo" },
-        "martelão":   { tipo: "melee", duasMaos: true,  efeito: "Suspenso" },
-        "maça":       { tipo: "melee", duasMaos: false, efeito: "Suspenso" },
-        "katana":     { tipo: "melee", duasMaos: true,  efeito: "DEX vira dano físico" },
-        "adaga":      { tipo: "melee", duasMaos: false, efeito: "DEX vira dano físico" },
-        "escudão":    { tipo: "melee", duasMaos: true,  efeito: "DEF vira dano físico (-50%)" },
-        "escudo":     { tipo: "melee", duasMaos: false, efeito: "DEF vira dano físico (-50%)" },
-        "bastão":     { tipo: "melee", duasMaos: true,  efeito: "CON vira dano mágico" },
-        "luva":       { tipo: "melee", duasMaos: false, efeito: "CON vira dano mágico" },
-        "lança":      { tipo: "melee", duasMaos: true,  efeito: "Alcance 2m" },
-        "cajado":     { tipo: "ranged", duasMaos: true,  efeito: "Maldição" },
-        "varinha":    { tipo: "ranged", duasMaos: false, efeito: "Maldição" },
-        "pergaminho": { tipo: "ranged", duasMaos: true,  efeito: "Espírito Ancestral" },
-        "tomo":       { tipo: "ranged", duasMaos: false, efeito: "Espírito 50% vida" },
-        "arco longo": { tipo: "ranged", duasMaos: true,  efeito: "Ataque Bônus" },
-        "arco":       { tipo: "ranged", duasMaos: true,  efeito: "Ataque Bônus" },
-        "besta":      { tipo: "ranged", duasMaos: false, efeito: "Ataque Bônus" },
-        "alaúde":     { tipo: "ranged", duasMaos: true,  efeito: "CAR vira dano mágico + buff" },
-        "flauta":     { tipo: "ranged", duasMaos: false, efeito: "CAR vira dano mágico + buff" },
-        "grimoire":   { tipo: "ranged", duasMaos: false, efeito: "Int +2" }
+        "espadão":    { tipo: "melee", duasMaos: true,  efeito: "30% de chance: Sangramento", status: "SANGRAMENTO", chance: 0.3 },
+        "espada":     { tipo: "melee", duasMaos: false, efeito: "30% de chance: Sangramento", status: "SANGRAMENTO", chance: 0.3 },
+        
+        "machadão":   { tipo: "melee", duasMaos: true,  efeito: "30% de chance: Medo", status: "MEDO", chance: 0.3 },
+        "machado":    { tipo: "melee", duasMaos: false, efeito: "30% de chance: Medo", status: "MEDO", chance: 0.3 },
+        
+        "martelão":   { tipo: "melee", duasMaos: true,  efeito: "30% de chance: Suspenso", status: "SUSPENSO", chance: 0.3 },
+        "maça":       { tipo: "melee", duasMaos: false, efeito: "30% de chance: Suspenso", status: "SUSPENSO", chance: 0.3 },
+        
+        "katana":     { tipo: "melee", duasMaos: true,  efeito: "DEX vira dano físico", converteAtributo: "dex", categoriaDano: "fisico" },
+        "adaga":      { tipo: "melee", duasMaos: false, efeito: "DEX vira dano físico", converteAtributo: "dex", categoriaDano: "fisico" },
+        
+        "escudão":    { tipo: "melee", duasMaos: true,  efeito: "DEF vira dano físico", converteAtributo: "def", categoriaDano: "fisico" },
+        "escudo":     { tipo: "melee", duasMaos: false, efeito: "DEF vira dano físico", converteAtributo: "def", categoriaDano: "fisico" },
+        
+        "bastão":     { tipo: "melee", duasMaos: true,  efeito: "CON vira dano mágico", converteAtributo: "con", categoriaDano: "magico" },
+        "luva":       { tipo: "melee", duasMaos: false, efeito: "CON vira dano mágico", converteAtributo: "con", categoriaDano: "magico" },
+        
+        "lança":      { tipo: "melee", duasMaos: true,  efeito: "Alcance 2 SQM / 30% Ignorar Armadura", alcance: 2.5, ignoraDefesaChance: 0.3 },
+        
+        "cajado":     { tipo: "ranged", duasMaos: true,  efeito: "30% de chance: Maldição", status: "MALDICAO", chance: 0.3, categoriaDano: "magico" },
+        "varinha":    { tipo: "ranged", duasMaos: false, efeito: "30% de chance: Maldição", status: "MALDICAO", chance: 0.3, categoriaDano: "magico" },
+        
+        "pergaminho": { tipo: "ranged", duasMaos: true,  efeito: "Invoca Espírito Ancestral na Iniciativa", invocaFamiliar: true, categoriaDano: "magico" },
+        "tomo":       { tipo: "ranged", duasMaos: false, efeito: "Invoca Espírito Ancestral na Iniciativa", invocaFamiliar: true, categoriaDano: "magico" },
+        
+        "arco":       { tipo: "ranged", duasMaos: true,  efeito: "Ataque Bônus Garantido", ataqueBonus: true },
+        "besta":      { tipo: "ranged", duasMaos: false, efeito: "Ataque Bônus Garantido", ataqueBonus: true },
+        
+        "alaúde":     { tipo: "ranged", duasMaos: true,  efeito: "CAR vira dano mágico", converteAtributo: "car", categoriaDano: "magico" },
+        "flauta":     { tipo: "ranged", duasMaos: false, efeito: "CAR vira dano mágico", converteAtributo: "car", categoriaDano: "magico" },
+        
+        "pistola":    { tipo: "ranged", duasMaos: false, efeito: "Ataque Bônus / Dano Mágico / 30% Confusão", ataqueBonus: true, categoriaDano: "magico", status: "CONFUSAO", chance: 0.3 }
     },
 
     identificarArma: function(texto) {
@@ -43,7 +52,6 @@ window.MotorArmas = {
     },
 
     lerTipoArmadura: function() {
-        // (Mantido igual ao V4.3 - Simplificado aqui pra não ocupar espaço)
         return "leve"; 
     },
 
@@ -81,7 +89,6 @@ window.MotorArmas = {
         let motivo = "";
 
         // CASO 1: MÃO DIREITA TEM ARMA DE DUAS MÃOS?
-        // Se sim, a esquerda deve ser bloqueada (pois as duas mãos estão ocupadas na direita)
         if (slotMaoDir.dataset.itemFullData) {
             if (this.checarSeEhDuasMaos(slotMaoDir.dataset.itemFullData)) {
                 bloquearEsquerda = true;
@@ -89,8 +96,7 @@ window.MotorArmas = {
             }
         }
 
-        // CASO 2 (NOVO): MÃO ESQUERDA TEM ARMA DE DUAS MÃOS?
-        // Se sim, isso é ilegal. Bloqueia a esquerda para invalidar o item.
+        // CASO 2: MÃO ESQUERDA TEM ARMA DE DUAS MÃOS?
         if (!bloquearEsquerda && slotMaoEsq.dataset.itemFullData) {
             if (this.checarSeEhDuasMaos(slotMaoEsq.dataset.itemFullData)) {
                 bloquearEsquerda = true;
@@ -124,16 +130,12 @@ window.MotorArmas = {
     verificarMaoEsquerda: function() {
         const slotEsq = document.querySelector('[data-slot-index="65"]'); 
         if (!slotEsq || !slotEsq.dataset.itemFullData) return false;
-        // Se estiver marcado como bloqueado (ilegal ou ocupado), retorna false
         if (slotEsq.classList.contains('slot-bloqueado')) return false;
         return true; 
     },
 
     validarAlcance: function(atacante, alvo) {
-        // 🔥 O PULO DO GATO: Descobre se estamos no 1º ou 2º ataque do turno
         const isOffHand = window.combate && window.combate.ataqueSecundarioRealizado;
-        
-        // Se for o 2º ataque, olha o slot 65 (Esquerda). Se for o 1º, olha o 63 (Direita).
         const slotId = isOffHand ? "65" : "63";
         const slotArma = document.querySelector(`[data-slot-index="${slotId}"]`);
         
@@ -151,8 +153,10 @@ window.MotorArmas = {
         const distPixelsY = Math.abs(atacante.y - alvo.y);
         const distanciaSQM = Math.max(distPixelsX, distPixelsY) / 35;
 
+        // 🔥 O MOTOR AGORA LÊ O ALCANCE ESPECÍFICO DA ARMA (COMO A LANÇA)
         if (tipoAtaque === "melee") {
-            if (distanciaSQM > 1.5) return { pode: false, msg: "Muito longe para ataque corpo-a-corpo!" };
+            const limiteMelee = (arma && arma.alcance) ? arma.alcance : 1.5;
+            if (distanciaSQM > limiteMelee) return { pode: false, msg: `Muito longe para ataque corpo-a-corpo! (Max ${limiteMelee} SQM)` };
         } else {
             const tipoArmadura = this.lerTipoArmadura();
             let limite = 7; 
@@ -166,7 +170,7 @@ window.MotorArmas = {
 
     // --- INICIALIZADOR DUPLO (VIGIA OS 2 SLOTS) ---
     iniciarObservadores: function() {
-        if (this.observadores.length > 0) return; // Já iniciou
+        if (this.observadores.length > 0) return; 
 
         const slotMaoDir = document.querySelector('[data-slot-index="63"]');
         const slotMaoEsq = document.querySelector('[data-slot-index="65"]');
@@ -177,12 +181,10 @@ window.MotorArmas = {
             const config = { attributes: true, childList: true, subtree: true, characterData: true };
             const callback = () => window.MotorArmas.verificarEmpunhadura();
 
-            // Vigia a Direita
             const obs1 = new MutationObserver(callback);
             obs1.observe(slotMaoDir, config);
             this.observadores.push(obs1);
 
-            // Vigia a Esquerda (NOVO!)
             const obs2 = new MutationObserver(callback);
             obs2.observe(slotMaoEsq, config);
             this.observadores.push(obs2);

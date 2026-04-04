@@ -1,6 +1,8 @@
 /* ============================================================
-   === [ MOTOR DE COMBATE - V15.1 ] ===
-   === Fix: O Juiz do Drama Físico + Proteção Total da Armadura
+   === [ MOTOR DE COMBATE - V15.7 ] ===
+   === Feat: Motor de Armas V5.2 Integrado (Conversão de Status)
+   === Feat: Passivas de Armas (Sangramento, Medo, Suspenso)
+   === Feat: Lança (Fura Armadura) e Tiro Rápido (Ataque Bônus)
    ============================================================ */
 
 window.combate = {
@@ -72,7 +74,7 @@ window.combate = {
 
         // 🛑 BARRICADA (PRÉ-ROLAGEM)
         if (window.StatusSystem) {
-            const statusBloqueio = ["SONO", "TERRA", "GELO"];
+            const statusBloqueio = ["SONO", "TERRA", "SUSPENSO"];
             let statusImpedidor = null;
             for (let tipo of statusBloqueio) {
                 if (window.StatusSystem.temStatus(dadosA, tipo)) {
@@ -107,6 +109,15 @@ window.combate = {
                     break;
                 }
             }
+            
+            // ❄️ JUIZ DO GELO: 50% DE CHANCE DE FALHAR
+            if (!falhou && window.StatusSystem.temStatus(dadosA, "GELO")) {
+                if (Math.random() < 0.5) {
+                    this.notificarCombate(dadosA.nome.toUpperCase(), `🎲 <i>Rolou ${info.resultado}... mas</i><br>❌ <b>FALHOU!</b> O gelo travou seus movimentos! (50% de erro)`, "#00ffff");
+                    falhou = true;
+                }
+            }
+
             if (falhou) {
                 window.esconderConsoleDados();
                 this.resetarCalculadora();
@@ -120,7 +131,13 @@ window.combate = {
             if(!snapAlvo.val()) continue;
             
             const dadosB = snapAlvo.val();
-            const res = this.processarCombate(dadosA, dadosB, info);
+            const res = this.processarCombate(dadosA, dadosB, info, idAlvo);
+
+            // 🔔 REMOVE STATUS DE CONTROLE SE ATINGIDO
+            if (window.StatusSystem && typeof window.StatusSystem.removerStatus === 'function') {
+                if (res.acordouAlvo) await window.StatusSystem.removerStatus(idAlvo, "SONO");
+                if (res.quebrouGelo) await window.StatusSystem.removerStatus(idAlvo, "GELO");
+            }
             
             if (res.dano > 0) {
                 const multAlvo = this.obterMultiplicadores(dadosB);
@@ -138,7 +155,11 @@ window.combate = {
                     const hpVisualDepois = Math.round(novoHp * conMult);
                     res.status += `<br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
                     
-                    if (novoHp === 0 && (fichaF.tipo === 'monstro' || fichaF.tipo === 'monstros' || fichaF.tipo === 'npc')) {
+                    const tipoAlvo = (fichaF.tipo || "").toLowerCase();
+                    const isMonstro = (tipoAlvo === 'monstro' || tipoAlvo === 'monstros' || tipoAlvo === 'npc');
+
+                    if (novoHp === 0 && isMonstro) {
+                        // 🔥 DELETA O MONSTRO DO MAPA
                         await ref.remove();
                         this.notificarCombate("💀 ABATE", `<b>${fichaF.nome}</b> foi destruído!`, "#ff0000");
                     } else if (novoHp === 0 && hpAtual > 0) {
@@ -148,8 +169,9 @@ window.combate = {
 
                         if (dadoMutilacao <= 5) {
                             if (fichaF.membroPerdido) {
+                                // 🔥 DELETA SE SOFRER INSTAKILL
                                 await ref.remove();
-                                this.notificarCombate("🩸 MUTILADO!", `<b>${fichaF.nome}</b> perdeu outro membro e não suportou os ferimentos. Morte Instantânea!`, "#000000");
+                                this.notificarCombate("🩸 MUTILADO FATAL!", `<b>${fichaF.nome}</b> perdeu outro membro e não suportou os ferimentos. Morte Instantânea!`, "#000000");
                             } else {
                                 const membros = ['Braço Direito', 'Braço Esquerdo', 'Perna Direita', 'Perna Esquerda'];
                                 const membroSorteado = membros[Math.floor(Math.random() * membros.length)];
@@ -232,9 +254,9 @@ window.combate = {
             }
         }
 
-        // 🛑 BARRICADA (PRÉ-ROLAGEM): Sono, Terra, Gelo
+        // 🛑 BARRICADA (PRÉ-ROLAGEM): Sono, Terra, Suspenso
         if (window.StatusSystem) {
-            const statusBloqueio = ["SONO", "TERRA", "GELO"];
+            const statusBloqueio = ["SONO", "TERRA", "SUSPENSO"];
             let statusImpedidor = null;
             for (let tipo of statusBloqueio) {
                 if (window.StatusSystem.temStatus(dadosA, tipo)) {
@@ -252,7 +274,7 @@ window.combate = {
         window.mostrarConsoleDados();
         const info = await this.esperarRolagemManual(); 
         
-        // 🎭 O JUIZ DO DRAMA (PÓS-ROLAGEM): Confusão, Cegueira, Medo
+        // 🎭 O JUIZ DO DRAMA (PÓS-ROLAGEM)
         if (window.StatusSystem) {
             const statusDrama = ["CONFUSAO", "CEGUEIRA", "MEDO"];
             let falhou = false;
@@ -268,6 +290,15 @@ window.combate = {
                     break;
                 }
             }
+
+            // ❄️ JUIZ DO GELO: 50% DE CHANCE DE FALHAR
+            if (!falhou && window.StatusSystem.temStatus(dadosA, "GELO")) {
+                if (Math.random() < 0.5) {
+                    this.notificarCombate(dadosA.nome.toUpperCase(), `🎲 <i>Rolou ${info.resultado}... mas</i><br>❌ <b>FALHOU!</b> O gelo travou seus movimentos! (50% de erro)`, "#00ffff");
+                    falhou = true;
+                }
+            }
+
             if (falhou) {
                 this.finalizarTurnoForcado(idAtacante, elAtacante);
                 if (elAlvo) elAlvo.classList.remove('token-alvo');
@@ -277,13 +308,12 @@ window.combate = {
 
         if (elAlvo) elAlvo.classList.add('token-alvo'); 
 
-        const res = this.processarCombate(dadosA, dadosB, info);
+        const res = this.processarCombate(dadosA, dadosB, info, idAlvo, foraDeAlcance, msgAlcance);
 
-        if (foraDeAlcance) {
-            res.dano = 0;
-            res.status = `<b style="color: #ff4d4d;">🚫 GOLPE NO VAZIO!</b><br><small>${msgAlcance}</small>`;
-            res.isoldeAtivou = false; 
-            res.curaAtacanteBase = 0; 
+        // 🔔 REMOVE STATUS DE CONTROLE SE FOI ATINGIDO
+        if (window.StatusSystem && typeof window.StatusSystem.removerStatus === 'function') {
+            if (res.acordouAlvo) await window.StatusSystem.removerStatus(idAlvo, "SONO");
+            if (res.quebrouGelo) await window.StatusSystem.removerStatus(idAlvo, "GELO");
         }
 
         if (res.dano > 0) {
@@ -308,7 +338,11 @@ window.combate = {
                 const hpVisualDepois = Math.round(novoHp * conMult);
                 res.status += `<br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
                 
-                if (novoHp === 0 && (fichaF.tipo === 'monstro' || fichaF.tipo === 'monstros' || fichaF.tipo === 'npc')) {
+                const tipoAlvo = (fichaF.tipo || "").toLowerCase();
+                const isMonstro = (tipoAlvo === 'monstro' || tipoAlvo === 'monstros' || tipoAlvo === 'npc');
+
+                if (novoHp === 0 && isMonstro) {
+                    // 🔥 DELETA O MONSTRO DO MAPA
                     await ref.remove(); 
                     this.notificarCombate("💀 ABATE", `<b>${fichaF.nome}</b> foi destruído!`, "#ff0000");
                 } else if (novoHp === 0 && hpAtual > 0) {
@@ -318,8 +352,9 @@ window.combate = {
 
                     if (dadoMutilacao <= 5) {
                         if (fichaF.membroPerdido) {
+                            // 🔥 DELETA SE SOFRER INSTAKILL
                             await ref.remove();
-                            this.notificarCombate("🩸 MUTILADO!", `<b>${fichaF.nome}</b> perdeu outro membro e não suportou os ferimentos. Morte Instantânea!`, "#000000");
+                            this.notificarCombate("🩸 MUTILADO FATAL!", `<b>${fichaF.nome}</b> perdeu outro membro e não suportou os ferimentos. Morte Instantânea!`, "#000000");
                         } else {
                             const membros = ['Braço Direito', 'Braço Esquerdo', 'Perna Direita', 'Perna Esquerda'];
                             const membroSorteado = membros[Math.floor(Math.random() * membros.length)];
@@ -357,50 +392,54 @@ window.combate = {
                     await ref.update({ hpAtual: novoHp, "atributos/hp": novoHp });
                 }
             }
+        }
+        
+        if (res.curaAtacanteBase > 0) {
+            const snapAtacFresco = await window.mapaRef.child('tokens').child(idAtacante).once('value');
+            const fichaFresca = snapAtacFresco.val();
             
-            if (res.curaAtacanteBase > 0) {
-                const snapAtacFresco = await window.mapaRef.child('tokens').child(idAtacante).once('value');
-                const fichaFresca = snapAtacFresco.val();
+            if (fichaFresca) {
+                const hpMax = parseFloat(fichaFresca.hpMax || fichaFresca.atributos?.con || 20);
+                const hpAgora = parseFloat(fichaFresca.hpAtual !== undefined ? fichaFresca.hpAtual : hpMax);
                 
-                if (fichaFresca) {
-                    const hpMax = parseFloat(fichaFresca.hpMax || fichaFresca.atributos?.con || 20);
-                    const hpAgora = parseFloat(fichaFresca.hpAtual !== undefined ? fichaFresca.hpAtual : hpMax);
-                    
-                    let novoHpCura = hpAgora + res.curaAtacanteBase;
-                    if (novoHpCura > hpMax) novoHpCura = hpMax;
+                let novoHpCura = hpAgora + res.curaAtacanteBase;
+                if (novoHpCura > hpMax) novoHpCura = hpMax;
 
-                    if (novoHpCura > hpAgora) {
-                        await window.mapaRef.child('tokens').child(idAtacante).update({ 
-                            hpAtual: novoHpCura,
-                            "atributos/hp": novoHpCura 
-                        });
-                        
-                        const mults = this.obterMultiplicadores(fichaFresca);
-                        const conMultA = mults.con || 1;
-                        const curaVisualText = Math.round((novoHpCura - hpAgora) * conMultA);
-                        
-                        this.notificarCombate("MÁSCARA DE AATROX", `🩸 <b>${fichaFresca.nome}</b> drenou +${curaVisualText} HP!`, "#2ecc71");
-                        
-                        const pinoAtacante = document.getElementById(`token-${idAtacante}`);
-                        if (pinoAtacante) {
-                            pinoAtacante.style.transition = "box-shadow 0.3s ease";
-                            pinoAtacante.style.boxShadow = "0 0 25px 10px #2ecc71";
-                            setTimeout(() => { pinoAtacante.style.boxShadow = "none"; }, 1000);
-                        }
+                if (novoHpCura > hpAgora) {
+                    await window.mapaRef.child('tokens').child(idAtacante).update({ 
+                        hpAtual: novoHpCura,
+                        "atributos/hp": novoHpCura 
+                    });
+                    
+                    const mults = this.obterMultiplicadores(fichaFresca);
+                    const conMultA = mults.con || 1;
+                    const curaVisualText = Math.round((novoHpCura - hpAgora) * conMultA);
+                    
+                    this.notificarCombate("MÁSCARA DE AATROX", `🩸 <b>${fichaFresca.nome}</b> drenou +${curaVisualText} HP!`, "#2ecc71");
+                    
+                    const pinoAtacante = document.getElementById(`token-${idAtacante}`);
+                    if (pinoAtacante) {
+                        pinoAtacante.style.transition = "box-shadow 0.3s ease";
+                        pinoAtacante.style.boxShadow = "0 0 25px 10px #2ecc71";
+                        setTimeout(() => { pinoAtacante.style.boxShadow = "none"; }, 1000);
                     }
                 }
             }
-
-            const tipoStatusRaw = document.getElementById('reg-magia-status-tipo')?.value || 
-                                 (this.calc.atributoSelecionado === "int" ? "Fogo" : null);
-            if (tipoStatusRaw && window.StatusSystem) await window.StatusSystem.aplicarStatus(idAlvo, tipoStatusRaw);
-            if (window.StatusSystem) await window.StatusSystem.aplicarDanoReacao(idAtacante);
-
-            if (elAlvo) {
-                elAlvo.classList.add('tomando-dano');
-                setTimeout(() => elAlvo.classList.remove('tomando-dano'), 500);
-            }
         }
+
+        if (elAlvo) {
+            elAlvo.classList.add('tomando-dano');
+            setTimeout(() => elAlvo.classList.remove('tomando-dano'), 500);
+        }
+
+        const tipoStatusRaw = document.getElementById('reg-magia-status-tipo')?.value || 
+                             (this.calc.atributoSelecionado === "int" ? "Fogo" : null);
+                             
+        if (tipoStatusRaw && window.StatusSystem) {
+            await window.StatusSystem.aplicarStatus(idAlvo, tipoStatusRaw, res.dano);
+        }
+
+        if (window.StatusSystem) await window.StatusSystem.aplicarDanoReacao(idAtacante);
 
         const iconAcao = this.calc.atributoSelecionado === "int" ? "✨ MAGIA" : "⚔️ ATAQUE";
         const labelAtaque = this.ataqueSecundarioRealizado ? "(OFF-HAND)" : "(MAIN-HAND)";
@@ -429,6 +468,14 @@ window.combate = {
             if (res.isoldeAtivou) {
                 this.notificarCombate("COLAR DE ISOLDE", "⚡ <b>ATAQUE EXTRA!</b> Jogue novamente!", "#00d4ff");
                 return; 
+            }
+
+            // 🔥 PARTE 3: CHECA O TIRO RÁPIDO DA ARMA (Arco, Besta, Pistola)
+            if (res.ataqueBonusArma && !this.ataqueSecundarioRealizado) {
+                this.ataqueSecundarioRealizado = true; 
+                this.atualizarTravaAtributos(idAtacante);
+                this.notificarCombate("TIRO RÁPIDO", "🎯 <b>ATAQUE BÔNUS!</b> Sua arma permite mais um disparo!", "#f3e520");
+                return;
             }
 
             if (this.snapshot.temMaoEsquerda && !this.ataqueSecundarioRealizado) {
@@ -583,9 +630,27 @@ window.combate = {
 
         const hpAt = parseFloat(dadosA.hpAtual !== undefined ? dadosA.hpAtual : (dadosA.atributos?.hp || 20));
         
-        // 🛑 BARRICADA (PRÉ-ROLAGEM) para auto-ação
+        const tipoAtacante = (dadosA.tipo || "").toLowerCase();
+        const isMonstroAuto = (tipoAtacante === 'monstro' || tipoAtacante === 'monstros' || tipoAtacante === 'npc');
+
+        if (hpAt <= 0 && isMonstroAuto) {
+            this.notificarCombate("💀 CORPO INERTE", `<b>${dadosA.nome}</b> é apenas um cadáver no chão.`, "#777777");
+            setTimeout(() => {
+                el.classList.remove('token-auto-acao');
+                this.tokenAtivoId = null;
+                this.resetarCalculadora();
+                this.ataqueSecundarioRealizado = false;
+                document.querySelectorAll('.btn-attr').forEach(b => {
+                    b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
+                });
+                if (window.iniciativa && window.iniciativa.fila.length > 0) window.iniciativa.proximoTurno();
+            }, 1000);
+            return;
+        }
+
+        // 🛑 BARRICADA (PRÉ-ROLAGEM)
         if (hpAt > 0 && window.StatusSystem) {
-            const statusBloqueio = ["SONO", "TERRA", "GELO"];
+            const statusBloqueio = ["SONO", "TERRA", "SUSPENSO"];
             let statusImpedidor = null;
             for (let tipo of statusBloqueio) {
                 if (window.StatusSystem.temStatus(dadosA, tipo)) {
@@ -608,7 +673,7 @@ window.combate = {
         window.mostrarConsoleDados();
         const info = await this.esperarRolagemManual(); 
         
-        // TESTE DE MORTE
+        // TESTE DE MORTE (Apenas Jogadores chegarão aqui)
         if (hpAt <= 0) {
             const dado = info.resultado;
             const lados = info.lados;
@@ -671,7 +736,7 @@ window.combate = {
             return; 
         }
 
-        // 🎭 O JUIZ DO DRAMA (PÓS-ROLAGEM) para auto-ação (Ataque de Monstro, etc)
+        // 🎭 O JUIZ DO DRAMA (PÓS-ROLAGEM) para auto-ação
         if (hpAt > 0 && window.StatusSystem) {
             const statusDrama = ["CONFUSAO", "CEGUEIRA", "MEDO"];
             let falhou = false;
@@ -687,6 +752,15 @@ window.combate = {
                     break;
                 }
             }
+
+            // ❄️ JUIZ DO GELO
+            if (!falhou && window.StatusSystem.temStatus(dadosA, "GELO")) {
+                if (Math.random() < 0.5) {
+                    this.notificarCombate(dadosA.nome.toUpperCase(), `🎲 <i>Rolou ${info.resultado}... mas</i><br>❌ <b>FALHOU!</b> O gelo travou seus movimentos! (50% de erro)`, "#00ffff");
+                    falhou = true;
+                }
+            }
+
             if (falhou) {
                 setTimeout(() => {
                     el.classList.remove('token-auto-acao');
@@ -699,7 +773,7 @@ window.combate = {
             }
         }
 
-        const res = this.processarCombate(dadosA, dadosA, info);
+        const res = this.processarCombate(dadosA, dadosA, info, id);
 
         const msg = `rolou <b>${res.total}</b>!<br><small style="color: #bbb">${res.detalhe}</small>`;
         this.notificarCombate(dadosA.nome.toUpperCase(), msg, "#00ffcc");
@@ -725,16 +799,43 @@ window.combate = {
         }, 1500);
     },
 
-    processarCombate: function(dadosAtacante, dadosAlvo, infoRolagem) {
+    processarCombate: function(dadosAtacante, dadosAlvo, infoRolagem, idAlvo = null, foraDeAlcance = false, msgAlcance = "") {
         const face = infoRolagem.lados;
         const valorDado = infoRolagem.resultado;
         let qtd = this.calc.quantidades[`d${face}`] || 1;
         let totalDados = valorDado * qtd;
         
         let atributoAtaque = this.calc.atributoSelecionado;
-        
         if (!atributoAtaque && (dadosAtacante.tipo === 'monstro' || dadosAtacante.tipo === 'monstros')) {
             atributoAtaque = (dadosAtacante.tipoDano === 'magico') ? 'int' : 'for';
+        }
+
+        // 🔥 PARTE 1: LER A ARMA ATUAL PARA APLICAR CONVERSÃO DE ATRIBUTOS
+        let armaAtual = null;
+        let ataqueEhMagico = (atributoAtaque === "int" || dadosAtacante.tipoDano === "magico");
+
+        if (window.MotorArmas) {
+            const isOffHand = this.ataqueSecundarioRealizado;
+            const slotId = isOffHand ? "65" : "63";
+            const slotArma = document.querySelector(`[data-slot-index="${slotId}"]`);
+            
+            if (slotArma && slotArma.dataset.itemFullData) {
+                try {
+                    const item = JSON.parse(slotArma.dataset.itemFullData);
+                    const textoBusca = [item.tipoEspecifico, item.subTipo, item.nome, item.descricao].join(" ");
+                    armaAtual = window.MotorArmas.identificarArma(textoBusca);
+                    
+                    if (armaAtual && armaAtual.converteAtributo) {
+                        atributoAtaque = armaAtual.converteAtributo; 
+                        
+                        if (armaAtual.categoriaDano === "magico") {
+                            ataqueEhMagico = true;
+                        } else if (armaAtual.categoriaDano === "fisico") {
+                            ataqueEhMagico = false;
+                        }
+                    }
+                } catch(e) { console.error("Erro ao ler arma no combate", e); }
+            }
         }
 
         const multAtacante = this.obterMultiplicadores(dadosAtacante);
@@ -744,6 +845,35 @@ window.combate = {
         }
         
         let modExtra = parseInt(document.getElementById('extra-mod')?.value) || 0;
+        const totalAtaque = totalDados + modAtributo + modExtra; 
+
+        if (foraDeAlcance) {
+            return { 
+                dano: 0, total: totalAtaque, alvoDefesa: 'ALCANCE',
+                status: `<b style="color: #ff4d4d;">🚫 GOLPE NO VAZIO!</b><br><small>${msgAlcance}</small>`,
+                detalhe: `${totalDados} + ${modAtributo} + ${modExtra}`,
+                isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false,
+                ataqueBonusArma: (armaAtual && armaAtual.ataqueBonus) ? true : false 
+            };
+        }
+
+        const multAlvo = this.obterMultiplicadores(dadosAlvo);
+        const dexAlvo = (parseInt(dadosAlvo.atributos?.dex || 0)) * (multAlvo.dex || 1);
+
+        if (totalAtaque <= dexAlvo) {
+            return { 
+                dano: 0, total: totalAtaque, alvoDefesa: 'ESQUIVA',
+                status: `<b style="color: #ff9900;">💨 ESQUIVOU!</b>`, 
+                detalhe: `${totalDados} + ${modAtributo} + ${modExtra}`,
+                isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false,
+                ataqueBonusArma: (armaAtual && armaAtual.ataqueBonus) ? true : false 
+            };
+        }
+
+        if (window.StatusSystem && typeof this.verificarStatusCombate === "function") {
+            const checkStatus = this.verificarStatusCombate(dadosAtacante, dadosAlvo);
+            if (checkStatus) return { ...checkStatus, total: totalAtaque, isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: (armaAtual && armaAtual.ataqueBonus) ? true : false };
+        }
 
         let danoPassivoTotal = 0;
         let logPassiva = "";
@@ -751,75 +881,102 @@ window.combate = {
         let isoldeTrigger = false;
         let curaAatroxTotal = 0;
         
+        let flagMaldicao = false;
+        let flagVeneno = false;
+        let flagInfusao = null;
+        let condicaoElementalAtivou = null;
+
+        let tipoAtaqueStr = ataqueEhMagico ? "magico" : "fisico"; 
+        let tipoArmaStr = armaAtual ? armaAtual.tipo : "melee";
+
         if (window.PassiveSystem && typeof window.PassiveSystem.calcularDanoExtra === "function") {
-            const elementoAtaque = document.getElementById('reg-magia-status-tipo')?.value || "FISICO";
-            const resultadoPassiva = window.PassiveSystem.calcularDanoExtra(dadosAtacante, elementoAtaque, dadosAlvo);
+            const resultadoPassiva = window.PassiveSystem.calcularDanoExtra(dadosAtacante, tipoAtaqueStr, dadosAlvo, true, tipoArmaStr);
             
             danoPassivoTotal = resultadoPassiva.danoExtra || 0;
             logPassiva = resultadoPassiva.log || "";
             if (resultadoPassiva.drakarAtivou) multiplicadorDrakar = 2;
             if (resultadoPassiva.isoldeAtivou) isoldeTrigger = true;
             if (resultadoPassiva.aatroxAtivou) curaAatroxTotal = resultadoPassiva.curaBase || 0;
+            
+            if (resultadoPassiva.maldicaoAtivou) flagMaldicao = true;
+            if (resultadoPassiva.venenoAtivou) flagVeneno = true;
+            if (resultadoPassiva.aplicarStatusSorte) flagInfusao = resultadoPassiva.aplicarStatusSorte;
+            
+            if (resultadoPassiva.condicaoElementalAtivou) condicaoElementalAtivou = resultadoPassiva.condicaoElementalAtivou;
         }
 
-        const totalAtaque = totalDados + modAtributo + modExtra + danoPassivoTotal;
-        
-        const multAlvo = this.obterMultiplicadores(dadosAlvo);
-        const dexAlvo = (parseInt(dadosAlvo.atributos?.dex || 0)) * (multAlvo.dex || 1);
-
-        if (totalAtaque <= dexAlvo) {
-            return { 
-                dano: 0, total: totalAtaque, alvoDefesa: 'ESQUIVA',
-                status: `<b style="color: #ff9900;">💨 ESQUIVOU!</b>` + (logPassiva ? `<br>${logPassiva}` : ''), 
-                detalhe: `${totalDados} + ${modAtributo} + ${modExtra}` + (danoPassivoTotal > 0 ? ` + ${danoPassivoTotal}(P)` : ''),
-                isoldeAtivou: false,
-                curaAtacanteBase: 0 
-            };
-        }
-
-        if (window.StatusSystem && typeof this.verificarStatusCombate === "function") {
-            const checkStatus = this.verificarStatusCombate(dadosAtacante, dadosAlvo);
-            if (checkStatus) return { ...checkStatus, total: totalAtaque, isoldeAtivou: false, curaAtacanteBase: 0 };
-        }
-
-        let logDefesa = "";
         if (window.PassiveSystem && typeof window.PassiveSystem.verificarDefesaEspecial === "function") {
             const defesaEspecial = window.PassiveSystem.verificarDefesaEspecial(dadosAlvo);
-            if (defesaEspecial) {
-                if (defesaEspecial.horuzAtivou) {
-                    return { 
-                        dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ',
-                        status: defesaEspecial.log + (logPassiva ? `<br>${logPassiva}` : ''), 
-                        detalhe: 'Ataque completamente anulado!',
-                        isoldeAtivou: isoldeTrigger,
-                        curaAtacanteBase: 0 
-                    };
-                } else if (defesaEspecial.logFalha) {
-                    logDefesa = defesaEspecial.logFalha; 
-                }
+            if (defesaEspecial && defesaEspecial.horuzAtivou) {
+                return { 
+                    dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ',
+                    status: defesaEspecial.log + (logPassiva ? `<br>${logPassiva}` : ''), 
+                    detalhe: 'Ataque completamente anulado!', isoldeAtivou: isoldeTrigger, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false,
+                    ataqueBonusArma: (armaAtual && armaAtual.ataqueBonus) ? true : false 
+                };
             }
         }
 
-        const ataqueEhMagico = (atributoAtaque === "int" || dadosAtacante.tipoDano === "magico");
-        const valorReducao = ataqueEhMagico ? 
+        let valorReducao = ataqueEhMagico ? 
                              (parseInt(dadosAlvo.atributos?.int || 0) * (multAlvo.int || 1)) : 
                              (parseInt(dadosAlvo.atributos?.def || 0) * (multAlvo.def || 1));
 
-        // 🔥 A MUDANÇA: Agora começa em 0. Se a armadura tankar, o golpe não perfura!
+        // 🔥 PARTE 2A: A LANÇA (30% de chance de Ignorar Armadura)
+        let furouArmadura = false;
+        if (armaAtual && armaAtual.ignoraDefesaChance) {
+            if (Math.random() < armaAtual.ignoraDefesaChance) {
+                valorReducao = 0; // Armadura reduzida a pó!
+                furouArmadura = true;
+            }
+        }
+
+        let alvoDormindo = false;
+        let alvoCongelado = false;
+        if (window.StatusSystem) {
+            if (window.StatusSystem.temStatus(dadosAlvo, "SONO")) alvoDormindo = true;
+            if (window.StatusSystem.temStatus(dadosAlvo, "GELO")) alvoCongelado = true;
+        }
+
         let danoBase = Math.max(0, totalAtaque - valorReducao);
         
-        // Se a armadura/resistência tankou tudo, bloqueia dano, mutilação e o status!
         if (danoBase <= 0) {
+            let txtStatus = `<b style="color: #aaa;">🛡️ DEFENDIDO!</b> A armadura/resistência anulou o dano do ataque.`;
+            if (alvoDormindo) txtStatus += `<br><b style="color: #fff;">🔔 Mas o impacto ACORDOU o alvo!</b>`;
+            if (alvoCongelado) txtStatus += `<br><b style="color: #00ffff;">❄️ E o gelo foi ESTILHAÇADO!</b>`;
+
             return { 
-                dano: 0, 
-                total: totalAtaque, 
-                alvoDefesa: (ataqueEhMagico ? "INT" : "DEF"),
-                status: `<b style="color: #aaa;">🛡️ DEFENDIDO! A armadura/resistência anulou o ataque e seus efeitos.</b>`, 
-                detalhe: `${totalDados} + ${modAtributo} (${atributoAtaque?.toUpperCase() || ''}) + ${modExtra}`,
-                isoldeAtivou: false,
-                curaAtacanteBase: 0 
+                dano: 0, total: totalAtaque, alvoDefesa: (ataqueEhMagico ? "INT" : "DEF"),
+                status: txtStatus, 
+                detalhe: `${totalDados} + ${modAtributo}`,
+                isoldeAtivou: isoldeTrigger, curaAtacanteBase: 0, acordouAlvo: alvoDormindo, quebrouGelo: alvoCongelado,
+                ataqueBonusArma: (armaAtual && armaAtual.ataqueBonus) ? true : false 
             };
         }
+
+        if (flagVeneno && window.StatusSystem && idAlvo) {
+            setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, "VENENO", 1), 500);
+        }
+        if (flagInfusao && window.StatusSystem && idAlvo) {
+            setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, flagInfusao, 1), 600);
+        }
+        if (condicaoElementalAtivou && window.StatusSystem && idAlvo) {
+            setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, condicaoElementalAtivou, 1), 700);
+        }
+
+        // 🔥 PARTE 2B: EFEITOS DE STATUS DA ARMA (Sangramento, Medo, Suspenso, Maldição, Confusão)
+        let efeitoArmaAplicado = "";
+        if (armaAtual && armaAtual.status && armaAtual.chance) {
+            if (Math.random() < armaAtual.chance) {
+                const stat = armaAtual.status;
+                if (window.StatusSystem && idAlvo) {
+                    setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, stat, 1), 800);
+                }
+                if (stat === "MALDICAO") flagMaldicao = true; // Força crítico logo abaixo!
+                efeitoArmaAplicado = `<br><b style="color: #ffaa00;">🩸 EFEITO DA ARMA: Provocou ${stat}!</b>`;
+            }
+        }
+
+        danoBase += danoPassivoTotal;
 
         if (multiplicadorDrakar > 1) danoBase *= multiplicadorDrakar;
         
@@ -827,32 +984,49 @@ window.combate = {
             danoBase = window.StatusSystem.aplicarReducoesDeDano(dadosAtacante, danoBase);
         }
 
+        if (alvoCongelado && danoBase > 0) {
+            danoBase = Math.floor(danoBase * 1.3);
+        }
+
         let isFurtivo = (dadosAtacante.furtivo === true);
         let isCriticoNormal = (valorDado === face);
+        
+        if (alvoDormindo || flagMaldicao) isCriticoNormal = true;
 
         let statusFinal = `💥 Dano: <b>${danoBase}</b>`;
         
         if (isCriticoNormal || isFurtivo) {
             danoBase *= 2; 
-            
-            if (isFurtivo) {
-                statusFinal = `<b style="color: #8a2be2;">🗡️ ASSASSINATO (CRÍTICO GARANTIDO!): ${danoBase}</b>`;
+            if (alvoDormindo) {
+                statusFinal = `<b style="color: #ff4d4d;">🛌 GOLPE CRUEL (CRÍTICO NO SONO): ${danoBase}!</b><br>🔔 O alvo ACORDOU!`;
+            } else if (isFurtivo) {
+                statusFinal = `<b style="color: #8a2be2;">🗡️ ASSASSINATO: ${danoBase}</b>`;
+            } else if (flagMaldicao) {
+                statusFinal = `<b style="color: #9b59b6;">🔮 CRÍTICO AMALDIÇOADO: ${danoBase}!</b>`;
             } else {
                 statusFinal = `<b style="color: #ff4d4d;">🔥 CRÍTICO: ${danoBase}!</b>`;
             }
         }
+
+        if (furouArmadura) {
+            statusFinal += `<br><b style="color: #ff3333;">🎯 ARMADURA PERFURADA! (Dano Direto)</b>`;
+        }
+        if (efeitoArmaAplicado) {
+            statusFinal += efeitoArmaAplicado;
+        }
         
+        if (alvoCongelado && danoBase > 0) {
+             statusFinal += `<br><b style="color: #00ffff;">❄️ ESTILHAÇADO! (+30% Dano Bônus)</b>`;
+        }
+
         if (logPassiva) statusFinal += `<br>${logPassiva}`;
-        if (logDefesa) statusFinal += `<br>${logDefesa}`;
 
         return { 
-            dano: danoBase, 
-            total: totalAtaque, 
-            alvoDefesa: (ataqueEhMagico ? "INT" : "DEF"),
-            status: statusFinal, 
-            detalhe: `${totalDados} + ${modAtributo} (${atributoAtaque?.toUpperCase() || ''}) + ${modExtra}` + (danoPassivoTotal > 0 ? ` + ${danoPassivoTotal}(P)` : ''),
-            isoldeAtivou: isoldeTrigger,
-            curaAtacanteBase: curaAatroxTotal 
+            dano: danoBase, total: totalAtaque, alvoDefesa: (ataqueEhMagico ? "INT" : "DEF"),
+            status: statusFinal, detalhe: `${totalDados} + ${modAtributo}`,
+            isoldeAtivou: isoldeTrigger, curaAtacanteBase: curaAatroxTotal, acordouAlvo: alvoDormindo, quebrouGelo: alvoCongelado,
+            // 🔥 PARTE 3: AVISA SE A ARMA TEM TIRO BÔNUS
+            ataqueBonusArma: (armaAtual && armaAtual.ataqueBonus) ? true : false 
         };
     }
 };

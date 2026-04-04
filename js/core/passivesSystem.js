@@ -1,5 +1,5 @@
 /* ============================================================
-   === [ SISTEMA DE PASSIVAS - V7.0 (MARCA DA MALDIÇÃO) ] ===
+   === [ SISTEMA DE PASSIVAS - V8.0 (VENENO STACK & MALDIÇÃO) ] ===
    ============================================================ */
 window.PassiveSystem = {
     observadorAtivo: false,
@@ -39,7 +39,6 @@ window.PassiveSystem = {
             if (textoParaBusca.includes("ISOLDE")) return { tipo: "ISOLDE", nome: "Colar de Isolde", nivel: nivel };
             if (textoParaBusca.includes("HORUZ"))  return { tipo: "HORUZ",  nome: "Anel de Horuz",  nivel: nivel };
             if (textoParaBusca.includes("AATROX")) return { tipo: "AATROX", nome: "Máscara de Aatrox", nivel: nivel };
-            // 🔥 LEITURA DA NOVA PASSIVA AQUI:
             if (textoParaBusca.includes("MALDICAO") || textoParaBusca.includes("MALDIÇÃO") || textoParaBusca.includes("MARCA")) return { tipo: "MALDICAO", nome: "Marca da Maldição", nivel: nivel };
 
             let elementoDetectado = null;
@@ -137,7 +136,8 @@ window.PassiveSystem = {
         }
     },
 
-    calcularDanoExtra: function(atacante, tipoAtaque, dadosAlvo) {
+    // AQUI COMEÇAM AS ALTERAÇÕES: Novos parâmetros adicionados (ataqueAcertou e tipoArma)
+    calcularDanoExtra: function(atacante, tipoAtaque, dadosAlvo, ataqueAcertou = true, tipoArma = "melee") {
         let passiva = null;
 
         if (atacante && (atacante.tipo === 'monstro' || atacante.tipo === 'monstros')) {
@@ -151,11 +151,23 @@ window.PassiveSystem = {
 
         const modoTeste = window.forcarPassiva ? 1.0 : null;
 
+        // 🔥 MARCA DA MALDIÇÃO (Crita se o alvo estiver com vida cheia)
+        if (passiva.tipo === "MALDICAO") {
+            const hpAtual = parseFloat(dadosAlvo?.hpAtual !== undefined ? dadosAlvo.hpAtual : (dadosAlvo?.atributos?.hp || 20));
+            const hpMax = parseFloat(dadosAlvo?.hpMax || dadosAlvo?.atributos?.hp || 20);
+            
+            if (hpAtual >= hpMax) {
+                return { maldicaoAtivou: true, danoExtra: 0, log: `<br><b style="color:#9b59b6;">[MARCA DA MALDIÇÃO: CRÍTICO GARANTIDO!]</b>` };
+            } else {
+                return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Maldição ignorada: O alvo já está ferido)</i></span>` };
+            }
+        }
+
         if (passiva.tipo === "DRAKAR") {
             if (Math.random() <= (modoTeste || 0.25)) {
-                return { drakarAtivou: true, log: ` <b style="color:#ff4d4d;">[DRAKTAR: DANO DOBRADO!]</b>` };
+                return { drakarAtivou: true, log: `<br><b style="color:#ff4d4d;">[DRAKTAR: DANO DOBRADO!]</b>` };
             } else {
-                return { danoExtra: 0, log: ` <span style="color:#888; font-size:11px;"><i>(Draktar falhou)</i></span>` };
+                return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Draktar falhou)</i></span>` };
             }
         }
 
@@ -166,9 +178,9 @@ window.PassiveSystem = {
                 if (Math.random() <= (modoTeste || 0.20)) { ativou = true; break; }
             }
             if (ativou) {
-                return { isoldeAtivou: true, log: ` <b style="color:#00d4ff;">[ISOLDE: ATAQUE DUPLO!]</b>` };
+                return { isoldeAtivou: true, log: `<br><b style="color:#00d4ff;">[ISOLDE: ATAQUE DUPLO!]</b>` };
             } else {
-                return { danoExtra: 0, log: ` <span style="color:#888; font-size:11px;"><i>(Isolde falhou)</i></span>` };
+                return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Isolde falhou)</i></span>` };
             }
         }
 
@@ -183,31 +195,63 @@ window.PassiveSystem = {
                 return { 
                     aatroxAtivou: true, 
                     curaBase: curaBaseCalculada, 
-                    log: ` <b style="color:#2ecc71;">[AATROX: ROUBOU SANGUE!]</b>` 
+                    log: `<br><b style="color:#2ecc71;">[AATROX: ROUBOU SANGUE!]</b>` 
                 };
             } else {
-                return { danoExtra: 0, log: "", curaBase: 0, log: ` <span style="color:#888; font-size:11px;"><i>(Aatrox falhou)</i></span>` };
+                return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Aatrox falhou)</i></span>`, curaBase: 0 };
             }
         }
 
         if (passiva.tipo === "ELEMENTAL") {
             const elAtaque = passiva.elemento; 
+            
+            // 🔥 PASSIVA DE VENENO (Com travas de erro e ataque à distância indevido)
+            if (elAtaque === "VENENO") {
+                if (!ataqueAcertou || (tipoAtaque === "distancia" && tipoArma === "melee")) {
+                    return { danoExtra: 0, log: "" };
+                }
+                return { venenoAtivou: true, danoExtra: 0, log: `<br><b style="color:#32ff32;">[PASSIVA: +1 STACK DE VENENO]</b>` };
+            }
+
+            // 🔥 CÁLCULO DE DANO FLAT ELEMENTAL (100% de chance)
             const elDefensor = dadosAlvo ? (dadosAlvo.elemento || "").toUpperCase() : "";
             const afinidade = this.affinities[elAtaque];
             
-            let danoBaseFlat = (elAtaque === "VENENO") ? 8 : ((passiva.nivel >= 2) ? 12 : 4);
-            let log = ` <span style="color:#ffcc00;">(+${danoBaseFlat} ${elAtaque})</span>`;
+            let danoBaseFlat = (passiva.nivel >= 2) ? 12 : 4;
+            let logFinal = `<br><span style="color:#ffcc00;">(+${danoBaseFlat} ${elAtaque})</span>`;
 
-            if (elAtaque !== "VENENO" && elDefensor && afinidade) {
+            if (elDefensor && afinidade) {
                 if (afinidade.forte.includes(elDefensor)) {
                     danoBaseFlat *= 2; 
-                    log = ` <span style="color:#f1c40f;"><b>VANTAGEM!</b> (+${danoBaseFlat} ${elAtaque})</span>`;
+                    logFinal = `<br><span style="color:#f1c40f;"><b>VANTAGEM!</b> (+${danoBaseFlat} ${elAtaque})</span>`;
                 } else if (afinidade.fraco.includes(elDefensor)) {
                     danoBaseFlat = 0;  
-                    log = ` <span style="color:#e74c3c;"><b>RESISTIDO!</b> (Imune a ${elAtaque})</span>`;
+                    logFinal = `<br><span style="color:#e74c3c;"><b>RESISTIDO!</b> (Imune a ${elAtaque})</span>`;
                 }
             }
-            return { danoExtra: danoBaseFlat, log, elemento: elAtaque };
+
+            // 🔥 ROLAGEM DE 10% PARA A CONDIÇÃO ELEMENTAL
+            const chance = Math.floor(Math.random() * 100) + 1;
+            let aplicouCondicao = false;
+
+            if (chance <= 10 || modoTeste) {
+                aplicouCondicao = true;
+                console.log(`Condição Elemental (${elAtaque}) ativada com sucesso!`);
+                logFinal += `<br><b style="color:#e67e22;">[CONDIÇÃO ${elAtaque} APLICADA!]</b>`;
+            } else {
+                console.log("condição falhou");
+                if (window.enviarMensagemChat) {
+                    window.enviarMensagemChat(window.usuarioLogadoNome || "Sistema", "condição falhou", "#888888");
+                }
+            }
+
+            // Retorna o dano, o log concatenado, e o status da condição
+            return { 
+                danoExtra: danoBaseFlat, 
+                log: logFinal, 
+                elemento: elAtaque,
+                condicaoElementalAtivou: aplicouCondicao ? elAtaque : null
+            };
         }
         return { danoExtra: 0, log: "" };
     },
@@ -230,12 +274,12 @@ window.PassiveSystem = {
             if (Math.random() <= (window.forcarPassiva ? 1.0 : 0.25)) {
                 return { 
                     horuzAtivou: true, 
-                    log: ` <b style="color:#ffffff; text-shadow: 0 0 10px gold;">🛡️ [HORUZ: ATAQUE IGNORADO!]</b>` 
+                    log: `<br><b style="color:#ffffff; text-shadow: 0 0 10px gold;">🛡️ [HORUZ: ATAQUE IGNORADO!]</b>` 
                 };
             } else {
                 return { 
                     horuzAtivou: false, 
-                    logFalha: ` <span style="color:#888; font-size:11px;"><i>(Horuz falhou na defesa)</i></span>` 
+                    logFalha: `<br><span style="color:#888; font-size:11px;"><i>(Horuz falhou na defesa)</i></span>` 
                 };
             }
         }

@@ -1,5 +1,5 @@
 /* ================================================================
-   L&D RPG - CÓDICE (V2.0 - FILTROS AVANÇADOS DE ITENS)
+   L&D RPG - CÓDICE (V3.1 - LIVRO DE REGRAS COM IMAGENS E LAYOUT)
    ================================================================ */
 
 function processarAtributosCodice(rawAttr) {
@@ -16,7 +16,7 @@ function processarAtributosCodice(rawAttr) {
 }
 
 const codice = {
-    registros: { monstros: {}, npcs: {}, itens: {}, magias: {} },
+    registros: { monstros: {}, npcs: {}, itens: {}, magias: {}, regras: {} },
     filtroAtual: 'todos',
     termoBusca: '',
 
@@ -35,13 +35,20 @@ const codice = {
                     from { background: rgba(0,0,0,0); }
                     to { background: rgba(0,0,0,0.9); }
                 }
+                .card-regra-add {
+                    background: rgba(44, 30, 26, 0.8) !important;
+                    border: 2px dashed #f3e520 !important;
+                    display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    cursor: pointer; transition: 0.2s; color: #f3e520;
+                }
+                .card-regra-add:hover { background: rgba(44, 30, 26, 1) !important; transform: scale(1.05); }
             `;
             document.head.appendChild(style);
         }
 
         console.log("📜 Códice: Sincronizando com a Grande Biblioteca...");
 
-        ['monstros', 'npcs', 'itens', 'magias'].forEach(cat => {
+        ['monstros', 'npcs', 'itens', 'magias', 'regras'].forEach(cat => {
             window.database.ref(cat).on('value', snap => {
                 this.registros[cat] = snap.val() || {};
                 this.renderizar();
@@ -50,7 +57,7 @@ const codice = {
     },
 
     darZoomImagem: function(url) {
-        if (!url) return;
+        if (!url || url.includes('placeholder')) return;
         
         const overlayZoom = document.createElement('div');
         overlayZoom.id = 'codice-zoom-overlay';
@@ -101,7 +108,6 @@ const codice = {
     setFiltro: function(f) { 
         this.filtroAtual = f.toLowerCase(); 
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            // A lógica de ativar o botão foi ajustada para lidar com os novos filtros
             const btnFiltroText = btn.innerText.toLowerCase();
             const btnDataFiltro = btn.getAttribute('onclick') || "";
             
@@ -128,34 +134,20 @@ const codice = {
         const scrollSalvo = grid.scrollTop;
         grid.innerHTML = '';
 
-        const categoriasBaseFirebase = ['monstros', 'npcs', 'magias'];
+        const categoriasBaseFirebase = ['monstros', 'npcs', 'magias', 'regras'];
 
         Object.entries(this.registros).forEach(([cat, dados]) => {
             let arrayItens = Object.entries(dados).map(([key, item]) => ({ idFirebase: key, ...item }));
 
-            // 🔥 A MÁGICA DO FILTRO EXATO ACONTECE AQUI
             if (this.filtroAtual !== 'todos') {
                 if (categoriasBaseFirebase.includes(this.filtroAtual)) {
-                    // Se o filtro for monstros, npcs ou magias
                     if (cat !== this.filtroAtual) return;
                 } else {
-                    // Se for subcategoria de itens
                     if (cat !== 'itens') return; 
-                    
                     arrayItens = arrayItens.filter(item => {
                         const sub = (item.tipoItem || item.subTipo || item.tipo || "").toLowerCase().trim();
-                        
-                        // Lida com variações de poções
-                        if (this.filtroAtual === 'poção' || this.filtroAtual === 'pocao') {
-                            return sub === 'poção' || sub === 'pocao' || sub === 'consumivel';
-                        }
-                        
-                        // Lida com variações de passivas
-                        if (this.filtroAtual === 'passiva' || this.filtroAtual === 'passivas') {
-                            return sub === 'passiva' || sub === 'passivas';
-                        }
-
-                        // 🔥 MUDANÇA AQUI: Busca EXATA para separar arma de armadura
+                        if (this.filtroAtual === 'poção' || this.filtroAtual === 'pocao') return sub === 'poção' || sub === 'pocao' || sub === 'consumivel';
+                        if (this.filtroAtual === 'passiva' || this.filtroAtual === 'passivas') return sub === 'passiva' || sub === 'passivas';
                         return sub === this.filtroAtual;
                     });
                 }
@@ -167,27 +159,45 @@ const codice = {
                 const key = item.idFirebase;
                 if (!item) return;
 
-                const nome = item.nome || item.identidade?.nome || "";
-                if (!nome || nome.trim() === "" || nome === "Token" || nome === "???") return;
-                if (this.termoBusca && !nome.toLowerCase().includes(this.termoBusca)) return;
+                let nomeDisplay = item.nome || item.titulo || item.identidade?.nome || "";
+                if (!nomeDisplay || nomeDisplay.trim() === "" || nomeDisplay === "Token" || nomeDisplay === "???") return;
+                if (this.termoBusca && !nomeDisplay.toLowerCase().includes(this.termoBusca)) return;
 
                 const card = document.createElement('div');
-                const estaDescoberto = item.descoberto || false;
+                let estaDescoberto = item.descoberto || false;
                 
+                if (cat === 'regras') estaDescoberto = true;
+
                 card.style.display = "block";
                 card.style.position = "relative";
 
                 if (window.isMestre || estaDescoberto) {
                     card.className = 'figurinha-card';
-                    const imgSrc = item.url || item.identidade?.img || '';
                     
+                    let imgSrc = item.url || item.identidade?.img || '';
+                    let isDefaultRegra = false;
+                    
+                    if (cat === 'regras' && !imgSrc) {
+                        imgSrc = 'https://i.imgur.com/k2e45N3.png'; // Fallback
+                        isDefaultRegra = true;
+                    }
+
+                    // 🔥 CORREÇÃO: Título "flutuando" preso no rodapé do card
                     card.innerHTML = `
-                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #2c1e1a;">
-                            <img src="${imgSrc}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; object-position: top;" onerror="this.src='https://via.placeholder.com/150?text=Erro'">
+                        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; background: #2c1e1a; position: relative;">
+                            
+                            <img src="${imgSrc}" loading="lazy" style="${isDefaultRegra ? 'width: 60%; margin-top: -15px;' : 'width: 100%; height: 100%; object-fit: cover; object-position: top;'}" onerror="this.src='https://via.placeholder.com/150?text=Erro'">
+                            
+                            ${cat === 'regras' ? `
+                                <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(44, 30, 26, 0.9); padding: 5px 0; display: flex; justify-content: center; align-items: center; border-top: 1px solid #f3e520;">
+                                    <span style="color: #f3e520; font-family: 'Cinzel'; font-size: 11px; font-weight: bold; text-align: center; padding: 0 5px; line-height: 1;">${nomeDisplay}</span>
+                                </div>
+                            ` : ''}
+
                         </div>
                     `;
                     
-                    if (window.isMestre && !estaDescoberto) {
+                    if (window.isMestre && !estaDescoberto && cat !== 'regras') {
                         card.style.border = "2px dashed #ff4444";
                         card.style.opacity = "0.7";
                     }
@@ -200,16 +210,38 @@ const codice = {
             });
         });
 
+        if (window.isMestre && this.filtroAtual === 'regras') {
+            const cardAdd = document.createElement('div');
+            cardAdd.className = 'figurinha-card card-regra-add';
+            cardAdd.innerHTML = `<i class="fa-solid fa-plus" style="font-size: 30px; margin-bottom: 5px;"></i><span style="font-family:'Cinzel'; font-size: 12px; font-weight:bold;">NOVA REGRA</span>`;
+            cardAdd.onclick = () => this.criarNovaRegra();
+            grid.appendChild(cardAdd);
+        }
+
         requestAnimationFrame(() => { grid.scrollTop = scrollSalvo; });
     },
 
-    exibirDetalhes: function(item, cat, idDoFirebase) {
+    criarNovaRegra: function() {
+        const novoId = firebase.database().ref().child('regras').push().key;
+        const itemVazio = { titulo: "Nova Regra", descricao: "Escreva as regras aqui...", url: "" };
+        this.exibirDetalhes(itemVazio, 'regras', novoId, true);
+    },
+
+    exibirDetalhes: function(item, cat, idDoFirebase, isNovaRegra = false) {
         if (!item) return;
 
+        const isRegra = (cat === 'regras');
+
+        const imgMoldura = document.querySelector('.figura-moldura-vertical');
         const imgEl = document.getElementById('codice-img');
-        const urlFinal = item.url || item.identidade?.img || '';
         
+        // Agora a moldura de imagem aparece nas regras também!
+        if (imgMoldura) imgMoldura.style.display = 'block';
+
         if (imgEl) {
+            let urlFinal = item.url || item.identidade?.img || '';
+            if (isRegra && !urlFinal) urlFinal = 'https://i.imgur.com/k2e45N3.png'; // Fallback
+            
             imgEl.src = urlFinal;
             imgEl.style.cursor = "zoom-in";
             imgEl.title = "Clique para ampliar a arte";
@@ -217,23 +249,32 @@ const codice = {
         }
         
         const tituloEl = document.getElementById('codice-titulo');
-        if (tituloEl) tituloEl.innerText = item.nome || item.identidade?.nome || "Desconhecido";
+        if (tituloEl) {
+            if (isRegra && window.isMestre) {
+                // Mestre agora tem input de Título E input de URL da imagem
+                tituloEl.innerHTML = `
+                    <input type="text" id="edit-regra-titulo" value="${item.titulo || ''}" placeholder="Título da Regra" style="background: transparent; border-bottom: 2px dashed #3e2723; border-top: none; border-left: none; border-right: none; color: #3e2723; font-size: 26px; font-family: 'Cinzel'; width: 100%; font-weight: bold; outline: none; margin-bottom: 8px;">
+                    <input type="text" id="edit-regra-url" value="${item.url || ''}" placeholder="Cole a URL da Imagem aqui..." style="background: rgba(0,0,0,0.05); border: 1px dashed #3e2723; color: #3e2723; font-size: 11px; width: 100%; padding: 4px; outline: none;">
+                `;
+            } else {
+                tituloEl.innerText = item.nome || item.titulo || item.identidade?.nome || "Desconhecido";
+            }
+        }
         
         const tipoEl = document.getElementById('codice-tipo');
         if (tipoEl) {
-            // 🔥 MUDA O LABEL DO TIPO SEGUNDO A CATEGORIA REAL
             let label = cat.toUpperCase();
-            if (cat === 'itens') {
-                label = (item.tipoItem || item.subTipo || item.tipo || 'ITEM').toUpperCase();
-            }
+            if (cat === 'itens') label = (item.tipoItem || item.subTipo || item.tipo || 'ITEM').toUpperCase();
+            if (isRegra) label = "LIVRO DE REGRAS";
             tipoEl.innerText = label;
         }
 
         const campoDesc = document.getElementById('codice-descricao');
         const btnSalvarDesc = document.getElementById('btn-salvar-descricao-publica');
+        const btnDeletarRegra = document.getElementById('btn-deletar-regra');
 
         if (campoDesc) {
-            const texto = item.descricao || item.subtitulo || "Nenhum relato encontrado.";
+            const texto = item.descricao || item.subtitulo || "";
             if (campoDesc.tagName === 'TEXTAREA') campoDesc.value = texto;
             else campoDesc.innerText = texto;
 
@@ -243,48 +284,89 @@ const codice = {
             if (window.isMestre) {
                 if (campoDesc.tagName === 'TEXTAREA') campoDesc.readOnly = false;
                 campoDesc.style.border = "1px dashed #3e2723"; 
+                
                 if (btnSalvarDesc) {
                     btnSalvarDesc.style.display = 'block';
                     btnSalvarDesc.onclick = () => {
-                        window.database.ref(`${cat}/${idDoFirebase}`).update({
-                            descricao: campoDesc.value || campoDesc.innerText
-                        }).then(() => alert("📜 Descrição oficial atualizada!"));
+                        const payload = { descricao: campoDesc.value || campoDesc.innerText };
+                        
+                        // Salva o título e a URL se for regra
+                        if (isRegra) {
+                            const inputTitulo = document.getElementById('edit-regra-titulo');
+                            const inputUrl = document.getElementById('edit-regra-url');
+                            if (inputTitulo) payload.titulo = inputTitulo.value;
+                            if (inputUrl) payload.url = inputUrl.value;
+                        }
+                        
+                        window.database.ref(`${cat}/${idDoFirebase}`).update(payload).then(() => {
+                            alert(isRegra ? "📚 Regra Salva no Códice!" : "📜 Descrição oficial atualizada!");
+                            if(isRegra && payload.url) imgEl.src = payload.url; // Atualiza a foto na hora
+                        });
                     };
+                }
+
+                if (btnDeletarRegra) {
+                    btnDeletarRegra.style.display = isRegra ? 'block' : 'none';
+                    btnDeletarRegra.onclick = () => {
+                        if (confirm("🔥 Tem certeza que deseja queimar esta página de regra?")) {
+                            window.database.ref(`regras/${idDoFirebase}`).remove().then(() => {
+                                campoDesc.value = "";
+                                if(tituloEl) tituloEl.innerHTML = "Regra Excluída";
+                                btnSalvarDesc.style.display = 'none';
+                                btnDeletarRegra.style.display = 'none';
+                            });
+                        }
+                    }
                 }
             } else {
                 if (campoDesc.tagName === 'TEXTAREA') campoDesc.readOnly = true;
                 campoDesc.style.border = "none"; 
                 if (btnSalvarDesc) btnSalvarDesc.style.display = 'none';
+                if (btnDeletarRegra) btnDeletarRegra.style.display = 'none';
             }
         }
 
         const badge = document.getElementById('codice-stats-badge');
         if (badge) {
-            const rank = (item.rank || item.identidade?.rank || item.raridade || "-").toUpperCase();
-            const elemento = (item.elemento || item.identidade?.elemento || item.tipoItem || item.tipoMagia || "Neutro").toUpperCase();
-            badge.innerHTML = `
-                <span style="color: #3e2723;"><i class="fa-solid fa-crown"></i> Info: <b>${rank}</b></span>
-                <span style="color: #3e2723;"><i class="fa-solid fa-burst"></i> Tipo: <b>${elemento}</b></span>
-            `;
+            if (isRegra) {
+                badge.style.display = 'none';
+            } else {
+                badge.style.display = 'block';
+                const rank = (item.rank || item.identidade?.rank || item.raridade || "-").toUpperCase();
+                const elemento = (item.elemento || item.identidade?.elemento || item.tipoItem || item.tipoMagia || "Neutro").toUpperCase();
+                badge.innerHTML = `
+                    <span style="color: #3e2723;"><i class="fa-solid fa-crown"></i> Info: <b>${rank}</b></span>
+                    <span style="color: #3e2723;"><i class="fa-solid fa-burst"></i> Tipo: <b>${elemento}</b></span>
+                `;
+            }
         }
 
         const miniStats = document.getElementById('codice-mini-stats');
         if (miniStats) {
-            const attrBase = processarAtributosCodice(item.atributos || item.stats?.atributos);
-            miniStats.innerHTML = `
-                <span style="color:#ff4d4d; font-weight:bold;">🗡️ FOR: ${attrBase.for}</span>
-                <span style="color:#2ecc71; font-weight:bold;">🏹 DEX: ${attrBase.dex}</span>
-                <span style="color:#00f2ff; font-weight:bold;">🔮 INT: ${attrBase.int}</span>
-                <span style="color:#f3e520; font-weight:bold;">🛡️ DEF: ${attrBase.def}</span>
-            `;
+            if (isRegra || !item.atributos) {
+                miniStats.style.display = 'none';
+            } else {
+                miniStats.style.display = 'flex';
+                const attrBase = processarAtributosCodice(item.atributos || item.stats?.atributos);
+                miniStats.innerHTML = `
+                    <span style="color:#ff4d4d; font-weight:bold;">🗡️ FOR: ${attrBase.for}</span>
+                    <span style="color:#2ecc71; font-weight:bold;">🏹 DEX: ${attrBase.dex}</span>
+                    <span style="color:#00f2ff; font-weight:bold;">🔮 INT: ${attrBase.int}</span>
+                    <span style="color:#f3e520; font-weight:bold;">🛡️ DEF: ${attrBase.def}</span>
+                `;
+            }
         }
 
         const btnRevelar = document.getElementById('btn-revelar-codice');
         if (window.isMestre && btnRevelar) {
-            btnRevelar.style.display = 'block';
-            const estaDescoberto = item.descoberto || false;
-            btnRevelar.innerHTML = estaDescoberto ? '<i class="fa-solid fa-eye-slash"></i> Ocultar' : '<i class="fa-solid fa-eye"></i> Revelar';
-            btnRevelar.onclick = () => window.database.ref(`${cat}/${idDoFirebase}`).update({ descoberto: !estaDescoberto });
+            if (isRegra) {
+                btnRevelar.style.display = 'none';
+            } else {
+                btnRevelar.style.display = 'block';
+                const estaDescoberto = item.descoberto || false;
+                btnRevelar.innerHTML = estaDescoberto ? '<i class="fa-solid fa-eye-slash"></i> Ocultar' : '<i class="fa-solid fa-eye"></i> Revelar';
+                btnRevelar.onclick = () => window.database.ref(`${cat}/${idDoFirebase}`).update({ descoberto: !estaDescoberto });
+            }
         }
     }
 };

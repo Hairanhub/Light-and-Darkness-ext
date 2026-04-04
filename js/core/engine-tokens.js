@@ -1,5 +1,6 @@
 /* ============================================================
-   === [ ENGINE DE TOKENS V7.9 - FIX DA AMNÉSIA DE STATUS ] ===
+   === [ ENGINE DE TOKENS V8.0 ] ===
+   === Feat: O Peso do Gelo (Redução de Mobilidade por Armadura)
    ============================================================ */
 (function() {
     const gridSize = 35; 
@@ -285,13 +286,11 @@
             if (e.button !== 0 || e.target.closest('.status-badge')) return;
 
             const isDropable = (tipoToken === 'itens' || tipoToken === 'item' || tipoToken === 'magia');
-            if (isDropable && !e.ctrlKey) return; // Se for item, retorna e NÃO faz movimento de grid!
+            if (isDropable && !e.ctrlKey) return; 
 
-            // Usa o dono atualizado do HTML para evitar bugs de mudança de posse
             const donoAtual = token.dataset.dono;
             if (!window.isDonoOuMestre({ dono: donoAtual }, tipoToken)) return;
 
-            // 🛑 O JUIZ DO MOVIMENTO: Agora lê os dados mais recentes direto do HTML! 🛑
             let statusAtualizados = {};
             try {
                 statusAtualizados = JSON.parse(token.dataset.statusAtivos || "{}");
@@ -319,7 +318,7 @@
                         const charName = token.querySelector('.nome-linha')?.textContent || "Personagem";
                         window.combate.notificarCombate(charName.toUpperCase(), `🛑 <b>TENTOU ANDAR, MAS ESTÁ PRESO!</b><br>Motivo: ${statusBloqueador}`, "#ff3333");
                     }
-                    return; // Retorna imediatamente, impedindo o movimento!
+                    return; 
                 }
             }
 
@@ -343,6 +342,26 @@
                 }
             } else {
                 blocosPermitidos = 999;
+            }
+
+            // ❄️ O PESO DO GELO: Reduz a mobilidade baseado na armadura se estiver congelado
+            let temGelo = false;
+            for (let id in statusAtualizados) {
+                if (statusAtualizados[id].tipo && statusAtualizados[id].tipo.toUpperCase() === "GELO") {
+                    temGelo = true;
+                    break;
+                }
+            }
+
+            if (temGelo && emCombate && blocosPermitidos > 0) {
+                let armadura = (data.tipoArmadura || data.categoriaArmadura || "nenhuma").toLowerCase();
+                
+                let limiteGelo = 4; // Base sem armadura
+                if (armadura.includes("leve")) limiteGelo = 3;
+                else if (armadura.includes("media") || armadura.includes("média")) limiteGelo = 2;
+                else if (armadura.includes("pesada")) limiteGelo = 1;
+
+                blocosPermitidos = Math.min(blocosPermitidos, limiteGelo);
             }
 
             if (blocosPermitidos <= 0 && !isDropable) {
@@ -446,6 +465,17 @@
                     updates.x = finalX;
                     updates.y = finalY;
                     window.mapaRef.child('tokens').child(key).update(updates);
+
+                    // ⚡ O CHOQUE DE REAÇÃO ESCALONADO (1 Grid = 1 Dano)
+                    let blocosAndadosX = Math.abs(finalX - startTokenX) / 35;
+                    let blocosAndadosY = Math.abs(finalY - startTokenY) / 35;
+                    let blocosTotais = Math.max(blocosAndadosX, blocosAndadosY); 
+
+                    if (blocosTotais > 0 && window.StatusSystem && typeof window.StatusSystem.aplicarDanoReacao === 'function') {
+                        setTimeout(() => {
+                            window.StatusSystem.aplicarDanoReacao(key, blocosTotais);
+                        }, 200);
+                    }
                 }
                 
                 token.style.left = finalX + 'px';

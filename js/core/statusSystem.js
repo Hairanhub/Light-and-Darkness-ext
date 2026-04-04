@@ -1,9 +1,9 @@
 /**
- * STATUS SYSTEM - O CÉREBRO DE REGRAS V5.3
- * (INCLUI FUGA DO MEDO: MONSTRO SOME, JOGADOR CAI)
+ * STATUS SYSTEM - O CÉREBRO DE REGRAS V5.9 (PRO)
+ * (FIX: EXATAMENTE 16 CONDIÇÕES - AR = SUFOCAMENTO COM 50%)
  */
 window.StatusSystem = {
-    // 1. Definições Mestres
+    // 1. Definições Mestres (Exatamente 16)
     definitions: {
         "VENENO": { nome: "Veneno", icone: "🤢", dano: 2, turnos: 6, tipoDano: "passivo" },
         "SANGRAMENTO": { nome: "Sangramento", icone: "🩸", dano: 4, turnos: 3, tipoDano: "passivo" },
@@ -11,17 +11,17 @@ window.StatusSystem = {
         "RAIO": { nome: "Raio", icone: "⚡", dano: 3, turnos: 2, tipoDano: "reacao" },
         "FOGO": { nome: "Fogo", icone: "🔥", dano: 8, turnos: 2, tipoDano: "passivo" },
         
-        "AR": { nome: "Ar", icone: "🌬️", turnos: 3, tipoDano: "debuff" },
-        "AGUA": { nome: "Água", icone: "💧", turnos: 100, tipoDano: "debuff" },
+        "AR": { nome: "Ar", icone: "🌬️", turnos: 3, tipoDano: "debuff" }, // Causa Sufocamento
+        "AGUA": { nome: "Água", icone: "💧", turnos: 3, tipoDano: "debuff" },
         "NATUREZA": { nome: "Natureza", icone: "🌿", turnos: 2, tipoDano: "debuff", travaMovimento: true },
         "SONO": { nome: "Sono", icone: "💤", turnos: 3, tipoDano: "controle", travaMovimento: true, travaTurno: true },
         "TERRA": { nome: "Terra", icone: "⛰️", turnos: 2, tipoDano: "controle", travaMovimento: true, travaTurno: true },
-        "GELO": { nome: "Gelo", icone: "❄️", turnos: 3, tipoDano: "controle", travaMovimento: true, travaTurno: true },
+        "GELO": { nome: "Gelo", icone: "❄️", turnos: 3, tipoDano: "controle", travaMovimento: false, travaTurno: false },
         "CEGUEIRA": { nome: "Cegueira", icone: "🕶️", turnos: 3, tipoDano: "debuff" },
         "CONFUSAO": { nome: "Confusão", icone: "🌀", turnos: 3, tipoDano: "debuff" },
-        "MALDICAO": { nome: "Maldição", icone: "📉", turnos: 4, tipoDano: "debuff" },
+        "MALDICAO": { nome: "Maldição", icone: "📉", turnos: 3, tipoDano: "debuff" },
         "MEDO": { nome: "Medo", icone: "😨", turnos: 3, tipoDano: "debuff" },
-        "SUSPENSO": { nome: "Suspenso", icone: "🌪️", dano: 0, turnos: 1, tipoDano: "controle", travaMovimento: true, travaTurno: true }
+        "SUSPENSO": { nome: "Suspenso", icone: "🌪️", dano: 0, turnos: 2, tipoDano: "controle", travaMovimento: true, travaTurno: true }
     },
 
     // 2. FUNÇÃO MESTRA DE HP
@@ -41,8 +41,8 @@ window.StatusSystem = {
 
         if (delta < 0 && this.temStatus(token, "GELO")) {
             if (Math.random() <= 0.3) {
-                delta = Math.floor(delta * 1.5);
-                if (window.combate) window.combate.notificarCombate(token.nome, "❄️ FRAQUEZA: O gelo quebrou! (+50% Dano)", "#00ffff");
+                delta = Math.floor(delta * 1.3);
+                if (window.combate) window.combate.notificarCombate(token.nome, "❄️ FRAQUEZA: O gelo quebrou! (+30% Dano)", "#00ffff");
             }
         }
 
@@ -106,14 +106,14 @@ window.StatusSystem = {
         }
 
         const tabela = {
-            "AR":       { ativou: d10 <= 2, msg: `🌬️ Ar: O ataque falhou (Dano Repelido)! ${dadoRoladoHTML}` },
-            "CEGUEIRA": { ativou: d10 <= 3, msg: `🕶️ Cegueira: O ataque errou! ${dadoRoladoHTML}` },
-            "CONFUSAO": { ativou: d10 <= 3, msg: `🌀 Confusão: Perdeu o turno! ${dadoRoladoHTML}` }
+            // 🔥 AR causa Sufocamento (50% de chance de falhar)
+            "AR":          { ativou: d10 <= 5, msg: `🌬️ Ar (Sufocando): Faltou ar! A ação falhou e o golpe foi repelido! ${dadoRoladoHTML}` },
+            "CEGUEIRA":    { ativou: d10 <= 3, msg: `🕶️ Cegueira: O ataque errou! ${dadoRoladoHTML}` },
+            "CONFUSAO":    { ativou: d10 <= 3, msg: `🌀 Confusão: Perdeu o turno! ${dadoRoladoHTML}` }
         };
 
         if (tipo === "MEDO") {
             if (d10 === 1) {
-                // 🔥 O CÓDIGO DA FUGA AUTOMÁTICA
                 this.executarFuga(token);
                 const acao = (token.tipo === 'jogador') ? "Em pânico! Fugiu descontroladamente!" : "Correu de medo e abandonou a batalha!";
                 return { ativou: true, efeito: "fuga", msg: `😨 MEDO: ${acao} ${dadoRoladoHTML}` };
@@ -128,7 +128,6 @@ window.StatusSystem = {
     executarFuga: async function(tokenData) {
         if (!window.mapaRef || !tokenData) return;
         
-        // Pega o ID verdadeiro do token pelo banco
         let tokenId = null;
         const snap = await window.mapaRef.child('tokens').once('value');
         snap.forEach(child => {
@@ -140,11 +139,9 @@ window.StatusSystem = {
 
         if (!tokenId) return;
 
-        // Verifica se é monstro ou jogador
         const isJogador = (tokenData.tipo === 'jogador');
 
         if (!isJogador) {
-            // MONSTRO: Foge e some do mapa e da iniciativa!
             await window.mapaRef.child('tokens').child(tokenId).remove();
             if (window.iniciativa && typeof window.iniciativa.removerToken === 'function') {
                 window.iniciativa.removerToken(tokenId);
@@ -152,7 +149,6 @@ window.StatusSystem = {
             return;
         }
 
-        // JOGADOR: Foge para uma direção aleatória 3 blocos (105px) e cai no chão
         const dirs = [
             { x: 105, y: 0 }, { x: -105, y: 0 }, { x: 0, y: 105 }, { x: 0, y: -105 },
             { x: 105, y: 105 }, { x: -105, y: -105 }, { x: 105, y: -105 }, { x: -105, y: 105 }
@@ -162,7 +158,6 @@ window.StatusSystem = {
         const destinoX = parseInt(tokenData.x) + dirAleatoria.x;
         const destinoY = parseInt(tokenData.y) + dirAleatoria.y;
 
-        // Atualiza a posição e deita a imagem
         const updates = {
             x: destinoX,
             y: destinoY,
@@ -192,16 +187,38 @@ window.StatusSystem = {
         return danoFinal;
     },
 
-    // 5. APLICAR STATUS (COM LÓGICA DE SUBSTITUIÇÃO VS ACÚMULO)
-    aplicarStatus: async function(tokenId, tipoStatus) {
+    // 5. APLICAR STATUS (COM SISTEMA DE STACKS PARA O VENENO)
+    aplicarStatus: async function(tokenId, tipoStatus, danoCausado = null) {
         const nomeChave = tipoStatus.toUpperCase();
         const config = this.definitions[nomeChave];
         if (!config) return;
+
+        // 🛡️ O JUIZ DO CONTATO FÍSICO
+        if (danoCausado !== null && danoCausado <= 0) {
+            const exigeContato = ["VENENO", "SANGRAMENTO", "FOGO", "NATUREZA"];
+            if (exigeContato.includes(nomeChave)) {
+                console.log(`🛡️ Sistema: ${nomeChave} foi bloqueado porque o golpe não perfurou a armadura.`);
+                return; 
+            }
+        }
 
         const refToken = window.mapaRef.child('tokens').child(tokenId);
         const snap = await refToken.once('value');
         const token = snap.val();
         if (!token) return;
+
+        let statusAtivos = token.statusAtivos || {};
+        let chaveExistente = null;
+        let objStatusExistente = null;
+
+        // 🔍 Agora ele procura TODOS os status na ficha do alvo, INCLUINDO o Veneno
+        for (let idUnico in statusAtivos) {
+            if (statusAtivos[idUnico].tipo.toUpperCase() === nomeChave) {
+                chaveExistente = idUnico;
+                objStatusExistente = statusAtivos[idUnico];
+                break;
+            }
+        }
 
         const statusData = {
             tipo: nomeChave.toLowerCase(),
@@ -210,27 +227,40 @@ window.StatusSystem = {
             timestamp: Date.now()
         };
 
-        let statusAtivos = token.statusAtivos || {};
-        let chaveExistente = null;
+        if (chaveExistente) {
+            // ☠️ LÓGICA DE STACK DE VENENO
+            if (nomeChave === "VENENO") {
+                // Pega o dano atual do veneno (ou o base se der erro)
+                let danoAtual = parseInt(objStatusExistente.valor) || config.dano;
+                
+                // Soma o dano base (+2) ao dano que já está rodando
+                let novoDano = danoAtual + config.dano; 
+                statusData.valor = novoDano; // Vai subir de 2 para 4, de 4 para 6...
+                
+                // Calcula quantos stacks o inimigo tem só para mostrar no chat!
+                let numStacks = novoDano / config.dano;
 
-        if (nomeChave !== "VENENO") {
-            for (let idUnico in statusAtivos) {
-                if (statusAtivos[idUnico].tipo.toUpperCase() === nomeChave) {
-                    chaveExistente = idUnico;
-                    break;
+                await refToken.child('statusAtivos').child(chaveExistente).update(statusData);
+                
+                if (window.combate) {
+                    window.combate.notificarCombate(token.nome.toUpperCase(), `🤢 <b>VENENO ACUMULADO!</b> (${numStacks} Stacks ➔ -${novoDano} HP/turno)`, "#32ff32");
+                }
+            } else {
+                // 🔄 RENOVAÇÃO PADRÃO (Para Fogo, Sangramento, Controle)
+                await refToken.child('statusAtivos').child(chaveExistente).update(statusData);
+                if (window.combate) {
+                    window.combate.notificarCombate(token.nome.toUpperCase(), `🔄 <b>${config.nome}</b> renovado!`, "#ffaa00");
                 }
             }
-        }
-
-        if (chaveExistente) {
-            await refToken.child('statusAtivos').child(chaveExistente).update(statusData);
-            if (window.combate) {
-                window.combate.notificarCombate(token.nome.toUpperCase(), `🔄 <b>${config.nome}</b> renovado!`, "#ffaa00");
-            }
         } else {
+            // ✨ APLICAÇÃO INICIAL DE QUALQUER STATUS
             await refToken.child('statusAtivos').push(statusData);
             if (window.combate) {
-                window.combate.notificarCombate(token.nome.toUpperCase(), `✨ Sofreu <b>${config.nome}</b>! (${config.icone})`, "#ffaa00");
+                let corNotificacao = "#ffaa00"; // Padrão
+                if (nomeChave === "NECROSE") corNotificacao = "#800080"; // Sombrio
+                if (nomeChave === "VENENO") corNotificacao = "#32ff32"; // Tóxico
+
+                window.combate.notificarCombate(token.nome.toUpperCase(), `✨ Sofreu <b>${config.nome}</b>! (${config.icone})`, corNotificacao);
             }
         }
     },
@@ -286,8 +316,8 @@ window.StatusSystem = {
         }
     },
 
-    // 7. REAÇÕES
-    aplicarDanoReacao: async function(tokenId) {
+    // 7. REAÇÕES (Agora aceita Dano Escalado por Movimento!)
+    aplicarDanoReacao: async function(tokenId, danoEspecifico = null) {
         const snap = await window.mapaRef.child('tokens').child(tokenId).once('value');
         const token = snap.val();
         if (!token || !token.statusAtivos) return;
@@ -295,9 +325,16 @@ window.StatusSystem = {
         for (let idUnico in token.statusAtivos) {
             let s = token.statusAtivos[idUnico];
             if (s.tipo.toUpperCase() === "RAIO") {
-                const dano = 3; 
-                await this.modificarHP(tokenId, -dano);
-                if (window.combate) window.combate.notificarCombate(token.nome.toUpperCase(), `⚡ RAIO REAGIU: -${dano} HP!`, "#ffff00");
+                // Se receber um dano específico (movimento), usa ele. Se não (ataque/magia), usa 3.
+                const dano = danoEspecifico !== null ? danoEspecifico : 3; 
+                
+                // Só aplica o choque se o dano for maior que 0
+                if (dano > 0) {
+                    await this.modificarHP(tokenId, -dano);
+                    if (window.combate) {
+                        window.combate.notificarCombate(token.nome.toUpperCase(), `⚡ RAIO REAGIU: -${dano} HP!`, "#ffff00");
+                    }
+                }
                 break; 
             }
         }
@@ -334,6 +371,21 @@ window.StatusSystem = {
                 }
             }
         }, 10000);
+    },
+
+    removerStatus: async function(tokenId, tipoStatus) {
+        const refToken = window.mapaRef.child('tokens').child(tokenId);
+        const snap = await refToken.once('value');
+        const token = snap.val();
+        if (!token || !token.statusAtivos) return;
+
+        const nomeChave = tipoStatus.toUpperCase();
+        for (let idUnico in token.statusAtivos) {
+            if (token.statusAtivos[idUnico].tipo.toUpperCase() === nomeChave) {
+                await refToken.child('statusAtivos').child(idUnico).remove();
+                break;
+            }
+        }
     },
 
     animarDano: function(tokenId) {
