@@ -1,7 +1,7 @@
 /**
  * js/jogador/ficha.js
  * Gerenciamento de Identidade, Foto, Atributos e Inventário Persistente por Usuário
- * Versão: 7.3 - Sistema de Economia, Level, Mana e Correção da Defesa (Valores Puros 1:1) 🛡️🔮💰
+ * Versão: 7.6 - Central de Memória (EstadoFicha) Conectada + Mana 1:1 🧠
  */
 
 const FichaJogador = {
@@ -67,31 +67,22 @@ const FichaJogador = {
         });
 
         // 2. Sincroniza Atributos (Apenas Base)
-        const stats = ['for', 'dex', 'con', 'int', 'def', 'car'];
-        
-        // Escuta APENAS a pasta 'atributos' para evitar loop com os equipamentos
         this.refUsuario.child('atributos').on('value', snap => {
             const at = snap.val() || {};
             console.log("📥 [FICHA] Atributos base carregados do Firebase:", at);
             
-            stats.forEach(stat => {
-                const base = parseInt(at[stat]) || 0;
-
-                // Atualiza o Valor Base no HTML
-                const elBase = document.getElementById(`base-${stat}`);
-                if (elBase) elBase.innerText = base;
-            });
-
-            // 🔥 A MÁGICA: Agora que a BASE está garantida no HTML, 
-            // pedimos para o inventário somar os bônus por cima.
-            setTimeout(() => {
-                if (window.Inventario && typeof window.Inventario.calcularBonusEquipamentos === 'function') {
-                    console.log("⚔️ [FICHA] Solicitando recalculo de bônus ao Inventário...");
-                    window.Inventario.calcularBonusEquipamentos();
-                } else {
-                    console.warn("⚠️ [FICHA] Inventário ainda não está pronto para calcular bônus.");
+            if (window.EstadoFicha) {
+                window.EstadoFicha.atualizarBase({
+                    for: parseInt(at.for) || 0, dex: parseInt(at.dex) || 0,
+                    con: parseInt(at.con) || 0, int: parseInt(at.int) || 0,
+                    def: parseInt(at.def) || 0, car: parseInt(at.car) || 0
+                });
+                
+                // Obriga a Ficha a recalcular TUDO (Base + Itens) e atualizar o Token e o Mestre!
+                if(typeof window.EstadoFicha.sincronizarComFirebase === 'function') {
+                    window.EstadoFicha.sincronizarComFirebase();
                 }
-            }, 50);
+            }
         });
 
         // ==========================================
@@ -100,19 +91,18 @@ const FichaJogador = {
         this.refUsuario.on('value', snap => {
             const dados = snap.val() || {};
             
-            // 1. Atualiza o Nível na Ficha
             const nivelAtual = parseInt(dados.nivel) || 1;
             const elNivel = document.getElementById('txt-nivel');
             if (elNivel) elNivel.innerText = nivelAtual;
 
-            // 2. Cálculo da Mana (10 base + 3 por nível + bônus de INT)
-            const intTotal = parseInt(document.getElementById('stat-int')?.innerText) || 0;
-            const novaManaMax = 10 + ((nivelAtual - 1) * 3) + Math.floor(intTotal / 3);
+            let intTotal = 0;
+            if (window.EstadoFicha) intTotal = window.EstadoFicha.obterTotais().int || 0;
+            
+            // 🔥 NOVA FÓRMULA DE MANA: 1 de Inteligência = 1 de Mana extra
+            const novaManaMax = 10 + ((nivelAtual - 1) * 3) + intTotal;
 
-            // 3. Atualiza a variável global
             window.nivelJogadorAtual = nivelAtual; 
 
-            // 4. ATUALIZAÇÃO DO TOKEN NO MAPA
             const meuNomeOriginal = window.usuarioLogadoNome || localStorage.getItem('rubi_username');
             
             if (window.database && meuNomeOriginal) {
@@ -121,25 +111,27 @@ const FichaJogador = {
                         const t = child.val();
                         if (t.dono && t.dono.toLowerCase() === meuNomeOriginal.toLowerCase()) {
                             
+                            // 🔥 CORREÇÃO DO BUG DE CURA: 
+                            // Mantém a mana atual como está, a menos que seja maior que o novo máximo.
+                            // Assim o Booster não é anulado por uma atualização da ficha!
+                            let manaAtualPersistente = t.manaAtual !== undefined ? t.manaAtual : novaManaMax;
+                            if (manaAtualPersistente > novaManaMax) manaAtualPersistente = novaManaMax;
+
                             child.ref.update({
                                 manaMax: novaManaMax,
-                                manaAtual: novaManaMax
+                                manaAtual: Math.max(0, manaAtualPersistente)
                             });
                         }
                     });
                 });
             }
 
-            // --- Parte do Dinheiro (Mantida igual) ---
+            // --- Parte do Dinheiro ---
             let totalCobre = parseInt(dados.cobre) || 0;
-            let gold = Math.floor(totalCobre / 1000);
-            let silver = Math.floor((totalCobre % 1000) / 100);
-            let bronze = Math.floor((totalCobre % 100) / 10);
-            let copper = totalCobre % 10;
-            if (document.getElementById('txt-gold')) document.getElementById('txt-gold').innerText = gold;
-            if (document.getElementById('txt-silver')) document.getElementById('txt-silver').innerText = silver;
-            if (document.getElementById('txt-bronze')) document.getElementById('txt-bronze').innerText = bronze;
-            if (document.getElementById('txt-copper')) document.getElementById('txt-copper').innerText = copper;
+            if (document.getElementById('txt-gold')) document.getElementById('txt-gold').innerText = Math.floor(totalCobre / 1000);
+            if (document.getElementById('txt-silver')) document.getElementById('txt-silver').innerText = Math.floor((totalCobre % 1000) / 100);
+            if (document.getElementById('txt-bronze')) document.getElementById('txt-bronze').innerText = Math.floor((totalCobre % 100) / 10);
+            if (document.getElementById('txt-copper')) document.getElementById('txt-copper').innerText = totalCobre % 10;
         });
     },
 
@@ -161,27 +153,26 @@ const FichaJogador = {
 
         const foto = document.getElementById('player-photo-display')?.src || 'https://via.placeholder.com/60';
         
-        // Captura os valores TOTAIS do HTML (Base + Equipamentos)
-        const forTotal = parseInt(document.getElementById('stat-for')?.innerText) || 0;
-        const dexTotal = parseInt(document.getElementById('stat-dex')?.innerText) || 0;
-        const conTotal = parseInt(document.getElementById('stat-con')?.innerText) || 0;
-        const intTotal = parseInt(document.getElementById('stat-int')?.innerText) || 0;
-        const defTotal = parseInt(document.getElementById('stat-def')?.innerText) || 0;
-        const carTotal = parseInt(document.getElementById('stat-car')?.innerText) || 0;
+        // 🌟 NOVA LÓGICA: Captura os valores TOTAIS diretamente da Memória Pura
+        let atributosProcessados = { for: 0, dex: 0, con: 0, int: 0, def: 0, car: 0 };
+        let vidaCalculada = 20;
+        let manaCalculada = 10;
+        let nomeArmaEquipada = "";
 
-        const atributosProcessados = {
-            for: forTotal, dex: dexTotal, con: conTotal, 
-            int: intTotal, 
-            def: defTotal, // 🔥 PURO 1:1
-            car: carTotal
-        };
-
-        // Calculamos a Vida Total
-        const vidaCalculada = conTotal; // 🔥 PURO 1:1
-
-        // Calculamos a Mana (10 base + 3 por nível + bônus de INT)
-        const nivel = window.nivelJogadorAtual || 1;
-        const manaCalculada = 10 + ((nivel - 1) * 3) + Math.floor(intTotal / 3);
+        if (window.EstadoFicha) {
+            const totais = window.EstadoFicha.obterTotais();
+            atributosProcessados = {
+                for: totais.for, dex: totais.dex, con: totais.con, 
+                int: totais.int, def: totais.def, car: totais.car
+            };
+            vidaCalculada = totais.con || 20;
+            const nivel = window.nivelJogadorAtual || 1;
+            
+            // 🔥 NOVA FÓRMULA DE MANA AO INVOCAR TOKEN: 1 de INT = 1 de MANA
+            manaCalculada = 10 + ((nivel - 1) * 3) + totais.int;
+            
+            nomeArmaEquipada = window.EstadoFicha.armaEquipada || "";
+        }
 
         const novoToken = {
             nome: nome,
@@ -194,11 +185,12 @@ const FichaJogador = {
             hpAtual: vidaCalculada,
             manaMax: manaCalculada,
             manaAtual: manaCalculada,
-            atributos: atributosProcessados 
+            atributos: atributosProcessados,
+            armaEquipada: nomeArmaEquipada // 🔥 Puxa direto da Memória!
         };
 
         tokensRef.push(novoToken)
-            .then(() => console.log("✅ Token invocado com valores puros salvos no Banco!"))
+            .then(() => console.log("✅ Token invocado com valores e Arma salvos no Banco!"))
             .catch(err => console.error("❌ Erro ao invocar:", err));
     },
 
@@ -272,7 +264,7 @@ window.salvarDadosFicha = function(novosAtributosBase) {
         car: parseInt(novosAtributosBase.car) || 0,
         con: parseInt(novosAtributosBase.con) || 0, 
         def: parseInt(novosAtributosBase.def) || 0, 
-        hpMax: parseInt(novosAtributosBase.con) || 0 // 🔥 HP PURO 1:1
+        hpMax: parseInt(novosAtributosBase.con) || 0 
     };
 
     window.database.ref(`usuarios/${nome}/atributos`).set(atributosCalculados)
@@ -283,71 +275,10 @@ window.salvarDadosFicha = function(novosAtributosBase) {
                     child.ref.update({ 
                         hpMax: atributosCalculados.hpMax,
                         hpAtual: atributosCalculados.hpMax,
-                        'atributos/def': atributosCalculados.def // 🔥 DEFESA PURA 1:1
+                        'atributos/def': atributosCalculados.def 
                     });
                 });
             });
         })
         .catch(err => console.error("❌ Erro ao salvar:", err));
-};
-
-window.atualizarStatusDaFicha = function(bonusEquipamento) {
-    console.log("🧪 [DEBUG] atualizarStatusDaFicha foi chamada!"); 
-
-    const atributos = ['for', 'dex', 'con', 'int', 'def', 'car'];
-    let atributosFinaisParaOMapa = {};
-
-    atributos.forEach(attr => {
-        const spanBase = document.getElementById(`base-${attr}`);
-        const spanBonus = document.getElementById(`bonus-${attr}`);
-        const spanTotal = document.getElementById(`stat-${attr}`);
-
-        if (spanBase && spanBonus && spanTotal) {
-            let valorBase = parseInt(spanBase.innerText) || 0;
-            let bonus = parseInt(bonusEquipamento[attr]) || 0;
-            let total = valorBase + bonus;
-
-            spanBonus.innerText = (bonus >= 0 ? "+" : "") + bonus;
-            spanBonus.style.color = bonus > 0 ? '#2ecc71' : (bonus < 0 ? '#e74c3c' : '#555');
-            spanTotal.innerText = total;
-            spanTotal.style.color = bonus > 0 ? '#f1c40f' : '#fff';
-
-            atributosFinaisParaOMapa[attr] = total; // Valor base + bônus puro, sem o x4
-        }
-    });
-
-    // Calcula novo HP (Puro 1:1)
-    let conTotal = atributosFinaisParaOMapa['con'] || 0;
-    let novoHpMax = conTotal;
-
-    // Calcula nova Mana (10 base + 3 por nível + bônus de INT)
-    let intTotal = atributosFinaisParaOMapa['int'] || 0;
-    let nivel = window.nivelJogadorAtual || 1;
-    let novoManaMax = 10 + ((nivel - 1) * 3) + Math.floor(intTotal / 3);
-
-    const nomeDono = window.usuarioLogadoNome || localStorage.getItem('rubi_username');
-    
-    const refParaTokens = window.mapaRef ? window.mapaRef.child('tokens') : window.database.ref('mapa/tokens');
-
-    if (nomeDono) {
-        refParaTokens.once('value', snap => {
-            let encontrou = false;
-            snap.forEach(child => {
-                const token = child.val();
-                if (token.dono && token.dono.toLowerCase() === nomeDono.toLowerCase()) {
-                    encontrou = true;
-                    child.ref.update({ 
-                        hpMax: novoHpMax,
-                        manaMax: novoManaMax, 
-                        atributos: atributosFinaisParaOMapa 
-                    }).then(() => {
-                        console.log(`✅ [SISTEMA] Token "${token.nome}" atualizado com sucesso! (1:1 Puro)`);
-                    });
-                }
-            });
-            if (!encontrou) console.warn(`⚠️ [SISTEMA] Token não encontrado no mapa para: ${nomeDono}`);
-        });
-    } else {
-        console.error("❌ [ERRO] Nome do dono não encontrado!");
-    }
 };

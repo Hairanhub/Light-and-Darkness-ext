@@ -1,6 +1,5 @@
 /* ============================================================ 
-   === [ ENGINE DE INICIATIVA - V5.9 (TRAVA DE PERNA) ] === 
-   === Fix: Leitura Profunda de Passiva (Slot 67) e Furtividade
+   === [ ENGINE DE INICIATIVA - V6.2 (SISTEMA DE RANKS DE INVOCAÇÃO) ] === 
    ============================================================ */
 
 window.iniciativa = {
@@ -92,6 +91,103 @@ window.iniciativa = {
         if (this.participantesIds.length === 0) return alert("Selecione os tokens primeiro!");
 
         let resultados = [];
+        
+        // 🔥 NOVA LÓGICA DE INVOCAÇÃO (RANKS E ATRIBUTOS)
+        const processarInvocacao = async (itemData, dadosInvocador, idInvocador, donoNome) => {
+            if (!itemData) return;
+            
+            const nomeArma = (itemData.nome || "").toLowerCase();
+            const tipoEspecifico = (itemData.tipoEspecifico || "").toLowerCase();
+            
+            const ehTomo = nomeArma.includes("tomo") || tipoEspecifico.includes("tomo");
+            const ehPergaminho = nomeArma.includes("pergaminho") || tipoEspecifico.includes("pergaminho");
+
+            if (!ehTomo && !ehPergaminho) return;
+
+            // 1. Descobrir a Raridade da Arma
+            let raridadeArma = (itemData.raridade || "").toLowerCase();
+            if (!raridadeArma) {
+                if (nomeArma.includes("lend")) raridadeArma = "lendario";
+                else if (nomeArma.includes("raro") || nomeArma.includes("rara")) raridadeArma = "raro";
+                else raridadeArma = "comum"; 
+            }
+
+            // 2. Mapear o Rank Exato que a arma exige
+            let rankAlvo = "G";
+            if (ehTomo) {
+                if (raridadeArma.includes("lend")) rankAlvo = "C";
+                else if (raridadeArma.includes("raro")) rankAlvo = "E";
+                else rankAlvo = "G";
+            } else if (ehPergaminho) {
+                if (raridadeArma.includes("lend")) rankAlvo = "B";
+                else if (raridadeArma.includes("raro")) rankAlvo = "D";
+                else rankAlvo = "F";
+            }
+
+            const snapMonstros = await window.database.ref('monstros').once('value');
+            let candidatos = [];
+
+            // 3. Buscar no banco monstros com "Atributo = Lendário" e o "Rank" calculado
+            if (snapMonstros.exists()) {
+                snapMonstros.forEach(child => {
+                    const m = child.val();
+                    const mRank = String(m.rank || m.Rank || "").toUpperCase().trim();
+                    
+                    // Suporte para o seu sistema: Pode estar salvo como atributo, elemento ou tipo
+                    const mAtributo = String(m.atributo || m.elemento || m.tipoElemento || "").toLowerCase();
+
+                    if (mAtributo.includes("lend") && mRank === rankAlvo) {
+                        candidatos.push(m);
+                    }
+                });
+            }
+
+            if (candidatos.length > 0) {
+                // Sorteia um monstro aleatório caso haja mais de um da mesma classe!
+                const monstroTemplate = candidatos[Math.floor(Math.random() * candidatos.length)];
+
+                // Posiciona a 2 SQM (70px) aleatoriamente (Horizontal ou Vertical)
+                const offsets = [-70, 70];
+                const offsetX = Math.random() > 0.5 ? offsets[Math.floor(Math.random() * offsets.length)] : 0;
+                const offsetY = offsetX === 0 ? offsets[Math.floor(Math.random() * offsets.length)] : 0;
+                
+                const novoX = dadosInvocador.x + offsetX;
+                const novoY = dadosInvocador.y + offsetY;
+
+                const multiplicadorDano = ehTomo ? 0.5 : 1;
+                const idInvocacao = 'invoc_' + Math.random().toString(36).substr(2, 9);
+                
+                const tokenInvocacao = {
+                    ...monstroTemplate,
+                    id: idInvocacao,
+                    x: novoX,
+                    y: novoY,
+                    isInvocacao: true,
+                    invocadorId: idInvocador, 
+                    dono: donoNome,
+                    danoMultiplicador: multiplicadorDano,
+                    hpAtual: monstroTemplate.atributos?.hp || 20 
+                };
+
+                await window.mapaRef.child('tokens').child(idInvocacao).set(tokenInvocacao);
+
+                const dex = parseInt(tokenInvocacao.atributos?.dex) || 0;
+                let d20 = Math.floor(Math.random() * 20) + 1;
+                
+                resultados.push({
+                    id: idInvocacao,
+                    nome: tokenInvocacao.nome,
+                    img: tokenInvocacao.url || tokenInvocacao.img || "https://via.placeholder.com/45",
+                    iniciativa: d20 + dex,
+                    dono: donoNome
+                });
+
+                if (typeof window.enviarMensagemChat === 'function') {
+                    window.enviarMensagemChat("INVOCAÇÃO ANCESTRAL", `✨ O <b>${itemData.nome}</b> de <b>${dadosInvocador.nome}</b> pulsa energia!<br><b>${tokenInvocacao.nome} (Rank ${rankAlvo})</b> emergiu no campo de batalha!`, "#00d4ff");
+                }
+            }
+        };
+
         for(let id of this.participantesIds) {
             const snap = await window.mapaRef.child('tokens').child(id).once('value');
             const dados = snap.val();
@@ -109,18 +205,29 @@ window.iniciativa = {
             let total = d20 + dex;
             const nomePersonagem = dados.nome || "Token";
 
-            // 🔥 DETECTA A MALDIÇÃO PELO TOKEN OU PELO INVENTÁRIO DO JOGADOR (Slot 67)
+            // 🔥 VERIFICAÇÃO DE INVENTÁRIO (MAGIAS E INVOCAÇÕES)
             let temMaldicao = false;
             if (dados.passivaAtiva && String(dados.passivaAtiva).toUpperCase().includes("MALDICAO")) {
                 temMaldicao = true;
             } else if (dados.dono) {
                 try {
                     const donoFormatado = String(dados.dono).trim();
-                    const invSnap = await window.database.ref('usuarios').child(donoFormatado).child('inventario').child('67').once('value');
-                    if (invSnap.exists() && JSON.stringify(invSnap.val()).toUpperCase().includes("MALDICAO")) {
-                        temMaldicao = true;
+                    const invSnap = await window.database.ref('usuarios').child(donoFormatado).child('inventario').once('value');
+                    const inv = invSnap.val() || {};
+                    
+                    if (inv['67'] && JSON.stringify(inv['67']).toUpperCase().includes("MALDICAO")) temMaldicao = true;
+
+                    if (dados.tipo === 'jogador' || dados.dono) {
+                        let slot63 = inv['63'];
+                        let slot65 = inv['65'];
+                        
+                        try { if (typeof slot63 === 'string') slot63 = JSON.parse(slot63); } catch(e){}
+                        try { if (typeof slot65 === 'string') slot65 = JSON.parse(slot65); } catch(e){}
+
+                        await processarInvocacao(slot63, dados, id, donoFormatado);
+                        await processarInvocacao(slot65, dados, id, donoFormatado);
                     }
-                } catch(e) { console.warn("Erro ao checar passiva no inventário", e); }
+                } catch(e) { console.warn("Erro ao ler inventário no banco de dados", e); }
             }
 
             if (temMaldicao) {
@@ -255,6 +362,13 @@ window.iniciativa = {
                 if(snap.exists()) {
                     snap.forEach(child => {
                         const tk = child.val();
+                        
+                        // AUTO-DELETAR INVOCAÇÕES AO FIM DO COMBATE
+                        if (tk.isInvocacao) {
+                            child.ref.remove();
+                            return; 
+                        }
+
                         const temDono = (tk.dono && tk.dono.trim() !== "");
                         const isJogador = (tk.tipo === 'jogador' || temDono);
                         
@@ -331,10 +445,9 @@ window.initEngineIniciativa = function() {
             }
         }
 
-        // 🔥 TRAVA DA PERNA AMPUTADA 🔥
         let movRestante = dadosToken.movimentoMaximo !== undefined ? dadosToken.movimentoMaximo : 8;
         if (dadosToken.membroPerdido && dadosToken.membroPerdido.includes('Perna')) {
-            movRestante = 1; // Só dá um passinho sofrendo!
+            movRestante = 1; 
             if (typeof window.enviarMensagemChat === 'function') {
                 window.enviarMensagemChat("SISTEMA", `⚠️ <b>${dadosToken.nome}</b> está rastejando (Movimento reduzido a 1)!`, "#ff9900");
             }
@@ -370,7 +483,6 @@ window.initEngineIniciativa = function() {
         }
     });
 
-    // 🔥 TRAVA VISUAL: Garante que os tokens continuem invisíveis mesmo se a página for recarregada
     window.mapaRef.child('tokens').on('child_added', (snap) => {
         setTimeout(() => { 
             const data = snap.val();

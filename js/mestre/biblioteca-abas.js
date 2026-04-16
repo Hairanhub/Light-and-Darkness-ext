@@ -1,6 +1,6 @@
 // ============================================================
 // === [ MESTRE: GERENCIADOR DE ABAS E GRUPO DE JOGADORES ] ===
-// === V7.1 - LÓGICA 1:1 Base + Multiplicador Visual        ===
+// === V7.2 - LÓGICA 1:1 Base + Sincronia Pela Ficha        ===
 // ============================================================
 
 const normalizar = (txt) => String(txt || "").trim().toLowerCase();
@@ -146,7 +146,7 @@ window.sincronizarAbaJogadores = function() {
 
 /**
  * FUNÇÃO PARA O MESTRE EDITAR ATRIBUTOS EM TEMPO REAL (PURA 1:1)
- * O Banco de dados recebe apenas o valor real.
+ * O Banco de dados recebe apenas o valor real. A Ficha do Jogador fará o resto!
  */
 window.mestreAlterarAtributo = function(nomePlayer, atributo, valorNovo) {
     const val = parseInt(valorNovo) || 0;
@@ -155,19 +155,8 @@ window.mestreAlterarAtributo = function(nomePlayer, atributo, valorNovo) {
     window.database.ref(`usuarios/${nomePlayer}/atributos/${atributo}`).set(val)
         .then(() => {
             console.log(`✅ [MESTRE] Atributo BASE ${atributo.toUpperCase()} de ${nomePlayer} alterado para ${val}.`);
-            
-            // Força o Token a atualizar a Vida máxima base na mesma hora
-            if (atributo === 'con') {
-                window.mapaRef.child('tokens').orderByChild('dono').equalTo(nomePlayer).once('value', snapT => {
-                    snapT.forEach(child => {
-                        // Manda a nova vida base 1:1 (o engine-tokens fará o vezes na tela depois)
-                        child.ref.update({ 
-                            hpMax: val,
-                            // hpAtual: val // Descomente para curar o jogador ao aumentar a CON
-                        });
-                    });
-                });
-            }
+            // 🔥 REMOVIDO: A atualização forçada do token daqui. 
+            // Agora a ficha do jogador (em ficha.js) escuta essa mudança, soma com armaduras e atualiza o token!
         })
         .catch(err => console.error("❌ Erro ao editar pelo painel:", err));
 };

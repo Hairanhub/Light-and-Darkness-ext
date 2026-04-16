@@ -1,6 +1,6 @@
 /* ============================================================
-   === [ ENGINE DE TOKENS V8.0 ] ===
-   === Feat: O Peso do Gelo (Redução de Mobilidade por Armadura)
+   === [ ENGINE DE TOKENS V8.1 ] ===
+   === Feat: O Peso do Gelo + Renderização Dinâmica de Mana 🔮
    ============================================================ */
 (function() {
     const gridSize = 35; 
@@ -191,8 +191,20 @@
         
         const porcentagemVida = hpMaxBaseVisual > 0 ? (hpAtualBaseVisual / hpMaxBaseVisual) * 100 : 0;
 
-        const manaMax = parseInt(data.manaMax) || 10;
-        const manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
+        // 🔥 FIX DA MANA: Correção Dinâmica para Tokens Antigos
+        let manaMax = parseInt(data.manaMax);
+        if (isNaN(manaMax)) manaMax = 10;
+        
+        let intVisual = (stats.int || 0) * (mult.int || 1);
+        
+        // Se a mana gravada estiver engessada em 10, a engine força a soma da INT
+        if (manaMax <= 10 && intVisual > 0) {
+            manaMax = 10 + intVisual;
+        }
+
+        let manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
+        if (manaAtual > manaMax) manaAtual = manaMax; // Trava o visual caso tenha perdido mana (Ex: Booster)
+
         const porcentagemMana = manaMax > 0 ? (manaAtual / manaMax) * 100 : 0;
 
         const meta = gerarMetaHTML(data, key);
@@ -570,9 +582,18 @@
         }
         if (hpText) hpText.textContent = `${hpAtualText}/${hpMaxText}`;
 
-        const manaMax = parseInt(data.manaMax) || 10;
-        const manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
+        // 🔥 FIX DA MANA NO UPDATE: Mesma inteligência visual sendo injetada na marra!
+        let manaMax = parseInt(data.manaMax);
+        if (isNaN(manaMax)) manaMax = 10;
         
+        let intVisual = (stats.int || 0) * (mult.int || 1);
+        if (manaMax <= 10 && intVisual > 0) {
+            manaMax = 10 + intVisual;
+        }
+
+        let manaAtual = (data.manaAtual !== undefined) ? parseInt(data.manaAtual) : manaMax;
+        if (manaAtual > manaMax) manaAtual = manaMax; // Trava para não bugar a barra
+
         const manaBar = token.querySelector('.mana-bar-fill');
         const manaText = token.querySelector('.mana-text');
         
@@ -639,6 +660,12 @@
         
         if (finalData.hpAtual === undefined) {
             finalData.hpAtual = parseInt(finalData.atributos?.con) || 10;
+        }
+
+        // 🔥 NOVO: Já crava a mana e a Inteligência para qualquer Token que for invocado (Monstros/Inimigos)
+        if (finalData.manaMax === undefined) {
+            finalData.manaMax = 10 + (parseInt(finalData.atributos?.int) || 0);
+            finalData.manaAtual = finalData.manaMax;
         }
 
         window.mapaRef.child('tokens').push(finalData);

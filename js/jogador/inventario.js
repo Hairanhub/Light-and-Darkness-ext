@@ -1,7 +1,7 @@
 /**
  * js/jogador/inventario.js
  * Sistema de Inventário (Modo Restrito - Layout de 13 Slots)
- * Versão: 4.6 - Juiz da Conjuração Integrado (Fix CC Jogadores) 🎒🛑
+ * Versão: 4.8 - Sincronizado com a Memória Central (EstadoFicha) 🎒🛑⚔️
  */
 
 window.Inventario = {
@@ -342,7 +342,7 @@ window.Inventario = {
                         } else {
                             alert(`🛑 CONJURAÇÃO BLOQUEADA por: ${statusBloqueador}`);
                         }
-                        return; // ⛔ Aborta tudo! A magia não vai pra mão dele.
+                        return; 
                     }
                 }
 
@@ -573,6 +573,9 @@ window.Inventario = {
         const bonusTotal = { for: 0, dex: 0, int: 0, def: 0, car: 0, con: 0 };
         let movimentoMaximo = 8;
         let temArmaDuasMaos = false; 
+        
+        // 🔥 NOVA VARIÁVEL: Guarda o nome da arma que o jogador está segurando
+        let nomeArmaPrincipal = "";
 
         for (let i = 60; i <= 72; i++) {
             const slot = document.querySelector(`[data-slot-index="${i}"]`);
@@ -597,11 +600,16 @@ window.Inventario = {
                         else if (itemString.includes("leve")) movimentoMaximo = 6; 
                     }
 
-                    if (i === 63 && window.MotorArmas) {
+                    // 🔥 Slot 63 é a Mão Principal. Vamos ver o que tem nela!
+                    if (i === 63) {
                         const descOuNome = item.descricao || item.nome || "";
-                        const armaEquipada = window.MotorArmas.identificarArma(descOuNome);
-                        if (armaEquipada && armaEquipada.duasMaos) {
-                            temArmaDuasMaos = true;
+                        nomeArmaPrincipal = descOuNome.toLowerCase(); // Guarda para o Firebase
+
+                        if (window.MotorArmas) {
+                            const armaEquipada = window.MotorArmas.identificarArma(descOuNome);
+                            if (armaEquipada && armaEquipada.duasMaos) {
+                                temArmaDuasMaos = true;
+                            }
                         }
                     }
                 } catch (e) { console.error("Erro ao ler item:", e); }
@@ -625,8 +633,9 @@ window.Inventario = {
             }
         }
         
-        if (typeof window.atualizarStatusDaFicha === 'function') {
-            window.atualizarStatusDaFicha(bonusTotal, movimentoMaximo);
+        // 🌟 NOVA LÓGICA: Envia os bônus calculados para a Memória Central!
+        if (window.EstadoFicha) {
+            window.EstadoFicha.atualizarEquipamento(bonusTotal, nomeArmaPrincipal, movimentoMaximo);
         }
 
         return bonusTotal;
@@ -899,55 +908,3 @@ window.forcarSistemaDeArraste = function() {
 };
 
 setTimeout(window.forcarSistemaDeArraste, 1500);
-
-window.atualizarStatusDaFicha = function(bonusEquipamento, movimentoMaximo = 8) {
-    const nomeDono = window.usuarioLogadoNome || localStorage.getItem('rubi_username');
-    if (!nomeDono || !window.database) return;
-
-    const atributos = ['for', 'dex', 'con', 'int', 'def', 'car'];
-    let valoresFinais = {};
-
-    atributos.forEach(attr => {
-        const spanBase = document.getElementById(`base-${attr}`);
-        const spanBonus = document.getElementById(`bonus-${attr}`);
-        const spanTotal = document.getElementById(`stat-${attr}`);
-
-        let base = spanBase ? (parseInt(spanBase.innerText) || 0) : 0;
-        let bonus = parseInt(bonusEquipamento[attr]) || 0;
-        let total = base + bonus;
-
-        if (spanBonus) {
-            spanBonus.innerText = (bonus >= 0 ? "+" : "") + bonus;
-            spanBonus.style.color = bonus > 0 ? '#2ecc71' : (bonus < 0 ? '#e74c3c' : '#555');
-        }
-        if (spanTotal) {
-            spanTotal.innerText = total;
-            spanTotal.style.color = bonus > 0 ? '#f1c40f' : '#fff';
-        }
-        valoresFinais[attr] = total;
-    });
-
-    const hpM = (valoresFinais['con'] || 0);
-
-    window.database.ref(`usuarios/${nomeDono}/status_equipado`).set({
-        totais: valoresFinais,
-        bonus: bonusEquipamento,
-        movimento: movimentoMaximo,
-        hpMax: hpM,
-        timestamp: Date.now()
-    });
-
-    const refTokens = window.mapaRef ? window.mapaRef.child('tokens') : window.database.ref('mapa/tokens');
-    refTokens.once('value', snap => {
-        snap.forEach(child => {
-            const tk = child.val();
-            if (tk.dono && tk.dono.toLowerCase() === nomeDono.toLowerCase()) {
-                child.ref.update({ 
-                    atributos: valoresFinais, 
-                    hpMax: hpM, 
-                    movimentoMaximo: movimentoMaximo 
-                });
-            }
-        });
-    });
-};
