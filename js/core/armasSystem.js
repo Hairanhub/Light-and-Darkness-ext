@@ -1,5 +1,6 @@
 /* ============================================================
-   === [ MOTOR DE ARMAS - V5.5 (CATÁLOGO ORGANIZADO) ] ===
+   === [ MOTOR DE ARMAS - V5.6 (CATÁLOGO ORGANIZADO) ] ===
+   === Fix: Pistola não causa mais Confusão
    ============================================================ */
 
 window.MotorArmas = {
@@ -30,7 +31,7 @@ window.MotorArmas = {
         "varinha":    { tipo: "ranged", duasMaos: false, atributoBase: "int", categoriaDano: "magico", efeito: "30% de chance: Maldição", status: "MALDICAO", chance: 0.3 },
         "pergaminho": { tipo: "ranged", duasMaos: true,  atributoBase: "int", categoriaDano: "magico", efeito: "Invoca Espírito Ancestral na Iniciativa", invocaFamiliar: true },
         "tomo":       { tipo: "ranged", duasMaos: false, atributoBase: "int", categoriaDano: "magico", efeito: "Invoca Espírito Ancestral na Iniciativa", invocaFamiliar: true },
-        "pistola":    { tipo: "ranged", duasMaos: false, atributoBase: "int", categoriaDano: "magico", efeito: "Ataque Bônus / Dano Mágico / 30% Confusão", ataqueBonus: true, status: "CONFUSAO", chance: 0.3 },
+        "pistola":    { tipo: "ranged", duasMaos: false, atributoBase: "int", categoriaDano: "magico", efeito: "Ataque Bônus / Dano Mágico", ataqueBonus: true },
 
         // ❤️ ATRIBUTO: CONSTITUIÇÃO (Dano Mágico)
         "bastão":     { tipo: "melee", duasMaos: true,  atributoBase: "con", categoriaDano: "magico", efeito: "Ataque denso de pura força vital" },

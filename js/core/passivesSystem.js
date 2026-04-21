@@ -1,5 +1,5 @@
 /* ============================================================
-   === [ SISTEMA DE PASSIVAS - V8.0 (VENENO STACK & MALDIÇÃO) ] ===
+   === [ SISTEMA DE PASSIVAS - V8.2 (TRAVA DE CLASSIFICAÇÃO + FIX) ] ===
    ============================================================ */
 window.PassiveSystem = {
     observadorAtivo: false,
@@ -125,6 +125,7 @@ window.PassiveSystem = {
         });
     },
 
+    // AQUI ESTÁ A FUNÇÃO QUE EU TINHA ESQUECIDO DE COPIAR!
     iniciarObservador: function() {
         if (this.observadorAtivo) return;
         const slotPassiva = document.querySelector('[data-slot-index="67"]');
@@ -136,22 +137,26 @@ window.PassiveSystem = {
         }
     },
 
-    // AQUI COMEÇAM AS ALTERAÇÕES: Novos parâmetros adicionados (ataqueAcertou e tipoArma)
     calcularDanoExtra: function(atacante, tipoAtaque, dadosAlvo, ataqueAcertou = true, tipoArma = "melee") {
         let passiva = null;
 
         if (atacante && (atacante.tipo === 'monstro' || atacante.tipo === 'monstros')) {
             if (atacante.elemento) {
-                const nivelMonstro = parseInt(atacante.nivel) || 1; 
-                passiva = { tipo: "ELEMENTAL", elemento: atacante.elemento.toUpperCase(), nivel: nivelMonstro };
+                const elementoMonstro = atacante.elemento.toUpperCase();
+                // 🔥 CORREÇÃO: Só aplica se for um elemento real (FOGO, GELO, etc).
+                if (this.affinities[elementoMonstro]) {
+                    const nivelMonstro = parseInt(atacante.nivel) || 1; 
+                    passiva = { tipo: "ELEMENTAL", elemento: elementoMonstro, nivel: nivelMonstro };
+                }
             }
-        } else { passiva = this.obterPassivaEquipada(); }
+        } else { 
+            passiva = this.obterPassivaEquipada(); 
+        }
 
         if (!passiva) return { danoExtra: 0, log: "", curaBase: 0 };
 
         const modoTeste = window.forcarPassiva ? 1.0 : null;
 
-        // 🔥 MARCA DA MALDIÇÃO (Crita se o alvo estiver com vida cheia)
         if (passiva.tipo === "MALDICAO") {
             const hpAtual = parseFloat(dadosAlvo?.hpAtual !== undefined ? dadosAlvo.hpAtual : (dadosAlvo?.atributos?.hp || 20));
             const hpMax = parseFloat(dadosAlvo?.hpMax || dadosAlvo?.atributos?.hp || 20);
@@ -205,7 +210,6 @@ window.PassiveSystem = {
         if (passiva.tipo === "ELEMENTAL") {
             const elAtaque = passiva.elemento; 
             
-            // 🔥 PASSIVA DE VENENO (Com travas de erro e ataque à distância indevido)
             if (elAtaque === "VENENO") {
                 if (!ataqueAcertou || (tipoAtaque === "distancia" && tipoArma === "melee")) {
                     return { danoExtra: 0, log: "" };
@@ -213,7 +217,6 @@ window.PassiveSystem = {
                 return { venenoAtivou: true, danoExtra: 0, log: `<br><b style="color:#32ff32;">[PASSIVA: +1 STACK DE VENENO]</b>` };
             }
 
-            // 🔥 CÁLCULO DE DANO FLAT ELEMENTAL (100% de chance)
             const elDefensor = dadosAlvo ? (dadosAlvo.elemento || "").toUpperCase() : "";
             const afinidade = this.affinities[elAtaque];
             
@@ -230,7 +233,6 @@ window.PassiveSystem = {
                 }
             }
 
-            // 🔥 ROLAGEM DE 10% PARA A CONDIÇÃO ELEMENTAL
             const chance = Math.floor(Math.random() * 100) + 1;
             let aplicouCondicao = false;
 
@@ -245,7 +247,6 @@ window.PassiveSystem = {
                 }
             }
 
-            // Retorna o dano, o log concatenado, e o status da condição
             return { 
                 danoExtra: danoBaseFlat, 
                 log: logFinal, 

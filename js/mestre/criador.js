@@ -1,6 +1,6 @@
 /* ============================================================
-   === [ CRIADOR E GESTOR DA BIBLIOTECA - V6.7 ] ===
-   === FIX: Fim do Bug do Efeito Colmeia nas Magias ===
+   === [ CRIADOR E GESTOR DA BIBLIOTECA - V6.8 ] ===
+   === FIX: Blindagem do Bug do Multiplicador na Poção ===
    ============================================================ */
 
 window.ordemTemporariaEdicao = null;
@@ -210,7 +210,6 @@ window.prepararEdicao = function(tipo, id) {
             if(document.getElementById('reg-magia-status-tipo')) document.getElementById('reg-magia-status-tipo').value = d.statusTipo || "";
             if(document.getElementById('reg-magia-status-valor')) document.getElementById('reg-magia-status-valor').value = d.statusValor || 0;
             
-            // 🔥 AQUI ACONTECE A MÁGICA DE ISOLAR A EDIÇÃO 🔥
             if (d.matrizArea) {
                 window.spellEditor.carregar(d.matrizArea);
             } else {
@@ -238,14 +237,14 @@ window.prepararEdicao = function(tipo, id) {
             } else if (d.tipoItem === 'armadura') {
                 document.getElementById('reg-armadura-peso').value = d.pesoCorpo || "leve";
             } else if (d.tipoItem === 'pocao') {
-                document.getElementById('reg-pocao-cura').value = d.valorCura || 0;
+                if(document.getElementById('reg-pocao-cura')) document.getElementById('reg-pocao-cura').value = d.valorCura || 0;
             } else if (d.tipoItem === 'runa') {
                 document.getElementById('reg-runa-rank').value = d.rankRuna || "F";
             } else if (d.tipoItem === 'passiva') {
                 document.getElementById('reg-passiva-categoria').value = d.categoriaPassiva || "elemental";
-                if (dados.categoriaPassiva === 'elemental') {
+                if (d.categoriaPassiva === 'elemental') {
                     document.getElementById('reg-passiva-elemento').value = d.elementoPassiva || "fogo";
-                } else if (dados.categoriaPassiva === 'lendario') {
+                } else if (d.categoriaPassiva === 'lendario') {
                     document.getElementById('reg-passiva-bloqueio').value = d.bloqueioSlot || "nenhum";
                     document.getElementById('reg-passiva-efeito').value = d.efeitoLendario || "forca";
                 }
@@ -345,6 +344,9 @@ window.saveToFirebase = async function() {
             dados.pesoCorpo = document.getElementById('reg-armadura-peso')?.value || "leve";
         } else if (dados.tipoItem === 'pocao') {
             dados.valorCura = parseInt(document.getElementById('reg-pocao-cura')?.value) || 0;
+            // 🔥 BLINDAGEM DA POÇÃO 🔥: Forçamos os atributos a 0 para que a poção não seja interpretada como um buff de CON!
+            dados.atributos = { for: 0, dex: 0, int: 0, def: 0, car: 0, con: 0 };
+            dados.atributos_lista = "0 / 0 / 0 / 0 / 0 / 0";
         } else if (dados.tipoItem === 'runa') {
             dados.rankRuna = document.getElementById('reg-runa-rank')?.value || "F";
         } else if (dados.tipoItem === 'passiva') {

@@ -1,7 +1,7 @@
 /**
  * js/jogador/inventario.js
  * Sistema de Inventário (Modo Restrito - Layout de 13 Slots)
- * Versão: 4.8 - Sincronizado com a Memória Central (EstadoFicha) 🎒🛑⚔️
+ * Versão: 4.9 - Sincronizado com a Memória Central e Correção de Poções (Vida/Mana) 🎒🛑⚔️
  */
 
 window.Inventario = {
@@ -190,6 +190,7 @@ window.Inventario = {
 
         const item = JSON.parse(slot.dataset.itemFullData);
         const tipoStr = (item.tipoItem || item.tipo || "").toLowerCase();
+        const nomeItem = (item.nome || "").toLowerCase();
         const nomeDono = window.usuarioLogadoNome || localStorage.getItem('rubi_username');
 
         // 🔥 EXTRA: Jogador não pode beber poção se estiver paralisado!
@@ -214,42 +215,76 @@ window.Inventario = {
             }
         }
 
-        if (tipoStr.includes('poção') || tipoStr.includes('pocao') || tipoStr.includes('pot') || item.nome.toLowerCase().includes('poção')) {
-            let cura = parseInt(item.valorCura) || parseInt(item['reg-pocao-cura']) || (item.atributos && parseInt(item.atributos['reg-pocao-cura'])) || (item.atributos && parseInt(item.atributos.cura)) || parseInt(item.cura) || parseInt(item.pocaoCura) || parseInt(item.valor) || parseInt(item.efeito);
+        if (tipoStr.includes('poção') || tipoStr.includes('pocao') || tipoStr.includes('pot') || nomeItem.includes('poção') || nomeItem.includes('pocao')) {
+            // Usa parseFloat para aceitar números quebrados no cálculo reverso
+            let valorRecarga = parseFloat(item.valorCura) || parseFloat(item['reg-pocao-cura']) || (item.atributos && parseFloat(item.atributos['reg-pocao-cura'])) || parseFloat(item.cura) || 0;
 
-            if (isNaN(cura) || cura <= 0) {
+            if (isNaN(valorRecarga) || valorRecarga <= 0) {
                 alert(`⚠️ A poção "${item.nome}" não tem um valor válido de cura! O Mestre precisa definir este valor ao criar a poção.`);
                 return;
             }
 
             if (window.mapaRef) {
                 window.mapaRef.child('tokens').once('value', snap => {
-                    let curou = false;
+                    let consumiu = false;
 
                     snap.forEach(child => {
                         const tk = child.val();
                         if (tk.dono && tk.dono.toLowerCase() === nomeDono.toLowerCase()) {
-                            let hpAtual = parseInt(tk.hpAtual) || 0;
-                            let hpMax = parseInt(tk.hpMax) || 0;
+                            
+                            // 🧪 POÇÃO DE MANA
+                            if (nomeItem.includes('mana')) {
+                                let manaAtual = parseFloat(tk.manaAtual) || 0;
+                                let manaMax = parseFloat(tk.manaMax) || 0;
 
-                            if (hpAtual < hpMax) {
-                                hpAtual += cura;
-                                if (hpAtual > hpMax) hpAtual = hpMax; 
+                                if (manaAtual < manaMax) {
+                                    manaAtual += valorRecarga;
+                                    if (manaAtual > manaMax) manaAtual = manaMax; 
 
-                                child.ref.update({ hpAtual: hpAtual });
-                                curou = true;
+                                    child.ref.update({ manaAtual: manaAtual });
+                                    consumiu = true;
 
-                                if (typeof window.enviarMensagemChat === 'function') {
-                                    const msgPoçao = `bebeu a <b>${item.nome}</b> e recuperou <b style="color:#ff4d4d;">+${cura} HP</b>! (${hpAtual}/${hpMax})`;
-                                    window.enviarMensagemChat(nomeDono, msgPoçao, "#ff4d4d"); 
+                                    if (typeof window.enviarMensagemChat === 'function') {
+                                        const msg = `bebeu a <b>${item.nome}</b> e recuperou <b style="color:#00f2ff;">+${valorRecarga} Mana</b>! (${manaAtual}/${manaMax})`;
+                                        window.enviarMensagemChat(nomeDono, msg, "#00f2ff"); 
+                                    }
+                                } else {
+                                    alert("Sua Mana já está cheia!");
                                 }
-                            } else {
-                                alert("Sua Vida já está cheia!");
+                            } 
+                            // ❤️ POÇÃO DE VIDA
+                            else {
+                                let hpAtual = parseFloat(tk.hpAtual) || 0;
+                                let hpMax = parseFloat(tk.hpMax) || 0;
+
+                                if (hpAtual < hpMax) {
+                                    // 🔥 MATEMÁTICA REVERSA 🔥
+                                    // Se o multiplicador na tela for 4, dividimos o valor da poção por 4.
+                                    // O Firebase recebe um número quebrado, mas a tela multiplica de volta para o valor inteiro exato!
+                                    let multGlobal = window.multiplicadorGlobalAtual || 4; 
+                                    let curaReversaProBanco = valorRecarga / multGlobal;
+
+                                    hpAtual += curaReversaProBanco;
+                                    if (hpAtual > hpMax) hpAtual = hpMax; 
+
+                                    child.ref.update({ hpAtual: hpAtual });
+                                    consumiu = true;
+
+                                    if (typeof window.enviarMensagemChat === 'function') {
+                                        // Mostramos no chat a vida real que o jogador quer ver curada
+                                        const hpAtualTela = Math.round(hpAtual * multGlobal);
+                                        const hpMaxTela = Math.round(hpMax * multGlobal);
+                                        const msg = `bebeu a <b>${item.nome}</b> e recuperou <b style="color:#ff4d4d;">+${valorRecarga} HP</b>! (${hpAtualTela}/${hpMaxTela})`;
+                                        window.enviarMensagemChat(nomeDono, msg, "#ff4d4d"); 
+                                    }
+                                } else {
+                                    alert("Sua Vida já está cheia!");
+                                }
                             }
                         }
                     });
 
-                    if (curou) {
+                    if (consumiu) {
                         this.removerItemDoSlot(slot.dataset.slotIndex);
                     }
                 });
@@ -257,7 +292,7 @@ window.Inventario = {
                 alert("Você precisa estar com o seu token no mapa para beber a poção.");
             }
         }
-        else if (tipoStr.includes('runa') || item.nome.toLowerCase().includes('runa')) {
+        else if (tipoStr.includes('runa') || nomeItem.includes('runa')) {
             const descricao = item.descricao || item.efeito || "A runa dissipa-se em energia mágica...";
             const rankRuna = item.rank || item.rankRuna || item.runaRank || item['reg-runa-rank'] || (item.atributos && item.atributos['reg-runa-rank']) || "?";
             
@@ -574,7 +609,6 @@ window.Inventario = {
         let movimentoMaximo = 8;
         let temArmaDuasMaos = false; 
         
-        // 🔥 NOVA VARIÁVEL: Guarda o nome da arma que o jogador está segurando
         let nomeArmaPrincipal = "";
 
         for (let i = 60; i <= 72; i++) {
@@ -600,10 +634,9 @@ window.Inventario = {
                         else if (itemString.includes("leve")) movimentoMaximo = 6; 
                     }
 
-                    // 🔥 Slot 63 é a Mão Principal. Vamos ver o que tem nela!
                     if (i === 63) {
                         const descOuNome = item.descricao || item.nome || "";
-                        nomeArmaPrincipal = descOuNome.toLowerCase(); // Guarda para o Firebase
+                        nomeArmaPrincipal = descOuNome.toLowerCase();
 
                         if (window.MotorArmas) {
                             const armaEquipada = window.MotorArmas.identificarArma(descOuNome);
@@ -633,7 +666,6 @@ window.Inventario = {
             }
         }
         
-        // 🌟 NOVA LÓGICA: Envia os bônus calculados para a Memória Central!
         if (window.EstadoFicha) {
             window.EstadoFicha.atualizarEquipamento(bonusTotal, nomeArmaPrincipal, movimentoMaximo);
         }

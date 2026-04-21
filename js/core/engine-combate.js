@@ -1,5 +1,5 @@
 /* ============================================================
-   === [ MOTOR DE COMBATE - V18.12 (BOOSTER DRENANDO MANA OU VIDA) ] ===
+   === [ MOTOR DE COMBATE - V18.15 (FIX LANÇA E TEXTO CON) ] ===
    ============================================================ */
 
 window.combate = {
@@ -384,7 +384,12 @@ window.combate = {
 
                     let danoFinal = res.dano;
                     if (window.StatusSystem && typeof window.StatusSystem.aplicarReducoesDeDano === "function") {
+                        let danoAntes = danoFinal;
                         danoFinal = window.StatusSystem.aplicarReducoesDeDano(dadosA, danoFinal);
+                        
+                        if (danoAntes > danoFinal && window.StatusSystem.temStatus(dadosA, "MALDICAO")) {
+                            res.status += `<br><span style="color:#9b59b6;">📉 Dano reduzido pela Maldição (-30%)!<br>Dano causado: <b>${danoFinal}</b></span>`;
+                        }
                     }
 
                     const multAlvoReal = this.obterMultiplicadores(fichaAlvoReal);
@@ -646,7 +651,12 @@ window.combate = {
 
                 let danoFinal = res.dano;
                 if (window.StatusSystem && typeof window.StatusSystem.aplicarReducoesDeDano === "function") {
+                    let danoAntes = danoFinal;
                     danoFinal = window.StatusSystem.aplicarReducoesDeDano(dadosA, danoFinal);
+                    
+                    if (danoAntes > danoFinal && window.StatusSystem.temStatus(dadosA, "MALDICAO")) {
+                        res.status += `<br><span style="color:#9b59b6;">📉 Dano reduzido pela Maldição (-30%)!<br>Dano causado: <b>${danoFinal}</b></span>`;
+                    }
                 }
 
                 const multAlvoReal = this.obterMultiplicadores(fichaAlvoReal);
@@ -784,7 +794,7 @@ window.combate = {
             if (res.ataqueBonusArma && !this.comboMortalRealizado) {
                 this.comboMortalRealizado = true; 
                 this.atualizarTravaAtributos(idAtacante);
-                this.notificarCombate("CORTES RÁPIDOS", "⚔️ <b>COMBO MORTAL!</b> A leveza da arma permite mais um golpe com a MESMA MÃO!", "#ff00cc");
+                this.notificarCombate("CORTES RÁPIDOS", "⚔️ <b>COMBO MORTAL!</b> A arma permite mais um golpe com a MESMA MÃO!", "#ff00cc");
                 return;
             }
 
@@ -1113,6 +1123,14 @@ window.combate = {
         let isMonstroAtacante = (dadosAtacante.tipo === 'monstro' || dadosAtacante.tipo === 'npc' || dadosAtacante.tipo === 'monstros');
         let euSouOAtacante = (dadosAtacante.dono || "").toLowerCase() === (localStorage.getItem('rubi_username') || "").toLowerCase();
 
+        let nomeArmaUsada = (dadosAtacante.armaEquipada || "").toLowerCase();
+        if (euSouOAtacante && !isMonstroAtacante && !dadosAtacante.isInvocacao) {
+            const slotMao = document.querySelector(`[data-slot-index="${this.ataqueSecundarioRealizado ? '65' : '63'}"]`);
+            if (slotMao && slotMao.dataset.itemFullData) {
+                try { nomeArmaUsada = JSON.parse(slotMao.dataset.itemFullData).nome.toLowerCase(); } catch(e) {}
+            }
+        }
+
         if (euSouOAtacante && !isMonstroAtacante) {
             if (!dadosAtacante.atributos || typeof dadosAtacante.atributos !== 'object') dadosAtacante.atributos = {};
             ['for', 'dex', 'int', 'def', 'car', 'con'].forEach(attr => {
@@ -1158,6 +1176,8 @@ window.combate = {
 
         const multAtacante = this.obterMultiplicadores(dadosAtacante);
         let modAtributo = 0;
+        let attrExibicao = 0;
+        let avisoReducao = "";
         
         if (atributoAtaque) {
             let multUsado = multAtacante[atributoAtaque] || 1;
@@ -1175,6 +1195,19 @@ window.combate = {
             }
             
             modAtributo = valorAttrBruto * multUsado;
+            attrExibicao = modAtributo; 
+
+            // 🔥 PASSO 1: FIX VISUAL CON E ESCUDO NO CHAT 🔥
+            if (atributoAtaque === 'con') {
+                modAtributo = Math.floor(modAtributo / 4);
+                attrExibicao = modAtributo; // Agora o chat vai ler os 20!
+                avisoReducao = `<br><span style="color:#ffaa00; font-size:11px;">(Dano por CON pura: +${modAtributo})</span>`;
+            }
+            if (nomeArmaUsada.includes('escudo') || nomeArmaUsada.includes('escudão')) {
+                modAtributo = Math.floor(modAtributo * 0.5);
+                attrExibicao = modAtributo; // Agora o chat vai ler a defesa pela metade
+                avisoReducao = `<br><span style="color:#ffaa00; font-size:11px;">(Armas de DEF reduzem o status em 50% para atacar: +${modAtributo})</span>`;
+            }
 
             if (boosterAtacante) {
                 modBooster = boosterAtacante.bonusDano;
@@ -1196,7 +1229,9 @@ window.combate = {
                     valorSec = boosterAtacante.valorCortado;
                 }
 
-                modAtributo += valorSec * (multAtacante[attrSec] || 1); 
+                let extraSec = valorSec * (multAtacante[attrSec] || 1);
+                modAtributo += extraSec; 
+                attrExibicao += extraSec; 
             }
         }
 
@@ -1209,7 +1244,7 @@ window.combate = {
             return { 
                 dano: 0, total: totalAtaque, alvoDefesa: 'ALCANCE',
                 status: `<b style="color: #ff4d4d;">🚫 GOLPE NO VAZIO!</b><br><small>${msgAlcance}</small>`,
-                detalhe: `${totalDados} + ${modAtributo} (${(atributoAtaque || "N/A").toUpperCase()}) + ${modExtra}`,
+                detalhe: `${totalDados} + ${attrExibicao} (${(atributoAtaque || "N/A").toUpperCase()}) + ${modExtra}${avisoReducao}`,
                 isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: false, empurrarAlvo: false 
             };
         }
@@ -1254,26 +1289,42 @@ window.combate = {
             objAlvo.atributos[boosterAlvo.atributoPenalizado] = boosterAlvo.valorCortado;
         }
 
-        let configPassivas = { danoExtra: 0, log: "", multiplicadorDrakar: 1, isoldeAtivou: false, aatroxAtivou: false, curaBase: 0, maldicaoAtivou: false, venenoAtivou: false, aplicarStatusSorte: null, condicaoElementalAtivou: null };
+        let configPassivas = { danoExtra: 0, log: "", multiplicadorDrakar: 1, isoldeAtivou: false, aatroxAtivou: false, curaBase: 0, maldicaoAtivou: false, venenoAtivou: false, aplicarStatusSorte: null, condicaoElementalAtivou: null, ignoraDefesa: false };
+        
+        // --- 🎲 CHECAGEM DA LANÇA (30% DE IGNORAR DEFESA) ---
+        if (armaAtacante && armaAtacante.ignoraDefesaChance) {
+            if (Math.random() <= armaAtacante.ignoraDefesaChance) {
+                configPassivas.ignoraDefesa = true;
+            }
+        }
+
         if (window.PassiveSystem) {
             if (window.PassiveSystem.verificarDefesaEspecial && window.PassiveSystem.verificarDefesaEspecial(dadosAlvo)?.horuzAtivou) {
                 return { dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ', status: window.PassiveSystem.verificarDefesaEspecial(dadosAlvo).log + "<br>Ataque completely anulado!", detalhe: 'Anulado', isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: false, empurrarAlvo: false };
             }
-            if (window.PassiveSystem.calcularDanoExtra) configPassivas = window.PassiveSystem.calcularDanoExtra(dadosAtacante, ataqueEhMagico ? "magico" : "fisico", dadosAlvo, true, armaAtacante ? armaAtacante.tipo : "melee");
+            if (window.PassiveSystem.calcularDanoExtra) {
+                const passivasCalculadas = window.PassiveSystem.calcularDanoExtra(dadosAtacante, ataqueEhMagico ? "magico" : "fisico", dadosAlvo, true, armaAtacante ? armaAtacante.tipo : "melee");
+                configPassivas = { ...configPassivas, ...passivasCalculadas };
+            }
         }
 
         if (!window.CombateMatematica) return { dano: 0, total: 0, alvoDefesa: 'ERRO', status: "Erro Motor Matemático.", detalhe: "0", isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: false, empurrarAlvo: false };
         
         const recibo = window.CombateMatematica.calcularGolpe(objAtacante, objAlvo, armaAtacante, armaAlvo, infoRolagem, configPassivas);
 
+        let deveEmpurrar = false;
+
         if (recibo.acertou && idAlvo && window.StatusSystem) {
-            if (armaAtacante && armaAtacante.status && armaAtacante.chance && Math.random() < armaAtacante.chance) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, armaAtacante.status, 1), 800);
+            if (armaAtacante && armaAtacante.status && armaAtacante.chance && Math.random() < armaAtacante.chance) {
+                setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, armaAtacante.status, 1), 800);
+                if (armaAtacante.status === "SUSPENSO") deveEmpurrar = true;
+            }
             if (configPassivas.venenoAtivou) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, "VENENO", 1), 500);
             if (configPassivas.aplicarStatusSorte) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, configPassivas.aplicarStatusSorte, 1), 600);
             if (configPassivas.condicaoElementalAtivou) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, configPassivas.condicaoElementalAtivou, 1), 700);
         }
 
-        let textoDetalhe = `${totalDados} + ${modAtributo} (${(atributoAtaque || 'N/A').toUpperCase()}) + ${modExtra}`;
+        let textoDetalhe = `${totalDados} + ${attrExibicao} (${(atributoAtaque || 'N/A').toUpperCase()}) + ${modExtra}${avisoReducao}`;
         
         if (dadosAtacante.boosterAtivo) {
             if (modBooster > 0) {
@@ -1283,23 +1334,12 @@ window.combate = {
             }
         }
 
-        let deveEmpurrar = false;
         let temAtaqueExtraNat = false;
-        let nomeArmaUsada = (dadosAtacante.armaEquipada || "").toLowerCase();
         
-        if (euSouOAtacante && !isMonstroAtacante && !dadosAtacante.isInvocacao) {
-            const slotMao = document.querySelector(`[data-slot-index="${this.ataqueSecundarioRealizado ? '65' : '63'}"]`);
-            if (slotMao && slotMao.dataset.itemFullData) {
-                try { nomeArmaUsada = JSON.parse(slotMao.dataset.itemFullData).nome.toLowerCase(); } catch(e) {}
-            }
-        }
-
-        if (nomeArmaUsada.includes('martelão') || nomeArmaUsada.includes('maça')) {
-            deveEmpurrar = true;
-        }
-
-        if (nomeArmaUsada.includes('adaga') || nomeArmaUsada.includes('katana')) {
+        if (nomeArmaUsada.includes('pistola')) {
             temAtaqueExtraNat = true;
+        } else if (nomeArmaUsada.includes('adaga') || nomeArmaUsada.includes('katana')) {
+            if (Math.random() <= 0.3) temAtaqueExtraNat = true;
         }
 
         return {

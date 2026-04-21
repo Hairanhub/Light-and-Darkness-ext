@@ -685,7 +685,7 @@
                                     <option value="armadura">Armaduras</option>
                                     <option value="arma">Armas</option>
                                     <option value="artefato">Artefato</option>
-                                    <option value="pocao">Poção de Cura</option>
+                                    <option value="pocao">🧪 Poção (Vida ou Mana)</option>
                                     <option value="runa">Runa</option>
                                     <option value="passiva">Passiva</option>
                                 </select>
@@ -728,10 +728,13 @@
                                     </div>
                                 </div>
 
-                                <div id="grupo-pocao" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border-left: 3px solid #ff4d4d;">
+                                <div id="grupo-pocao" style="display:none; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border-left: 3px solid #ff4d4d; border-right: 3px solid #00f2ff;">
                                     <div class="form-group">
-                                        <label>❤️ Valor Fixo de Cura (HP):</label>
-                                        <input type="number" id="reg-pocao-cura" class="reg-input" placeholder="Ex: 20">
+                                        <label style="color: #fff;">❤️ / 💙 Valor de Recarga (Vida ou Mana):</label>
+                                        <input type="number" id="reg-pocao-cura" class="reg-input" placeholder="Ex: 15">
+                                        <small style="color: #aaa; font-size: 11px; margin-top: 5px; display: block; font-style: italic;">
+                                            * Dica Mágica: Coloque a palavra "Mana" no Nome do item lá em cima, e o sistema preencherá a barra azul automaticamente ao invés da vermelha!
+                                        </small>
                                     </div>
                                 </div>
 
