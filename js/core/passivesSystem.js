@@ -1,5 +1,5 @@
 /* ============================================================
-   === [ SISTEMA DE PASSIVAS - V8.2 (TRAVA DE CLASSIFICAÇÃO + FIX) ] ===
+   === [ SISTEMA DE PASSIVAS - V8.5 (MALDICAO HÍBRIDA + DRAKAR FIX) ] ===
    ============================================================ */
 window.PassiveSystem = {
     observadorAtivo: false,
@@ -125,7 +125,6 @@ window.PassiveSystem = {
         });
     },
 
-    // AQUI ESTÁ A FUNÇÃO QUE EU TINHA ESQUECIDO DE COPIAR!
     iniciarObservador: function() {
         if (this.observadorAtivo) return;
         const slotPassiva = document.querySelector('[data-slot-index="67"]');
@@ -143,7 +142,6 @@ window.PassiveSystem = {
         if (atacante && (atacante.tipo === 'monstro' || atacante.tipo === 'monstros')) {
             if (atacante.elemento) {
                 const elementoMonstro = atacante.elemento.toUpperCase();
-                // 🔥 CORREÇÃO: Só aplica se for um elemento real (FOGO, GELO, etc).
                 if (this.affinities[elementoMonstro]) {
                     const nivelMonstro = parseInt(atacante.nivel) || 1; 
                     passiva = { tipo: "ELEMENTAL", elemento: elementoMonstro, nivel: nivelMonstro };
@@ -162,15 +160,26 @@ window.PassiveSystem = {
             const hpMax = parseFloat(dadosAlvo?.hpMax || dadosAlvo?.atributos?.hp || 20);
             
             if (hpAtual >= hpMax) {
-                return { maldicaoAtivou: true, danoExtra: 0, log: `<br><b style="color:#9b59b6;">[MARCA DA MALDIÇÃO: CRÍTICO GARANTIDO!]</b>` };
+                // PRIMEIRO GOLPE: Crítico + Penetração
+                return { 
+                    maldicaoAtivou: true,
+                    penetracaoArmadura: 0.30, 
+                    danoExtra: 0, 
+                    log: `<br><b style="color:#9b59b6;">[MARCA DA MALDIÇÃO: Crítico Garantido e -30% de Armadura!]</b>` 
+                };
             } else {
-                return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Maldição ignorada: O alvo já está ferido)</i></span>` };
+                // ALVO FERIDO: Apenas Penetração
+                return { 
+                    penetracaoArmadura: 0.30, 
+                    danoExtra: 0, 
+                    log: `<br><span style="color:#9b59b6; font-size:11px;"><i>(Maldição: Alvo já ferido. Aplicou -30% de Armadura!)</i></span>` 
+                };
             }
         }
 
         if (passiva.tipo === "DRAKAR") {
-            if (Math.random() <= (modoTeste || 0.25)) {
-                return { drakarAtivou: true, log: `<br><b style="color:#ff4d4d;">[DRAKTAR: DANO DOBRADO!]</b>` };
+            if (Math.random() <= (modoTeste || 0.30)) { // Chance aumentada para 30%
+                return { multiplicadorDrakar: 2, log: `<br><b style="color:#ff4d4d;">[DRAKTAR: DANO DOBRADO!]</b>` };
             } else {
                 return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Draktar falhou)</i></span>` };
             }
@@ -180,7 +189,7 @@ window.PassiveSystem = {
             const tentativas = this.contarArmas();
             let ativou = false;
             for (let i = 0; i < tentativas; i++) {
-                if (Math.random() <= (modoTeste || 0.20)) { ativou = true; break; }
+                if (Math.random() <= (modoTeste || 0.30)) { ativou = true; break; } // Chance aumentada para 30%
             }
             if (ativou) {
                 return { isoldeAtivou: true, log: `<br><b style="color:#00d4ff;">[ISOLDE: ATAQUE DUPLO!]</b>` };
@@ -190,18 +199,14 @@ window.PassiveSystem = {
         }
 
         if (passiva.tipo === "AATROX") {
-            if (Math.random() <= (modoTeste || 0.25)) {
+            if (Math.random() <= (modoTeste || 0.30)) { // Chance aumentada para 30%
                 let rankAlvo = "G";
                 if (dadosAlvo) rankAlvo = (dadosAlvo.rank || dadosAlvo.nivel || "G").toString().toUpperCase();
 
                 const tabelaCuraBase = { "G": 0.25, "F": 0.50, "E": 0.75, "D": 1.00, "C": 1.25, "B": 1.50, "A": 1.75, "S": 2.00, "SS": 2.25, "SSS": 2.50 };
                 let curaBaseCalculada = tabelaCuraBase[rankAlvo] || 0.25;
 
-                return { 
-                    aatroxAtivou: true, 
-                    curaBase: curaBaseCalculada, 
-                    log: `<br><b style="color:#2ecc71;">[AATROX: ROUBOU SANGUE!]</b>` 
-                };
+                return { aatroxAtivou: true, curaBase: curaBaseCalculada, log: `<br><b style="color:#2ecc71;">[AATROX: ROUBOU SANGUE!]</b>` };
             } else {
                 return { danoExtra: 0, log: `<br><span style="color:#888; font-size:11px;"><i>(Aatrox falhou)</i></span>`, curaBase: 0 };
             }
@@ -243,7 +248,7 @@ window.PassiveSystem = {
             } else {
                 console.log("condição falhou");
                 if (window.enviarMensagemChat) {
-                    window.enviarMensagemChat(window.usuarioLogadoNome || "Sistema", "condição falhou", "#888888");
+                    // window.enviarMensagemChat(window.usuarioLogadoNome || "Sistema", "condição falhou", "#888888"); // Ocultado para limpar o chat
                 }
             }
 
@@ -272,7 +277,7 @@ window.PassiveSystem = {
         }
 
         if (temHoruz) {
-            if (Math.random() <= (window.forcarPassiva ? 1.0 : 0.25)) {
+            if (Math.random() <= (window.forcarPassiva ? 1.0 : 0.30)) { // Chance aumentada para 30%
                 return { 
                     horuzAtivou: true, 
                     log: `<br><b style="color:#ffffff; text-shadow: 0 0 10px gold;">🛡️ [HORUZ: ATAQUE IGNORADO!]</b>` 

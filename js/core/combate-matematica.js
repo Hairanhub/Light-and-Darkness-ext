@@ -1,6 +1,6 @@
 /* ============================================================
-   === [ NÚCLEO DE MATEMÁTICA DE COMBATE - V2.3 ] ===
-   === Fix: Perfuração 30% da Lança implementada corretamente
+   === [ NÚCLEO DE MATEMÁTICA DE COMBATE - V2.6 ] ===
+   === Fix: String de Dano Visual construída pós-multiplicadores
    ============================================================ */
 
 window.CombateMatematica = {
@@ -30,10 +30,16 @@ window.CombateMatematica = {
         // 2. BLOQUEIO DO ALVO (Separado da Esquiva)
         let bloqueioAlvo = parseInt(alvo.atributos?.def || 0) * (alvo.multiplicadores?.def || 1);
 
-        // --- [ PASSO 6: A Lança Perfurante (30%) ] ---
+        // --- [ PERFURAÇÃO DA LANÇA: 100% Ignora Armadura ] ---
         if (configPassivas && configPassivas.ignoraDefesa) {
-            bloqueioAlvo = 0; // Zera a armadura do inimigo
+            bloqueioAlvo = 0; 
             logAcontecimentos.push(`<small style="color: #ffaa00;">🔱 PERFURAÇÃO TOTAL! Armadura ignorada (30% ativou).</small>`);
+        }
+
+        // --- [ PERFURAÇÃO DA MALDIÇÃO: Ignora X% da Armadura ] ---
+        if (configPassivas && configPassivas.penetracaoArmadura) {
+            let armaduraCortada = Math.floor(bloqueioAlvo * configPassivas.penetracaoArmadura);
+            bloqueioAlvo -= armaduraCortada; 
         }
 
         // 3. ATAQUE TOTAL DO ATACANTE 
@@ -58,7 +64,9 @@ window.CombateMatematica = {
         }
 
         let rolouCriticoNoDado = (faceDado === 20 && valorDado >= margemCritico) || (faceDado !== 20 && valorDado === faceDado);
-        let isCritico = rolouCriticoNoDado || alvo.statusAtuais?.dormindo || (configPassivas && configPassivas.maldicaoAtivou);
+        
+        // O CRÍTICO DA MALDIÇÃO 
+        let isCritico = rolouCriticoNoDado || alvo.statusAtuais?.dormindo || (configPassivas && configPassivas.maldicaoAtivou); 
 
         // --- RESOLUÇÃO DE ACERTO / ERRO ---
 
@@ -87,19 +95,39 @@ window.CombateMatematica = {
             }
         }
 
-        // 5. CÁLCULO DE DANO CAUSADO
+        // 5. CÁLCULO DE DANO CAUSADO (A MÁGICA ACONTECE AQUI ANTES DO TEXTO)
         let danoBase = Math.max(0, totalAtaque - bloqueioAlvo);
+        let ocorreuCritico = false;
 
         if (atacante.danoMultiplicador && atacante.danoMultiplicador < 1) {
             danoBase = Math.floor(danoBase * atacante.danoMultiplicador);
             logAcontecimentos.push(`<b style="color: #ffaa00;">📉 Poder Reduzido (Invocação)</b>`);
         }
 
-        let statusFinal = `💥 Dano: <b>${danoBase}</b>`;
-
-        // 6. APLICAÇÃO DO CRÍTICO
+        // APLICAÇÃO DO CRÍTICO NO VALOR
         if (isCritico || atacante.isFurtivo) {
             danoBase *= 2; 
+            ocorreuCritico = true;
+        }
+
+        // APLICAÇÃO DE PASSIVAS NO VALOR
+        if (configPassivas && configPassivas.danoExtra > 0) {
+            danoBase += configPassivas.danoExtra;
+        }
+
+        if (configPassivas && configPassivas.multiplicadorDrakar) {
+            danoBase *= configPassivas.multiplicadorDrakar;
+        }
+
+        if (alvo.statusAtuais?.congelado) {
+            danoBase = Math.floor(danoBase * 1.3);
+            logAcontecimentos.push(`<b style="color: #00ffff;">❄️ ESTILHAÇADO! (+30% Dano)</b>`);
+        }
+
+        // 6. CONSTRUIR O TEXTO FINAL (AGORA COM O VALOR CORRETO JÁ DOBRADO)
+        let statusFinal = `💥 Dano: <b>${danoBase}</b>`;
+
+        if (ocorreuCritico) {
             if (alvo.statusAtuais?.dormindo) {
                 statusFinal = `<b style="color: #ff4d4d;">🛌 GOLPE CRUEL (NO SONO): ${danoBase}!</b><br>🔔 O alvo ACORDOU!`;
             } else if (atacante.isFurtivo) {
@@ -112,24 +140,12 @@ window.CombateMatematica = {
                 statusFinal = `<b style="color: #ff4d4d;">🔥 CRÍTICO: ${danoBase}!</b>`;
             }
         }
-
-        // 7. APLICAÇÃO DE PASSIVAS
-        if (configPassivas && configPassivas.danoExtra > 0) {
-            danoBase += configPassivas.danoExtra;
-        }
+        
+        // INSERE OS LOGS DAS PASSIVAS
         if (configPassivas && configPassivas.log) {
             logAcontecimentos.push(configPassivas.log);
         }
 
-        if (configPassivas && configPassivas.multiplicadorDrakar) {
-            danoBase *= configPassivas.multiplicadorDrakar;
-        }
-
-        if (alvo.statusAtuais?.congelado) {
-            danoBase = Math.floor(danoBase * 1.3);
-            logAcontecimentos.push(`<b style="color: #00ffff;">❄️ ESTILHAÇADO! (+30% Dano)</b>`);
-        }
-        
         if (logAcontecimentos.length > 0) {
             statusFinal += `<br>` + logAcontecimentos.join(`<br>`);
         }

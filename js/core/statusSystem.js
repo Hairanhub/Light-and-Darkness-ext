@@ -1,6 +1,6 @@
 /**
- * STATUS SYSTEM - O CÉREBRO DE REGRAS V5.9 (PRO)
- * (FIX: EXATAMENTE 16 CONDIÇÕES - AR = SUFOCAMENTO COM 50%)
+ * STATUS SYSTEM - O CÉREBRO DE REGRAS V6.0 (PRO)
+ * FIX: Blindagem contra Duplicação de Status (Merge de Veneno)
  */
 window.StatusSystem = {
     // 1. Definições Mestres (Exatamente 16)
@@ -106,7 +106,6 @@ window.StatusSystem = {
         }
 
         const tabela = {
-            // 🔥 AR causa Sufocamento (50% de chance de falhar)
             "AR":          { ativou: d10 <= 5, msg: `🌬️ Ar (Sufocando): Faltou ar! A ação falhou e o golpe foi repelido! ${dadoRoladoHTML}` },
             "CEGUEIRA":    { ativou: d10 <= 3, msg: `🕶️ Cegueira: O ataque errou! ${dadoRoladoHTML}` },
             "CONFUSAO":    { ativou: d10 <= 3, msg: `🌀 Confusão: Perdeu o turno! ${dadoRoladoHTML}` }
@@ -187,7 +186,7 @@ window.StatusSystem = {
         return danoFinal;
     },
 
-    // 5. APLICAR STATUS (COM SISTEMA DE STACKS PARA O VENENO)
+    // 5. APLICAR STATUS (COM SISTEMA DE STACKS PARA O VENENO E BLINDAGEM DE DUPLICATAS)
     aplicarStatus: async function(tokenId, tipoStatus, danoCausado = null) {
         const nomeChave = tipoStatus.toUpperCase();
         const config = this.definitions[nomeChave];
@@ -211,7 +210,6 @@ window.StatusSystem = {
         let chaveExistente = null;
         let objStatusExistente = null;
 
-        // 🔍 Agora ele procura TODOS os status na ficha do alvo, INCLUINDO o Veneno
         for (let idUnico in statusAtivos) {
             if (statusAtivos[idUnico].tipo.toUpperCase() === nomeChave) {
                 chaveExistente = idUnico;
@@ -230,14 +228,10 @@ window.StatusSystem = {
         if (chaveExistente) {
             // ☠️ LÓGICA DE STACK DE VENENO
             if (nomeChave === "VENENO") {
-                // Pega o dano atual do veneno (ou o base se der erro)
                 let danoAtual = parseInt(objStatusExistente.valor) || config.dano;
-                
-                // Soma o dano base (+2) ao dano que já está rodando
                 let novoDano = danoAtual + config.dano; 
-                statusData.valor = novoDano; // Vai subir de 2 para 4, de 4 para 6...
+                statusData.valor = novoDano; 
                 
-                // Calcula quantos stacks o inimigo tem só para mostrar no chat!
                 let numStacks = novoDano / config.dano;
 
                 await refToken.child('statusAtivos').child(chaveExistente).update(statusData);
@@ -246,19 +240,20 @@ window.StatusSystem = {
                     window.combate.notificarCombate(token.nome.toUpperCase(), `🤢 <b>VENENO ACUMULADO!</b> (${numStacks} Stacks ➔ -${novoDano} HP/turno)`, "#32ff32");
                 }
             } else {
-                // 🔄 RENOVAÇÃO PADRÃO (Para Fogo, Sangramento, Controle)
+                // 🔄 RENOVAÇÃO PADRÃO
                 await refToken.child('statusAtivos').child(chaveExistente).update(statusData);
                 if (window.combate) {
                     window.combate.notificarCombate(token.nome.toUpperCase(), `🔄 <b>${config.nome}</b> renovado!`, "#ffaa00");
                 }
             }
         } else {
-            // ✨ APLICAÇÃO INICIAL DE QUALQUER STATUS
-            await refToken.child('statusAtivos').push(statusData);
+            // ✨ APLICAÇÃO INICIAL BLINDADA (Usa o nome da chave em vez de gerar um Push aleatório)
+            await refToken.child('statusAtivos').child(nomeChave.toLowerCase()).set(statusData);
+            
             if (window.combate) {
-                let corNotificacao = "#ffaa00"; // Padrão
-                if (nomeChave === "NECROSE") corNotificacao = "#800080"; // Sombrio
-                if (nomeChave === "VENENO") corNotificacao = "#32ff32"; // Tóxico
+                let corNotificacao = "#ffaa00"; 
+                if (nomeChave === "NECROSE") corNotificacao = "#800080"; 
+                if (nomeChave === "VENENO") corNotificacao = "#32ff32"; 
 
                 window.combate.notificarCombate(token.nome.toUpperCase(), `✨ Sofreu <b>${config.nome}</b>! (${config.icone})`, corNotificacao);
             }
@@ -273,6 +268,32 @@ window.StatusSystem = {
 
         let statusAtuais = { ...token.statusAtivos };
         let houveAlteracao = false;
+
+        // --- 🧹 MERGE DE DUPLICATAS (LIMPEZA DE RACE CONDITIONS) ---
+        let statusLimpos = {};
+        for (let idUnico in statusAtuais) {
+            let s = statusAtuais[idUnico];
+            const tipoChave = s.tipo.toUpperCase();
+
+            if (statusLimpos[tipoChave]) {
+                // Opa, achou um clone! Se for veneno, soma os danos.
+                if (tipoChave === "VENENO") {
+                    statusLimpos[tipoChave].valor = (parseInt(statusLimpos[tipoChave].valor) || 0) + (parseInt(s.valor) || 0);
+                }
+                statusLimpos[tipoChave].duracao = Math.max(statusLimpos[tipoChave].duracao, s.duracao);
+                houveAlteracao = true; 
+            } else {
+                statusLimpos[tipoChave] = s;
+            }
+        }
+        
+        // Reconstrói o objeto sem os clones
+        statusAtuais = {};
+        for (let tipo in statusLimpos) {
+            statusAtuais[tipo.toLowerCase()] = statusLimpos[tipo]; 
+        }
+        // -------------------------------------------------------------
+
         let totalDanoTurno = 0;
         let logsDano = [];
 
@@ -316,7 +337,7 @@ window.StatusSystem = {
         }
     },
 
-    // 7. REAÇÕES (Agora aceita Dano Escalado por Movimento!)
+    // 7. REAÇÕES 
     aplicarDanoReacao: async function(tokenId, danoEspecifico = null) {
         const snap = await window.mapaRef.child('tokens').child(tokenId).once('value');
         const token = snap.val();
@@ -325,10 +346,8 @@ window.StatusSystem = {
         for (let idUnico in token.statusAtivos) {
             let s = token.statusAtivos[idUnico];
             if (s.tipo.toUpperCase() === "RAIO") {
-                // Se receber um dano específico (movimento), usa ele. Se não (ataque/magia), usa 3.
                 const dano = danoEspecifico !== null ? danoEspecifico : 3; 
                 
-                // Só aplica o choque se o dano for maior que 0
                 if (dano > 0) {
                     await this.modificarHP(tokenId, -dano);
                     if (window.combate) {
