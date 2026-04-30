@@ -1,5 +1,7 @@
 /* ============================================================
-   === [ MOTOR DE COMBATE - V18.15 (FIX LANÇA E TEXTO CON) ] ===
+   === [ MOTOR DE COMBATE - V18.17 (FASE 3 + BLINDAGEM) ] ===
+   === FEAT: Cancelar preparo de ataque com ESC ou Botão Direito
+   === FIX: Armas físicas e ataques em área agora batem no Escudo Mágico
    ============================================================ */
 
 window.combate = {
@@ -42,7 +44,6 @@ window.combate = {
         if (novoEstado) {
             const bEfeitos = this.calcularEfeitosBooster(dados, null);
             if (bEfeitos) {
-                // 🔥 SE A INTELIGÊNCIA FOR DRENADA, CORTA A MANA PELA METADE
                 if (bEfeitos.atributoPenalizado === 'int') {
                     let manaAtual = parseFloat(dados.manaAtual !== undefined ? dados.manaAtual : (dados.atributos?.int || 0));
                     let novaMana = Math.floor(manaAtual / 2);
@@ -60,7 +61,6 @@ window.combate = {
 
                     msgExtra = "<br>🧠 <b>Sobrecarga Mental!</b> A Inteligência foi sacrificada e sua <b>Mana caiu pela metade</b>!";
                 } 
-                // 🔥 SE A CONSTITUIÇÃO FOR DRENADA, CORTA A VIDA PELA METADE
                 else if (bEfeitos.atributoPenalizado === 'con') {
                     let hpAtual = parseFloat(dados.hpAtual !== undefined ? dados.hpAtual : (dados.atributos?.hp || 20));
                     let novoHp = Math.floor(hpAtual / 2);
@@ -392,16 +392,36 @@ window.combate = {
                         }
                     }
 
+                    // ✨ [NOVO] INTERCEPTADOR DE ESCUDO ABLATIVO (ÁREA)
+                    let danoParaAplicar = danoFinal;
+                    let danoAbsorvido = 0;
+                    if (danoParaAplicar > 0 && window.StatusSystem && typeof window.StatusSystem.reduzirDanoNoEscudo === "function") {
+                        let danoRestante = await window.StatusSystem.reduzirDanoNoEscudo(idAlvoReal, danoParaAplicar);
+                        danoAbsorvido = danoParaAplicar - danoRestante;
+                        danoParaAplicar = danoRestante;
+                    }
+
                     const multAlvoReal = this.obterMultiplicadores(fichaAlvoReal);
                     const conMult = multAlvoReal.con || 1;
-                    const danoConvertidoParaBase = danoFinal / conMult;
+                    const danoConvertidoParaBase = danoParaAplicar / conMult;
 
                     const hpAtual = parseFloat(fichaAlvoReal.hpAtual !== undefined ? fichaAlvoReal.hpAtual : (fichaAlvoReal.atributos?.hp || 20));
                     let novoHp = Math.max(0, hpAtual - danoConvertidoParaBase);
                 
                     const hpVisualAntes = Math.round(hpAtual * conMult);
                     const hpVisualDepois = Math.round(novoHp * conMult);
-                    res.status += `<br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
+
+                    if (danoAbsorvido > 0) {
+                        if (danoParaAplicar <= 0) {
+                            res.status += `<br>🛡️ <b style="color:#00f2ff;">O ESCUDO MÁGICO ABSORVEU TODO O DANO!</b>`;
+                        } else {
+                            res.status += `<br>🛡️ <span style="color:#00f2ff;">Escudo absorveu ${Math.round(danoAbsorvido)} de dano!</span> (Passou ${Math.round(danoParaAplicar)})`;
+                        }
+                    }
+
+                    if (danoFinal > 0) {
+                        res.status += `<br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
+                    }
                     
                     if (res.empurrarAlvo && hpAtual > 0) {
                         const dx = dadosB.x - dadosA.x;
@@ -659,16 +679,36 @@ window.combate = {
                     }
                 }
 
+                // ✨ [NOVO] INTERCEPTADOR DE ESCUDO ABLATIVO (ALVO ÚNICO)
+                let danoParaAplicar = danoFinal;
+                let danoAbsorvido = 0;
+                if (danoParaAplicar > 0 && window.StatusSystem && typeof window.StatusSystem.reduzirDanoNoEscudo === "function") {
+                    let danoRestante = await window.StatusSystem.reduzirDanoNoEscudo(idAlvoReal, danoParaAplicar);
+                    danoAbsorvido = danoParaAplicar - danoRestante;
+                    danoParaAplicar = danoRestante;
+                }
+
                 const multAlvoReal = this.obterMultiplicadores(fichaAlvoReal);
                 const conMult = multAlvoReal.con || 1;
-                const danoConvertidoParaBase = danoFinal / conMult;
+                const danoConvertidoParaBase = danoParaAplicar / conMult;
 
                 const hpAtual = parseFloat(fichaAlvoReal.hpAtual !== undefined ? fichaAlvoReal.hpAtual : (fichaAlvoReal.atributos?.hp || 20));
                 let novoHp = Math.max(0, hpAtual - danoConvertidoParaBase);
                 
                 const hpVisualAntes = Math.round(hpAtual * conMult);
                 const hpVisualDepois = Math.round(novoHp * conMult);
-                res.status += `<br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
+
+                if (danoAbsorvido > 0) {
+                    if (danoParaAplicar <= 0) {
+                        res.status += `<br>🛡️ <b style="color:#00f2ff;">O ESCUDO MÁGICO ABSORVEU TODO O DANO!</b>`;
+                    } else {
+                        res.status += `<br>🛡️ <span style="color:#00f2ff;">Escudo absorveu ${Math.round(danoAbsorvido)} de dano!</span> (Passou ${Math.round(danoParaAplicar)})`;
+                    }
+                }
+
+                if (danoFinal > 0) {
+                    res.status += `<br><span style="font-size: 11px; color: #cccccc;">[❤️ ${hpVisualAntes} ➔ ${hpVisualDepois}]</span>`;
+                }
                 
                 if (res.empurrarAlvo && hpAtual > 0) {
                     const dx = dadosB.x - dadosA.x;
@@ -933,11 +973,32 @@ window.combate = {
         this.resetarCalculadora();
         this.ataqueSecundarioRealizado = false; 
         this.comboMortalRealizado = false;
-        window.esconderConsoleDados();
+        if (typeof window.esconderConsoleDados === 'function') window.esconderConsoleDados();
         document.querySelectorAll('.btn-attr').forEach(b => {
             b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
         });
         if (window.iniciativa && window.iniciativa.fila.length > 0) setTimeout(() => window.iniciativa.proximoTurno(), 1500);
+    },
+
+    cancelarPreparoAtaque: function() {
+        if (!this.tokenAtivoId) return;
+        
+        const elAtacante = document.getElementById(`token-${this.tokenAtivoId}`);
+        if (elAtacante) elAtacante.classList.remove('token-preparo');
+
+        this.tokenAtivoId = null;
+        this.ataqueSecundarioRealizado = false; 
+        this.comboMortalRealizado = false;
+        this.snapshot.temMaoEsquerda = false; 
+        
+        this.resetarCalculadora();
+        if (typeof window.esconderConsoleDados === 'function') window.esconderConsoleDados();
+        
+        document.querySelectorAll('.btn-attr').forEach(b => {
+            b.style.pointerEvents = 'auto'; b.style.opacity = '1'; b.style.filter = 'none';
+        });
+
+        this.notificarCombate("SISTEMA", "🚫 <i>Preparo de ataque cancelado.</i>", "#aaaaaa");
     },
 
     selecionarAtributo: function(attr) {
@@ -1197,15 +1258,14 @@ window.combate = {
             modAtributo = valorAttrBruto * multUsado;
             attrExibicao = modAtributo; 
 
-            // 🔥 PASSO 1: FIX VISUAL CON E ESCUDO NO CHAT 🔥
             if (atributoAtaque === 'con') {
                 modAtributo = Math.floor(modAtributo / 4);
-                attrExibicao = modAtributo; // Agora o chat vai ler os 20!
+                attrExibicao = modAtributo; 
                 avisoReducao = `<br><span style="color:#ffaa00; font-size:11px;">(Dano por CON pura: +${modAtributo})</span>`;
             }
             if (nomeArmaUsada.includes('escudo') || nomeArmaUsada.includes('escudão')) {
                 modAtributo = Math.floor(modAtributo * 0.5);
-                attrExibicao = modAtributo; // Agora o chat vai ler a defesa pela metade
+                attrExibicao = modAtributo; 
                 avisoReducao = `<br><span style="color:#ffaa00; font-size:11px;">(Armas de DEF reduzem o status em 50% para atacar: +${modAtributo})</span>`;
             }
 
@@ -1291,7 +1351,6 @@ window.combate = {
 
         let configPassivas = { danoExtra: 0, log: "", multiplicadorDrakar: 1, isoldeAtivou: false, aatroxAtivou: false, curaBase: 0, maldicaoAtivou: false, venenoAtivou: false, aplicarStatusSorte: null, condicaoElementalAtivou: null, ignoraDefesa: false };
         
-        // --- 🎲 CHECAGEM DA LANÇA (30% DE IGNORAR DEFESA) ---
         if (armaAtacante && armaAtacante.ignoraDefesaChance) {
             if (Math.random() <= armaAtacante.ignoraDefesaChance) {
                 configPassivas.ignoraDefesa = true;
@@ -1358,3 +1417,20 @@ window.combate = {
         };
     }
 };
+
+// ======================================================================
+// OUVINTES GLOBAIS DE CANCELAMENTO (ESC E BOTÃO DIREITO)
+// ======================================================================
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && window.combate && window.combate.tokenAtivoId) {
+        window.combate.cancelarPreparoAtaque();
+    }
+});
+
+window.addEventListener('contextmenu', (e) => {
+    if (window.combate && window.combate.tokenAtivoId) {
+        e.preventDefault(); 
+        window.combate.cancelarPreparoAtaque();
+    }
+});

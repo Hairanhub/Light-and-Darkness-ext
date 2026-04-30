@@ -1,5 +1,5 @@
 /* ============================================================ 
-   === [ ENGINE DE INICIATIVA - V6.2 (SISTEMA DE RANKS DE INVOCAÇÃO) ] === 
+   === [ ENGINE DE INICIATIVA - V6.3 (ANTI-THANOS BUG FIX) ] === 
    ============================================================ */
 
 window.iniciativa = {
@@ -92,7 +92,7 @@ window.iniciativa = {
 
         let resultados = [];
         
-        // 🔥 NOVA LÓGICA DE INVOCAÇÃO (RANKS E ATRIBUTOS)
+        // 🔥 LÓGICA DE INVOCAÇÃO (RANKS E ATRIBUTOS)
         const processarInvocacao = async (itemData, dadosInvocador, idInvocador, donoNome) => {
             if (!itemData) return;
             
@@ -133,7 +133,6 @@ window.iniciativa = {
                     const m = child.val();
                     const mRank = String(m.rank || m.Rank || "").toUpperCase().trim();
                     
-                    // Suporte para o seu sistema: Pode estar salvo como atributo, elemento ou tipo
                     const mAtributo = String(m.atributo || m.elemento || m.tipoElemento || "").toLowerCase();
 
                     if (mAtributo.includes("lend") && mRank === rankAlvo) {
@@ -143,7 +142,7 @@ window.iniciativa = {
             }
 
             if (candidatos.length > 0) {
-                // Sorteia um monstro aleatório caso haja mais de um da mesma classe!
+                // Sorteia um monstro aleatório caso haja mais de um da mesma classe
                 const monstroTemplate = candidatos[Math.floor(Math.random() * candidatos.length)];
 
                 // Posiciona a 2 SQM (70px) aleatoriamente (Horizontal ou Vertical)
@@ -399,10 +398,19 @@ window.iniciativa = {
         this.sairSemLimpar();
     },
 
+    // ✨ A SOLUÇÃO: FOTO ESTÁTICA PARA EVITAR BUG DE DELEÇÃO NO FIREBASE
     deletarSelecionados: function() {
         if(this.participantesIds.length === 0) return alert("Selecione tokens primeiro!");
         if(!confirm(`Deletar ${this.participantesIds.length} tokens?`)) return;
-        this.participantesIds.forEach(id => window.mapaRef.child('tokens').child(id).remove());
+        
+        // Criamos uma cópia imutável da lista. Se o Firebase mexer na original 
+        // atirando os eventos de 'removerDaFila', nossa "foto" continua intacta!
+        const idsParaDeletar = [...this.participantesIds];
+        
+        idsParaDeletar.forEach(id => {
+            window.mapaRef.child('tokens').child(id).remove();
+        });
+        
         this.participantesIds = [];
         this.toggleModoSelecao();
     }

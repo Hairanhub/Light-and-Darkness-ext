@@ -512,17 +512,18 @@
                                     <div class="form-group">
                                         <label>Tipo de Dano</label>
                                         <select id="reg-magia-dano">
-                                            <option value="magico">🔮 Mágico</option>
-                                            <option value="fisico">💥 Físico</option>
+                                            <option value="magico">🔮 Mágico (Usa INT)</option>
+                                            <option value="fisico">💥 Físico (Usa FOR/DEX)</option>
                                             <option value="elemental">🔥 Elemental</option>
-                                            <option value="efeito">✨ Apenas Efeito (Não joga dado/dano)</option> </select>
+                                            <option value="efeito">✨ Apenas Efeito (Sem rolar ataque)</option> 
+                                        </select>
                                     </div>
                                     <div class="form-group">
                                         <label>Categoria</label>
                                         <select id="reg-magia-tipo">
                                             <option value="melee">⚔️ Melee</option>
                                             <option value="ranged">🏹 Ranged</option>
-                                            <option value="suport">✨ Suporte</option>
+                                            <option value="suport">✨ Suporte / Cura</option>
                                             <option value="mobilit">🏃 Mobilidade</option>
                                             <option value="reaction">⚡ Reação</option>
                                         </select>
@@ -530,10 +531,25 @@
                                 </div>
 
                                 <div style="margin-top:10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; border: 1px dashed #444;">
-                                    <label style="color: #aaa; font-size: 10px; display: block; margin-bottom: 5px;">CONDIÇÃO (STATUS PASSIVO)</label>
-                                    <select id="reg-magia-status-tipo" style="width: 100%;">
+                                    <label style="color: #aaa; font-size: 10px; display: block; margin-bottom: 5px;">CONDIÇÃO (STATUS DA MAGIA)</label>
+                                    
+                                    <select id="reg-magia-status-tipo" onchange="togglePotenciaField()" style="width: 100%;">
                                         <option value="">Nenhum Efeito de Status</option>
-                                        <optgroup label="🔥 Elementais">
+                                        
+                                        <optgroup label="🟢 Positivos (Buffs & Curas)">
+                                            <option value="ESCUDO">🛡️ ESCUDO MÁGICO (Absorve Dano)</option>
+                                            <option value="REGENERACAO">💚 REGENERAÇÃO (Cura por Turno)</option>
+                                            <option value="INSPIRACAO">🌟 INSPIRAÇÃO (Vantagem no Melhor Atributo)</option>
+                                            <option value="VELOCIDADE">⚡ VELOCIDADE (Aumenta Destreza)</option>
+                                            <option value="BARREIRA">🧱 BARREIRA (Invoca Parede Física)</option>
+                                        </optgroup>
+
+                                        <optgroup label="⚙️ Reações Automáticas">
+                                            <option value="REACAO_SUSPENSAO">🌪️ ECO DA VENTANIA (Causa Dano em Suspensos)</option>
+                                            <option value="REACAO_SANGRAMENTO">🩸 VAMPIRISMO MÍSTICO (Cura por Sangramento Inimigo)</option>
+                                        </optgroup>
+
+                                        <optgroup label="🔥 Elementais (Dano)">
                                             <option value="FOGO">🔥 FOGO</option>
                                             <option value="AR">🌪️ AR</option>
                                             <option value="AGUA">🌊 ÁGUA</option>
@@ -543,6 +559,7 @@
                                             <option value="GELO">❄️ GELO</option>
                                             <option value="VENENO">🧪 VENENO</option>
                                         </optgroup>
+
                                         <optgroup label="🧠 Mentais / Outros">
                                             <option value="CEGUEIRA">👁️ CEGUEIRA</option>
                                             <option value="SANGRAMENTO">🩸 SANGRAMENTO</option>
@@ -554,80 +571,13 @@
                                             <option value="SUSPENSO">🎯 SUSPENSO</option>
                                         </optgroup>
                                     </select>
-                                </div>
 
-                                <div id="bloco-efeitos-magia" style="margin-top:10px; padding: 10px; background: rgba(20, 20, 20, 0.6); border-radius: 5px; border: 1px solid #444;">
-                                    <label style="color: #00ffcc; font-family: 'Cinzel'; font-size: 11px; display: block; margin-bottom: 10px;">⚡ MECÂNICA DA MAGIA</label>
-                                    
-                                    <div class="efeito-item" style="border-left: 3px solid #5d3fd3; padding-left: 10px; margin-bottom: 15px;">
-                                        <label style="font-size: 10px; color: #b19cd9; display: block; margin-bottom: 5px;">⚔️ NÚMERO DE ATAQUES / PROJÉTEIS</label>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                            <select id="reg-magia-ataques-tipo">
-                                                <option value="fixo">Quantidade Fixa</option>
-                                                <option value="variavel">Variável (Dados)</option>
-                                            </select>
-                                            <input type="text" id="reg-magia-ataques-val" placeholder="Ex: 3 ou 1d4" style="background: #000; color: #b19cd9; border: 1px solid #5d3fd3; padding: 5px;">
-                                        </div>
-                                    </div>
-
-                                    <div class="efeito-item" style="border-left: 3px solid #ff4d4d; padding-left: 10px; margin-bottom: 15px;">
-                                        <label style="font-size: 10px; color: #eee; display: block; margin-bottom: 5px;">🔴 STATUS NEGATIVO (DEBUFF %)</label>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                            <select id="reg-magia-debuff-attr">
-                                                <option value="">Nenhum Atributo</option>
-                                                <option value="for">FORÇA</option>
-                                                <option value="dex">DESTREZA</option>
-                                                <option value="int">INTELIGÊNCIA</option>
-                                                <option value="def">DEFESA</option>
-                                                <option value="car">CARISMA</option>
-                                                <option value="con">CONSTITUIÇÃO</option>
-                                            </select>
-                                            <select id="reg-magia-debuff-porcentagem">
-                                                <option value="0">0%</option>
-                                                <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="50">50%</option>
-                                                <option value="60">60%</option><option value="70">70%</option><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="efeito-item" style="border-left: 3px solid #4dff88; padding-left: 10px; margin-bottom: 15px;">
-                                        <label style="font-size: 10px; color: #4dff88; display: block; margin-bottom: 5px;">🟢 STATUS POSITIVO (BUFF %)</label>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                            <select id="reg-magia-buff-attr">
-                                                <option value="">Nenhum Atributo</option>
-                                                <option value="for">FORÇA</option>
-                                                <option value="dex">DESTREZA</option>
-                                                <option value="int">INTELIGÊNCIA</option>
-                                                <option value="def">DEFESA</option>
-                                                <option value="car">CARISMA</option>
-                                                <option value="con">CONSTITUIÇÃO</option>
-                                            </select>
-                                            <select id="reg-magia-buff-porcentagem">
-                                                <option value="0">0%</option>
-                                                <option value="10">10%</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option><option value="50">50%</option>
-                                                <option value="60">60%</option><option value="70">70%</option><option value="80">80%</option><option value="90">90%</option><option value="100">100%</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div class="efeito-item" style="border-left: 3px solid #00f2ff; padding-left: 10px; margin-bottom: 15px;">
-                                        <label style="font-size: 10px; color: #00f2ff; display: block; margin-bottom: 5px;">💚 BUFF CURATIVO (REGENERAÇÃO)</label>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                            <input type="text" id="reg-magia-cura-buff-val" placeholder="Valor (Ex: 1d6)" style="background: #000; color: #00f2ff; border: 1px solid #00f2ff; padding: 5px;">
-                                            <input type="number" id="reg-magia-cura-buff-turnos" placeholder="Turnos" style="background: #000; color: #00f2ff; border: 1px solid #00f2ff; padding: 5px;">
-                                        </div>
-                                    </div>
-
-                                    <div class="efeito-item" style="border-left: 3px solid #f3e520; padding-left: 10px;">
-                                        <label style="font-size: 10px; color: #f3e520; display: block; margin-bottom: 5px;">🎲 VALOR DIRETO (DANO OU CURA)</label>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                            <select id="reg-magia-direto-tipo">
-                                                <option value="dano">💥 Dano Bruto</option>
-                                                <option value="cura">💚 Cura/HP</option>
-                                                <option value="escudo">🛡️ Escudo</option>
-                                            </select>
-                                            <input type="text" id="reg-magia-direto-val" placeholder="Ex: 2d10 + 5" style="background: #000; color: #f3e520; border: 1px solid #555; padding: 5px;">
-                                        </div>
+                                    <div id="container-potencia" style="display: none; margin-top: 10px; border-left: 3px solid #4dff88; padding-left: 10px;">
+                                        <label style="font-size: 10px; color: #4dff88; display: block; margin-bottom: 5px;">POTÊNCIA DO BUFF/CURA:</label>
+                                        <input type="text" id="reg-magia-status-potencia" placeholder="Ex: 20 ou 15%" style="background: #000; color: #4dff88; border: 1px solid #4dff88; padding: 5px; width: 100%;">
+                                        <small style="color: #aaa; font-size: 9px; margin-top: 4px; display: block; font-style: italic;">
+                                            * Digite um número (Ex: 20) para valor fixo, ou porcentagem (Ex: 15%) para basear na vida/atributo máximo.
+                                        </small>
                                     </div>
                                 </div>
 
@@ -638,39 +588,42 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Descrição Breve</label>
-                                        <input type="text" id="reg-magia-desc" placeholder="Ex: Atira 3 dardos de fogo...">
+                                        <input type="text" id="reg-magia-desc" placeholder="Ex: Invoca um escudo protetor...">
                                     </div>
                                 </div>
 
                                 <div id="bloco-area-magia" style="margin-top:15px; background: #141414; padding: 12px; border-radius: 5px; border: 1px solid #333;">
-                                    <label style="color: #f3e520; font-family: 'Cinzel'; font-size: 12px; display: block; margin-bottom: 10px;">🪄 PROJEÇÃO E MOVIMENTAÇÃO</label>
-                                    <div style="display: flex; gap: 15px; align-items: flex-start;">
+                                    <label style="color: #f3e520; font-family: 'Cinzel'; font-size: 12px; display: block; margin-bottom: 15px; text-align: center;">🪄 PROJEÇÃO NO TABULEIRO</label>
+                                    
+                                    <div style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
                                         
-                                        <div id="container-grid-magia" style="min-width: 120px; display: flex; flex-direction: column; align-items: center;">
-                                            <div id="spell-grid-editor" class="spell-grid-editor" style="min-height: 190px; min-width: 118px;"></div>
+                                        <div id="container-grid-magia" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                                            <div id="spell-grid-editor" class="spell-grid-editor"></div>
                                             <input type="hidden" id="reg-magia-matriz" value="">
                                         </div>
 
-                                        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                                        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
                                             <div class="form-group">
                                                 <label style="font-size: 10px; color: #f3e520;">MODO DE CONJURAÇÃO:</label>
                                                 <select id="reg-magia-projecao" onchange="window.toggleAlcanceMagia()" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 8px;">
                                                     <option value="presa">📍 Magia Presa (No Conjuro)</option>
-                                                    <option value="solta">🎯 Magia Solta (Escolher Alvo)</option>
-                                                    <option value="teleporte">🌀 Teletransporte (Mover Token)</option>
-                                                    <option value="barreira">🛡️ Barreira (Invocação HP)</option> </select>
+                                                    <option value="solta">🎯 Magia Solta (Escolher Alvo/Área)</option>
+                                                    <option value="teleporte_solto">🌀 Teletransporte (Mira com Mouse)</option>
+                                                    <option value="teleporte_preso">🌀 Teletransporte (Salto Fixo no Tabuleiro)</option>
+                                                    <option value="barreira">🛡️ Barreira (Invocação HP)</option> 
+                                                </select>
                                             </div>
 
                                             <div id="campo-alcance-magia" style="display:none;">
                                                 <label id="label-alcance-dinamico" style="font-size: 10px; color: #aaa;">DISTÂNCIA MÁXIMA (m):</label>
-                                                <input type="number" id="reg-magia-alcance" value="5" style="width: 100%; background: #000; color: #00f2ff; border: 1px solid #00f2ff;">
+                                                <input type="number" id="reg-magia-alcance" value="5" style="width: 100%; background: #000; color: #00f2ff; border: 1px solid #00f2ff; padding: 8px;">
                                                 
                                                 <div id="extra-barreira-hp" style="display:none; margin-top:10px;">
                                                     <label style="font-size: 10px; color: #ffcc00;">HP DA BARREIRA:</label>
-                                                    <input type="text" id="reg-magia-barreira-hp" placeholder="Ex: 50" style="width: 100%; background: #000; color: #ffcc00; border: 1px solid #ffcc00; padding: 5px;">
+                                                    <input type="text" id="reg-magia-barreira-hp" placeholder="Ex: 50" style="width: 100%; background: #000; color: #ffcc00; border: 1px solid #ffcc00; padding: 8px;">
                                                 </div>
 
-                                                <small id="hint-teleporte" style="display:none; color: #00f2ff; font-size: 9px; margin-top: 4px;">* O token será movido para o local clicado.</small>
+                                                <small id="hint-teleporte" style="display:none; color: #00f2ff; font-size: 9px; margin-top: 4px;">* O token será movido instantaneamente para o local clicado.</small>
                                             </div>
                                         </div>
                                     </div>
@@ -992,6 +945,22 @@
                         alert(`✅ Multiplicador de Combate alterado para x${inputVal} em todo o mapa!`);
                     }
                 });
+        }
+    }
+
+    function togglePotenciaField() {
+        const select = document.getElementById('reg-magia-status-tipo');
+        const container = document.getElementById('container-potencia');
+        const input = document.getElementById('reg-magia-status-potencia');
+        
+        // Lista de status que exigem o campo Potência
+        const statusPositivos = ["ESCUDO", "REGENERACAO", "INSPIRACAO", "VELOCIDADE"];
+
+        if (statusPositivos.includes(select.value)) {
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+            input.value = ""; // Limpa o campo se mudar de ideia e escolher um status negativo
         }
     }
     </script>

@@ -1,6 +1,7 @@
 /* ============================================================
-   === [ CRIADOR E GESTOR DA BIBLIOTECA - V6.8 ] ===
-   === FIX: Blindagem do Bug do Multiplicador na Poção ===
+   === [ CRIADOR E GESTOR DA BIBLIOTECA - V6.20 ] ===
+   === FIX: Salvamento do 'efeitoTipo' (Teleporte/Barreira) ===
+   === FIX: Exibição do campo de Alcance e HP da Barreira ===
    ============================================================ */
 
 window.ordemTemporariaEdicao = null;
@@ -73,7 +74,6 @@ window.cancelarEdicao = function() {
     const form = document.getElementById('main-creation-form');
     if (form) form.reset();
     
-    // Zera o grid de magia para a próxima não vir suja
     if (window.spellEditor) window.spellEditor.resetar(); 
     const inputMatriz = document.getElementById('reg-magia-matriz');
     if (inputMatriz) inputMatriz.value = "";
@@ -106,7 +106,6 @@ window.toggleCreateFields = function() {
         target.style.display = 'block';
         if (tipo === 'magias' && window.spellEditor) {
             setTimeout(() => {
-                // SÓ RESETA SE O GRID AINDA NÃO EXISTIR NA TELA! (Isso impede de sobrescrever ao editar)
                 if (!document.querySelector('.grid-cell')) {
                     window.spellEditor.resetar();
                 }
@@ -146,10 +145,27 @@ window.togglePassivaFields = function() {
     else if (catPassiva === 'divergente') document.getElementById('sub-passiva-divergente').style.display = 'block';
 };
 
+// ✨ FIX: Exibe o Alcance e o HP da Barreira
 window.toggleAlcanceMagia = function() {
-    const proj = document.getElementById('reg-magia-projecao').value;
-    const campo = document.getElementById('campo-alcance-magia');
-    if(campo) campo.style.display = (proj === 'solta') ? 'block' : 'none';
+    const proj = document.getElementById('reg-magia-projecao')?.value || "";
+    const efeito = document.getElementById('reg-magia-efeito-tipo')?.value || "";
+    const campoAlcance = document.getElementById('campo-alcance-magia');
+    const campoBarreiraHp = document.getElementById('extra-barreira-hp');
+    
+    const isBarreira = proj === 'barreira' || efeito === 'barreira';
+    const mostrarAlcance = proj.includes('solt') || proj.includes('teleporte') || efeito.includes('teleporte') || isBarreira;
+    
+    if (campoAlcance) {
+        campoAlcance.style.display = mostrarAlcance ? 'block' : 'none';
+    }
+    
+    if (campoBarreiraHp) {
+        campoBarreiraHp.style.display = isBarreira ? 'block' : 'none';
+    }
+    
+    if (window.spellEditor && typeof window.spellEditor.atualizarUIEfeitos === 'function') {
+        window.spellEditor.atualizarUIEfeitos();
+    }
 };
 
 // --- 3. PREPARAR EDIÇÃO (PREENCHE O FORMULÁRIO) ---
@@ -205,15 +221,28 @@ window.prepararEdicao = function(tipo, id) {
             document.getElementById('reg-magia-tipo').value = d.tipoMagia || "melee";
             document.getElementById('reg-magia-custo').value = d.custo || "";
             document.getElementById('reg-magia-desc').value = d.descricao || "";
+            
+            // ✨ FIX: Carregando o Efeito Tipo do Banco de Dados
+            if(document.getElementById('reg-magia-efeito-tipo')) document.getElementById('reg-magia-efeito-tipo').value = d.efeitoTipo || "dano";
+            
             if(document.getElementById('reg-magia-projecao')) document.getElementById('reg-magia-projecao').value = d.modoProjecao || "presa";
             if(document.getElementById('reg-magia-alcance')) document.getElementById('reg-magia-alcance').value = d.alcanceMaximo || 5;
             if(document.getElementById('reg-magia-status-tipo')) document.getElementById('reg-magia-status-tipo').value = d.statusTipo || "";
             if(document.getElementById('reg-magia-status-valor')) document.getElementById('reg-magia-status-valor').value = d.statusValor || 0;
+            if(document.getElementById('reg-magia-status-potencia')) document.getElementById('reg-magia-status-potencia').value = d.statusPotencia || "0";
             
-            if (d.matrizArea) {
-                window.spellEditor.carregar(d.matrizArea);
+            // ✨ FIX: Carregando o HP da Barreira para edição
+            if(document.getElementById('reg-magia-barreira-hp')) document.getElementById('reg-magia-barreira-hp').value = d.barreiraHp || "10";
+
+            // ✨ FIX: Blindagem do Spell Editor
+            if (window.spellEditor && typeof window.spellEditor.carregar === 'function') {
+                if (d.matrizArea) {
+                    window.spellEditor.carregar(d.matrizArea);
+                } else {
+                    window.spellEditor.resetar();
+                }
             } else {
-                window.spellEditor.resetar();
+                console.warn("Aviso: O Editor de Magias não carregou a tempo para exibir o grid.");
             }
             window.toggleAlcanceMagia();
         }
@@ -332,6 +361,12 @@ window.saveToFirebase = async function() {
         dados.alcanceMaximo = parseInt(document.getElementById('reg-magia-alcance')?.value) || 0;
         dados.statusTipo = document.getElementById('reg-magia-status-tipo')?.value || "";
         dados.statusValor = document.getElementById('reg-magia-status-valor')?.value || 0;
+        dados.statusPotencia = document.getElementById('reg-magia-status-potencia')?.value || "0";
+        
+        // ✨ FIX: Salvando o Efeito Tipo e HP da Barreira no Banco de Dados
+        dados.efeitoTipo = document.getElementById('reg-magia-efeito-tipo')?.value || "dano";
+        dados.barreiraHp = parseInt(document.getElementById('reg-magia-barreira-hp')?.value) || 10;
+        
         dados.matrizArea = document.getElementById('reg-magia-matriz')?.value || "";
     } else if (tipoAba === 'itens') {
         dados.tipoItem = document.getElementById('reg-item-tipo')?.value || "item";
@@ -344,7 +379,6 @@ window.saveToFirebase = async function() {
             dados.pesoCorpo = document.getElementById('reg-armadura-peso')?.value || "leve";
         } else if (dados.tipoItem === 'pocao') {
             dados.valorCura = parseInt(document.getElementById('reg-pocao-cura')?.value) || 0;
-            // 🔥 BLINDAGEM DA POÇÃO 🔥: Forçamos os atributos a 0 para que a poção não seja interpretada como um buff de CON!
             dados.atributos = { for: 0, dex: 0, int: 0, def: 0, car: 0, con: 0 };
             dados.atributos_lista = "0 / 0 / 0 / 0 / 0 / 0";
         } else if (dados.tipoItem === 'runa') {
