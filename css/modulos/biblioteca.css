@@ -1,0 +1,296 @@
+/* ================================================================
+   L&D RPG - MÓDULO BIBLIOTECA (CARDS DE ENTIDADES)
+   ================================================================ */
+
+:root {
+    --card-red: #ff3333;    /* Vermelho vibrante padrão */
+    --card-edit: #ffd700;   /* Amarelo para edição */
+    --attr-label: #44aaff;  /* Azul claro para labels de atributos */
+    --bg-card: #0a0a0a;     /* Fundo do card */
+    --bg-dark: #000000;     /* Fundo dos itens de atributo */
+}
+
+/* --- MAPEAMENTO DE CORES POR ELEMENTO --- */
+.el-fogo     { --cor-el: #ff4500; }
+.el-agua     { --cor-el: #216fbd; }
+.el-vento    { --cor-el: #02af9e; } /* Vento / Ar */
+.el-terra    { --cor-el: #8b4513; }
+.el-natureza { --cor-el: #104426; }
+.el-gelo     { --cor-el: #cddeec; }
+.el-raio     { --cor-el: #ffd700; }
+.el-unico    { --cor-el: #8b0000; }
+.el-lendario { --cor-el: #5e127c; }
+.el-comum    { --cor-el: var(--card-red); }
+
+/* NPCs - Azul */
+.el-npc { --cor-el: #0087e7; } 
+
+/* Itens - Ranks */
+.el-comum    { --cor-el: #966627; } /* Bege (Tan) */
+.el-raro     { --cor-el: #007bd3; } /* Azul */
+.el-lendario { --cor-el: #dfd496; } /* Dourado */
+.el-unico    { --cor-el: #ad73d1; } /* Roxo (Purple) */
+
+/* Cores de Tipos de Magia */
+.el-melee    { --cor-el: #ff3333; } /* Vermelho */
+.el-ranged   { --cor-el: #33aaff; } /* Azul */
+.el-suport   { --cor-el: #2ecc71; } /* Verde */
+.el-reaction { --cor-el: #f1c40f; } /* Amarelo */
+.el-mobilit  { --cor-el: #a020f0; } /* Roxo */
+
+/* --- ESTRUTURA PRINCIPAL DO CARD --- */
+.entity-card {
+    background: var(--bg-card);
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 15px;
+    position: relative;
+    /* Usa a cor do elemento ou o vermelho padrão se não houver */
+    border-left: 4px solid var(--cor-el, var(--card-red)); 
+    transition: all 0.3s ease;
+}
+
+/* Header: Avatar | Info | Botões */
+.entity-header {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+/* --- AVATAR OCTOGONAL DINÂMICO --- */
+.entity-avatar {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: #111;
+    
+    /* Forma Octogonal */
+    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+    
+    /* Borda e Glow seguem a cor do elemento */
+    border: 2px solid var(--cor-el, var(--card-red));
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px var(--cor-el, transparent);
+    
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><text y="15" font-size="15">📍</text></svg>'), pointer;
+    transition: transform 0.2s, filter 0.2s;
+}
+
+.entity-avatar:hover {
+    transform: scale(1.05);
+    filter: brightness(1.2);
+}
+
+/* --- TEXTOS E INFORMAÇÕES --- */
+.entity-info-text {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.entity-name {
+    font-size: 18px;
+    color: #ffffff;
+    text-transform: uppercase;
+    font-family: 'Oswald', sans-serif;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.element-label {
+    /* Cor do texto do elemento segue a cor definida */
+    color: var(--cor-el, var(--card-red));
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 1px;
+    opacity: 1; /* Aumentado para dar destaque na cor */
+}
+
+.entity-rank {
+    color: #cccccc;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-family: 'Oswald', sans-serif;
+}
+
+/* --- BOTÕES DE AÇÃO (TOP RIGHT) --- */
+.entity-actions-side {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    position: absolute;
+    right: 12px;
+    top: 12px;
+}
+
+.btn-icon-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #333;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-icon:hover {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: var(--card-edit);
+    color: var(--card-edit);
+}
+
+.btn-delete-icon:hover {
+    background: rgba(255, 51, 51, 0.2);
+    border-color: var(--card-red);
+    color: var(--card-red);
+}
+
+/* --- GRADE DE ATRIBUTOS (LINHA ÚNICA) --- */
+.attr-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    margin-top: 12px;
+    width: 100%;
+}
+
+.attr-item {
+    background: var(--bg-dark);
+    border: 1px solid #222;
+    text-align: center;
+    padding: 4px 2px;
+    border-radius: 4px;
+    min-width: 0;
+    color: var(--attr-label);
+    font-size: 10px;
+    font-family: 'Oswald', sans-serif;
+}
+
+.attr-item span {
+    display: block;
+    color: #eeeeee;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 2px;
+}
+
+/* Container da Busca */
+.search-container {
+    padding: 15px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #1a1a1a;
+    position: sticky; /* Fica presa no topo ao scrollar a lista */
+    top: 0;
+    z-index: 10;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: border-color 0.2s;
+}
+
+.search-box:focus-within {
+    border-color: var(--card-red); /* Brilha em vermelho ao clicar */
+}
+
+.search-box input {
+    background: none;
+    border: none;
+    color: white;
+    width: 100%;
+    outline: none;
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+/* Animação para o filtro não ser seco */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   L&D RPG - CUSTOMIZAÇÃO TOTAL DA ABA DE CRIAÇÃO
+   ============================================================ */
+
+/* 1. O Fundo da Aba (Escuro e Sólido para não bugar com os tokens) */
+#dm-dashboard #content-criar.tab-content {
+    background: #0a0a0a !important;
+    border-left: 1px solid #222 !important;
+    padding: 20px !important;
+    display: none; /* Mantém o padrão do JS */
+}
+
+#dm-dashboard #content-criar.tab-content.active {
+    display: flex !important;
+    flex-direction: column;
+}
+
+/* 2. Estilizando os Títulos (Labels) */
+#dm-dashboard #content-criar label {
+    font-family: 'Cinzel', serif !important;
+    color: #ffd700 !important; /* Dourado */
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+    margin-top: 10px !important;
+    margin-bottom: 5px !important;
+    display: block !important;
+    letter-spacing: 1px;
+}
+
+/* 3. Estilizando os Campos (Inputs e Selects) */
+#dm-dashboard #content-criar input[type="text"], 
+#dm-dashboard #content-criar input[type="number"], 
+#dm-dashboard #content-criar select,
+#dm-dashboard #content-criar textarea {
+    background: #000 !important;
+    border: 1px solid #333 !important;
+    border-left: 3px solid #ffd700 !important; /* Detalhe dourado na lateral */
+    color: #fff !important;
+    padding: 10px !important;
+    border-radius: 2px !important;
+    font-family: 'Oswald', sans-serif !important;
+    width: 100% !important;
+    margin-bottom: 5px !important;
+}
+
+/* Efeito ao clicar no campo */
+#dm-dashboard #content-criar input:focus {
+    border-color: #ffd700 !important;
+    background: #111 !important;
+    outline: none !important;
+}
+
+/* 4. O Botão Registrar (Estilo Épico) */
+#dm-dashboard #content-criar .btn-primary {
+    margin-top: 20px !important;
+    background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%) !important;
+    color: #000 !important;
+    font-family: 'Cinzel', serif !important;
+    font-weight: bold !important;
+    border: none !important;
+    padding: 15px !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    transition: 0.3s !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+}
+
+#dm-dashboard #content-criar .btn-primary:hover {
+    filter: brightness(1.2) !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4) !important;
+}

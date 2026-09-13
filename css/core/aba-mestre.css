@@ -1,0 +1,212 @@
+/* ============================================================ 
+   === [ PAINEL INFERIOR DO MESTRE ] === 
+   ============================================================ */
+
+.mestre-bottom-panel {
+    position: fixed;
+    bottom: -150px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 680px; /* Aumentei levemente a largura para dar respiro */
+    height: 180px;
+    background: rgba(10, 10, 10, 0.98);
+    border: 1px solid #c1a35f; 
+    border-bottom: none;
+    border-radius: 15px 15px 0 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10001;
+    color: white;
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.9);
+}
+
+.mestre-bottom-panel.active {
+    bottom: 0 !important;
+}
+
+.panel-trigger {
+    height: 30px;
+    background: #c1a35f;
+    color: #000;
+    text-align: center;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 30px;
+    border-radius: 14px 14px 0 0;
+    text-transform: uppercase;
+}
+
+/* Ajuste fino do Grid para não estourar a altura */
+.panel-content {
+    display: grid;
+    grid-template-columns: 220px 1fr; /* Coluna fixa para gestão e flex para iniciativa */
+    gap: 15px;
+    padding: 12px 20px;
+    height: 145px; /* Altura útil descontando o gatilho */
+    box-sizing: border-box;
+}
+
+.panel-group {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(193, 163, 95, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%; /* Ocupa o máximo do grid */
+    box-sizing: border-box;
+}
+
+.panel-group h3 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    margin: 0;
+    color: #c1a35f;
+    border-bottom: 1px solid #333;
+    padding-bottom: 3px;
+    text-transform: uppercase;
+}
+
+/* Botões Compactos para caber no painel */
+.btn-panel-action {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #ddd;
+    padding: 6px 10px; /* Reduzido para não empurrar o layout */
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.btn-panel-action:hover {
+    background: #252525;
+    border-color: #c1a35f;
+}
+
+.btn-panel-action.success { background: #1b5e20; border-color: #2e7d32; }
+.btn-panel-action.danger { background: #7f0000; border-color: #b71c1c; }
+
+/* Grupo de botões de iniciativa lado a lado */
+.iniciativa-controls {
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================================ 
+   === [ BARRA DE TURNO NO TOPO - HUD INDEPENDENTE ] === 
+   ============================================================ */
+
+.turn-bar {
+    position: fixed; 
+    top: 20px;       
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;   
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 8px 15px;
+    border-radius: 50px;
+    border: 2px solid #c1a35f;
+    z-index: 10010;  
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.turn-item {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 2px solid #444;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    transition: 0.3s;
+    filter: grayscale(100%);
+}
+
+.turn-item.active {
+    width: 52px;
+    height: 52px;
+    border-color: #00ffcc;
+    filter: grayscale(0%);
+    box-shadow: 0 0 15px #00ffcc;
+    transform: scale(1.1);
+}
+
+/* Destaque visual no mapa */
+.vez-do-token {
+    box-shadow: 0 0 20px 5px #00ffcc !important;
+    border: 2px solid #00ffcc !important;
+}
+
+/* Container de Condições em Grid 4x4 */
+.condicoes-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 colunas */
+    gap: 4px;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    overflow-y: auto; /* Caso precise de scroll em telas menores */
+    max-height: 110px;
+}
+
+/* Botão de Condição Pequeno e Estilizado */
+.btn-condicao {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #bbb;
+    padding: 4px;
+    font-size: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+}
+
+.btn-condicao i, .btn-condicao span.emoji {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.btn-condicao:hover {
+    border-color: #f3e520;
+    color: #fff;
+    background: #252525;
+}
+
+/* Cores específicas para facilitar o olho do mestre */
+.btn-condicao.fogo:hover { box-shadow: inset 0 0 10px #ff4500; border-color: #ff4500; }
+.btn-condicao.agua:hover { box-shadow: inset 0 0 10px #0000ff; border-color: #00bfff; }
+.btn-condicao.raio:hover { box-shadow: inset 0 0 10px #ffff00; border-color: #ffff00; }
+.btn-condicao.mental:hover { box-shadow: inset 0 0 10px #800080; border-color: #ee82ee; }
+
+/* =========================================
+   === [ PAINEL DO MESTRE: AJUSTES ] ===
+   ========================================= */
+
+/* Remove as setas de aumentar/diminuir dos inputs numéricos */
+#painel-multiplicadores input[type="number"]::-webkit-outer-spin-button,
+#painel-multiplicadores input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#painel-multiplicadores input[type="number"] {
+    -moz-appearance: textfield;
+}
