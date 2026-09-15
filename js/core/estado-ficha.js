@@ -158,7 +158,42 @@ window.EstadoFicha = {
     },
 
     atualizarEquipamento: async function(novosBonus, nomeArma, movimento) {
-        this.bonusEquipamento = { ...this.bonusEquipamento, ...novosBonus };
+        let bonusArtefatos = { for: 0, dex: 0, int: 0, def: 0, car: 0, con: 0 };
+        
+        document.querySelectorAll('[data-slot-index]').forEach(slot => {
+            if(slot.dataset.itemFullData) {
+                try {
+                    let item = JSON.parse(slot.dataset.itemFullData);
+                    
+                    // Junta todos os campos de classificação numa frase só para procurar a palavra
+                    let classificacao = `${item.tipo || ""} ${item.tipoEspecifico || ""} ${item.subTipo || ""} ${item.categoria || ""}`.toLowerCase();
+                    
+                    // Checa se tem artefato no meio
+                    if (classificacao.includes("artefato")) {
+                        // 🌟 O PULO DO GATO: Aceita tanto "bonus" quanto "atributos"
+                        let pacoteDeStatus = item.bonus || item.atributos; 
+                        
+                        if (pacoteDeStatus) {
+                            ['for', 'dex', 'int', 'def', 'car', 'con'].forEach(attr => {
+                                if (pacoteDeStatus[attr]) {
+                                    bonusArtefatos[attr] += parseInt(pacoteDeStatus[attr]) || 0;
+                                }
+                            });
+                        }
+                    }
+                } catch(e) {
+                    // Ignora silenciosamente se o JSON do item estiver quebrado
+                }
+            }
+        });
+
+        // Soma os bônus dos equipamentos + os bônus ocultos dos artefatos
+        let bonusTotais = {};
+        ['for', 'dex', 'int', 'def', 'car', 'con'].forEach(attr => {
+            bonusTotais[attr] = (novosBonus[attr] || 0) + (bonusArtefatos[attr] || 0);
+        });
+
+        this.bonusEquipamento = bonusTotais;
         this.armaEquipada = nomeArma;
         this.movimentoMaximo = movimento;
         this.renderizarEcra();

@@ -651,10 +651,21 @@ window.combate = {
         let msgAlcance = "";
         if (window.MotorArmas && typeof window.MotorArmas.validarAlcance === 'function') {
             const checagemAlcance = window.MotorArmas.validarAlcance(dadosA, dadosB);
+            
             if (!checagemAlcance.pode) {
                 foraDeAlcance = true;
                 msgAlcance = checagemAlcance.msg;
-                this.notificarCombate("ALCANCE", `⚠️ O golpe vai falhar: ${msgAlcance}`, "#ff9900");
+
+                // 🌟 PODER ÚNICO: RANK D (PISTOLAS) - Ignora bloqueio de distância!
+                if (dadosA.elemento === 'unico' || dadosA.elemento === 'único') {
+                    if ((dadosA.rank || "").toUpperCase() === 'D') {
+                        foraDeAlcance = false;
+                    }
+                }
+
+                if (foraDeAlcance) {
+                    this.notificarCombate("ALCANCE", `⚠️ O golpe vai falhar: ${msgAlcance}`, "#ff9900");
+                }
             }
         }
 
@@ -914,7 +925,13 @@ window.combate = {
             if (res.ataqueBonusArma && !this.comboMortalRealizado) {
                 this.comboMortalRealizado = true; 
                 this.atualizarTravaAtributos(idAtacante);
-                this.notificarCombate("CORTES RÁPIDOS", "⚔️ <b>COMBO MORTAL!</b> A arma permite mais um golpe com a MESMA MÃO!", "#ff00cc");
+                
+                // 🔫 Mensagem especial para as Pistolas Magicas
+                if (dadosA.elemento === 'unico' && (dadosA.rank || "").toUpperCase() === 'D') {
+                    this.notificarCombate("PISTOLAS MÁGICAS", "🔫 <b>GATILHO DUPLO!</b> O Humanoide atira novamente!", "#ff00cc");
+                } else {
+                    this.notificarCombate("CORTES RÁPIDOS", "⚔️ <b>COMBO MORTAL!</b> A arma permite mais um golpe com a MESMA MÃO!", "#ff00cc");
+                }
                 return;
             }
 
@@ -1437,9 +1454,39 @@ window.combate = {
             }
         }
 
+        // 🌟🌟🌟 PODERES NATIVOS DE MONSTROS ÚNICOS 🌟🌟🌟
+        const isUnico = (dadosAtacante.elemento === 'unico' || dadosAtacante.elemento === 'único');
+        const rankUnico = (dadosAtacante.rank || "").toUpperCase();
+        
+        if (isUnico) {
+            if (rankUnico === 'A') {
+                // 🛡️ Rank A: Lança Penetrante
+                configPassivas.ignoraDefesa = true;
+                configPassivas.log += "<br>🛡️ <b>Golpe Penetrante:</b> A defesa do alvo foi completamente ignorada!";
+            } else if (rankUnico === 'B') {
+                // 🦇 Rank B: Vampiro (Aplica Sangramento)
+                configPassivas.aplicarStatusSorte = "SANGRAMENTO";
+                configPassivas.log += "<br>🦇 <b>Garras Vampíricas:</b> O alvo foi rasgado e começou a sangrar!";
+            } else if (rankUnico === 'C') {
+                // 🐺 Rank C: Estigma do Caçador (Dano Adicional + Sangramento)
+                configPassivas.aplicarStatusSorte = "SANGRAMENTO";
+                configPassivas.danoExtra += 10;
+                configPassivas.log += "<br>🐺 <b>Estigma do Caçador:</b> Feridas abertas e sangramento contínuo!";
+            } else if (rankUnico === 'E') {
+                // 🦅 Rank E: Pássaro/Vento (Aplica Suspenso)
+                configPassivas.aplicarStatusSorte = "SUSPENSO";
+                configPassivas.log += "<br>🌪️ <b>Golpe de Ventania:</b> O alvo foi arremessado no ar e ficou Suspenso!";
+            } else if (rankUnico === 'S') {
+                // 💀 Rank S: Estigma do Lich (Dano Massivo + Maldição)
+                configPassivas.aplicarStatusSorte = "MALDICAO";
+                configPassivas.danoExtra += 20;
+                configPassivas.log += "<br>💀 <b>Estigma do Lich:</b> A alma do alvo foi corrompida! Maldição aplicada!";
+            }
+        }
+
         if (window.PassiveSystem) {
             if (window.PassiveSystem.verificarDefesaEspecial && window.PassiveSystem.verificarDefesaEspecial(dadosAlvo)?.horuzAtivou) {
-                return { dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ', status: window.PassiveSystem.verificarDefesaEspecial(dadosAlvo).log + "<br>Ataque completely anulado!", detalhe: 'Anulado', isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: false, empurrarAlvo: false };
+                return { dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ', status: window.PassiveSystem.verificarDefesaEspecial(dadosAlvo).log + "<br>Ataque completamente anulado!", detalhe: 'Anulado', isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: false, empurrarAlvo: false };
             }
             if (window.PassiveSystem.calcularDanoExtra) {
                 const passivasCalculadas = window.PassiveSystem.calcularDanoExtra(dadosAtacante, ataqueEhMagico ? "magico" : "fisico", dadosAlvo, true, armaAtacante ? armaAtacante.tipo : "melee");
@@ -1459,7 +1506,13 @@ window.combate = {
                 if (armaAtacante.status === "SUSPENSO") deveEmpurrar = true;
             }
             if (configPassivas.venenoAtivou) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, "VENENO", 1), 500);
-            if (configPassivas.aplicarStatusSorte) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, configPassivas.aplicarStatusSorte, 1), 600);
+            
+            // 🔥 Aqui garantimos que o status sorteado (como o do Pássaro Rank E) acione o empurrão do token!
+            if (configPassivas.aplicarStatusSorte) {
+                setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, configPassivas.aplicarStatusSorte, 1), 600);
+                if (configPassivas.aplicarStatusSorte === "SUSPENSO") deveEmpurrar = true;
+            }
+            
             if (configPassivas.condicaoElementalAtivou) setTimeout(() => window.StatusSystem.aplicarStatus(idAlvo, configPassivas.condicaoElementalAtivou, 1), 700);
         }
 
@@ -1479,6 +1532,11 @@ window.combate = {
             temAtaqueExtraNat = true;
         } else if (nomeArmaUsada.includes('adaga') || nomeArmaUsada.includes('katana')) {
             if (Math.random() <= 0.3) temAtaqueExtraNat = true;
+        }
+
+        // 🌟 PODER ÚNICO: RANK D (PISTOLAS) - Força Gatilho Duplo sempre!
+        if (isUnico && rankUnico === 'D') {
+            temAtaqueExtraNat = true;
         }
 
         return {

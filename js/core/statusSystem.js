@@ -261,14 +261,35 @@ window.StatusSystem = {
                     }
                 }
 
+                // 🌟🌟🌟 INJEÇÃO DOS MONSTROS ÚNICOS (RANK E e RANK B) 🌟🌟🌟
+                const isUnico = (currToken.elemento === 'unico' || currToken.elemento === 'único');
+                const rankUnico = (currToken.rank || "").toUpperCase();
+
+                if (isUnico) {
+                    if (nomeChave === "SUSPENSO" && rankUnico === 'E') temReacaoEquipada = true;
+                    if (nomeChave === "SANGRAMENTO" && rankUnico === 'B') temReacaoEquipada = true;
+                }
+
                 if (temReacaoEquipada) {
                     if (nomeChave === "SUSPENSO") {
                         const d8 = Math.floor(Math.random() * 8) + 1;
                         await this.modificarHP(tokenId, -d8); 
-                        if (window.combate) window.combate.notificarCombate(currToken.nome.toUpperCase(), `🌪️💥 <b>MAGIA DE REAÇÃO: ECO DA VENTANIA!</b> -${d8} HP pela suspensão do alvo.`, "#ffaa00");
+                        
+                        // Mensagem customizada se for o monstro Rank E
+                        if (isUnico && rankUnico === 'E') {
+                            if (window.combate) window.combate.notificarCombate(currToken.nome.toUpperCase(), `🦅 <b>ATAQUE OPORTUNISTA!</b> Golpeou o alvo indefeso no ar! -${d8} HP.`, "#ffaa00");
+                        } else {
+                            if (window.combate) window.combate.notificarCombate(currToken.nome.toUpperCase(), `🌪️💥 <b>MAGIA DE REAÇÃO: ECO DA VENTANIA!</b> -${d8} HP pela suspensão do alvo.`, "#ffaa00");
+                        }
                     } else {
                         await this.modificarHP(id, 4); 
-                        if (window.combate) window.combate.notificarCombate(currToken.nome.toUpperCase(), `🩸💚 <b>MAGIA DE REAÇÃO: VAMPIRISMO MÍSTICO!</b> Curou +4 HP com o sangramento do inimigo.`, "#32ff32");
+                        
+                        // Mensagem customizada se for o monstro Rank B
+                        if (isUnico && rankUnico === 'B') {
+                            if (window.combate) window.combate.notificarCombate(currToken.nome.toUpperCase(), `🦇 <b>SEDE DE SANGUE!</b> Curou +4 HP ao sentir o gosto do sangue no campo!`, "#32ff32");
+                        } else {
+                            if (window.combate) window.combate.notificarCombate(currToken.nome.toUpperCase(), `🩸💚 <b>MAGIA DE REAÇÃO: VAMPIRISMO MÍSTICO!</b> Curou +4 HP com o sangramento do inimigo.`, "#32ff32");
+                        }
                     }
                 }
             }
