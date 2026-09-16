@@ -608,19 +608,29 @@ window.spellEngine = {
         let nomeExibicaoAttr = 'INT';
 
         if (dadosConjurador) {
-            const strMagia = JSON.stringify(this.magiaAtiva).toLowerCase();
-            const isMagiaFisica = strMagia.includes('fisic') || strMagia.includes('físic');
-            const attrPermitidos = isMagiaFisica ? ['for', 'dex', 'def'] : ['int', 'car', 'con', 'hp', 'vit']; 
-
+            const isMonstro = (dadosConjurador.tipo === 'monstro' || dadosConjurador.tipo === 'monstros');
             let maiorValorCalc = -1;
-            attrVencedor = isMagiaFisica ? 'for' : 'int'; 
 
-            if (dadosConjurador.atributos) {
-                for (let attr of attrPermitidos) {
-                    let base = parseInt(dadosConjurador.atributos[attr]) || 0;
-                    if (base > maiorValorCalc) {
-                        maiorValorCalc = base;
-                        attrVencedor = attr;
+            if (isMonstro) {
+                // 🔥 NOVA LÓGICA: Monstros usam estritamente FOR (físico) ou INT (mágico) baseado no TIPO DE DANO DELES!
+                const tipoDanoMonstro = (dadosConjurador.tipoDano || "fisico").toLowerCase();
+                attrVencedor = (tipoDanoMonstro === "magico") ? 'int' : 'for';
+                maiorValorCalc = parseInt(dadosConjurador.atributos?.[attrVencedor]) || 0;
+            } else {
+                // LÓGICA NORMAL (JOGADORES): Busca o atributo mais forte compatível com a magia
+                const strMagia = JSON.stringify(this.magiaAtiva).toLowerCase();
+                const isMagiaFisica = strMagia.includes('fisic') || strMagia.includes('físic');
+                const attrPermitidos = isMagiaFisica ? ['for', 'dex', 'def'] : ['int', 'car', 'con', 'hp', 'vit']; 
+
+                attrVencedor = isMagiaFisica ? 'for' : 'int'; 
+
+                if (dadosConjurador.atributos) {
+                    for (let attr of attrPermitidos) {
+                        let base = parseInt(dadosConjurador.atributos[attr]) || 0;
+                        if (base > maiorValorCalc) {
+                            maiorValorCalc = base;
+                            attrVencedor = attr;
+                        }
                     }
                 }
             }

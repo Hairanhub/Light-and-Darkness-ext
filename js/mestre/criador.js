@@ -394,15 +394,24 @@ window.saveToFirebase = async function() {
         }
     }
 
-    let ref = idExistente ? window.database.ref(tipoAba).child(idExistente) : window.database.ref(tipoAba).push();
-
-    ref.set(dados).then(() => {
-        alert(idExistente ? "✅ Alterações salvas!" : "✅ " + nome + " criado com sucesso!");
-        window.cancelarEdicao(); 
-    }).catch(err => {
-        console.error("Erro ao salvar no Firebase:", err);
-        alert("Erro ao salvar: " + err.message);
-    });
+    // 🔥 FIX: Usa UPDATE se for edição (para não esmagar a descrição do Códice) e SET se for monstro novo
+    if (idExistente) {
+        window.database.ref(tipoAba).child(idExistente).update(dados).then(() => {
+            alert("✅ Alterações salvas com sucesso!");
+            window.cancelarEdicao(); 
+        }).catch(err => {
+            console.error("Erro ao atualizar no Firebase:", err);
+            alert("Erro ao salvar: " + err.message);
+        });
+    } else {
+        window.database.ref(tipoAba).push().set(dados).then(() => {
+            alert("✅ " + nome + " criado com sucesso!");
+            window.cancelarEdicao(); 
+        }).catch(err => {
+            console.error("Erro ao criar no Firebase:", err);
+            alert("Erro ao salvar: " + err.message);
+        });
+    }
 };
 
 // --- 5. BUSCA E INICIALIZAÇÃO ---

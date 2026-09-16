@@ -8,7 +8,7 @@ window.combate = {
     tokenAtivoId: null,
     modoDelecao: false,
     ataqueSecundarioRealizado: false, 
-    comboMortalRealizado: false, 
+    comboMortalRealizado: 0, 
     snapshot: { temMaoEsquerda: false },
     calc: { atributoSelecionado: null, quantidades: { d4: 0, d6: 0, d8: 0, d10: 0, d12: 0, d20: 0 }, extraMod: 0 },
 
@@ -922,22 +922,34 @@ window.combate = {
                 return; 
             }
 
-            if (res.ataqueBonusArma && !this.comboMortalRealizado) {
-                this.comboMortalRealizado = true; 
-                this.atualizarTravaAtributos(idAtacante);
+            if (res.ataqueBonusArma) {
+                const isUnicoLocal = (dadosA.elemento === 'unico' || dadosA.elemento === 'único');
+                const rankUnicoLocal = (dadosA.rank || "").toUpperCase();
                 
-                // 🔫 Mensagem especial para as Pistolas Magicas
-                if (dadosA.elemento === 'unico' && (dadosA.rank || "").toUpperCase() === 'D') {
-                    this.notificarCombate("PISTOLAS MÁGICAS", "🔫 <b>GATILHO DUPLO!</b> O Humanoide atira novamente!", "#ff00cc");
-                } else {
-                    this.notificarCombate("CORTES RÁPIDOS", "⚔️ <b>COMBO MORTAL!</b> A arma permite mais um golpe com a MESMA MÃO!", "#ff00cc");
+                // Se for pistola ou monstro Rank D, limite de 3 combos (4 tiros totais). Outras armas, limite 1 (2 golpes totais).
+                let limiteCombos = (isUnicoLocal && rankUnicoLocal === 'D') || nomeArmaAtual.includes('pistola') ? 3 : 1;
+                
+                // Garante que é tratado como número, mesmo se estiver "false" em algum outro lugar do código
+                let combosAtuais = Number(this.comboMortalRealizado) || 0;
+
+                if (combosAtuais < limiteCombos) {
+                    this.comboMortalRealizado = combosAtuais + 1; 
+                    this.atualizarTravaAtributos(idAtacante);
+                    
+                    // 🔫 Mensagem especial para as Pistolas
+                    if (nomeArmaAtual.includes('pistola') || (isUnicoLocal && rankUnicoLocal === 'D')) {
+                        let tiroNum = this.comboMortalRealizado + 1;
+                        this.notificarCombate("PISTOLAS MÁGICAS", `🔫 <b>GATILHO DUPLO (TIRO ${tiroNum}/4)!</b> O alvo está sob fogo cruzado!`, "#ff00cc");
+                    } else {
+                        this.notificarCombate("CORTES RÁPIDOS", "⚔️ <b>COMBO MORTAL!</b> A arma permite mais um golpe com a MESMA MÃO!", "#ff00cc");
+                    }
+                    return;
                 }
-                return;
             }
 
             if (this.snapshot.temMaoEsquerda && !this.ataqueSecundarioRealizado) {
                 this.ataqueSecundarioRealizado = true; 
-                this.comboMortalRealizado = false;
+                this.comboMortalRealizado = 0; // Zera para a mão esquerda atirar/bater também!
                 this.atualizarTravaAtributos(idAtacante);
                 this.notificarCombate("DUAL WIELD", "⚔️ <b>ATAQUE SECUNDÁRIO!</b> Jogue novamente para a arma da MÃO ESQUERDA!", "#ff00cc");
                 return;
@@ -946,7 +958,7 @@ window.combate = {
             if (elAtacante) elAtacante.classList.remove('token-preparo');
             this.tokenAtivoId = null;
             this.ataqueSecundarioRealizado = false; 
-            this.comboMortalRealizado = false; 
+            this.comboMortalRealizado = 0; // Zera ao finalizar o turno
             this.snapshot.temMaoEsquerda = false; 
             
             document.querySelectorAll('.btn-attr').forEach(b => {
@@ -954,7 +966,7 @@ window.combate = {
             });
 
             if (window.iniciativa && window.iniciativa.fila.length > 0) window.iniciativa.proximoTurno();
-        }, 1200); 
+        }, 1200);
     },
 
     tratarCliqueCombate: async function(e, tokenId) {
@@ -1468,10 +1480,10 @@ window.combate = {
                 configPassivas.aplicarStatusSorte = "SANGRAMENTO";
                 configPassivas.log += "<br>🦇 <b>Garras Vampíricas:</b> O alvo foi rasgado e começou a sangrar!";
             } else if (rankUnico === 'C') {
-                // 🐺 Rank C: Estigma do Caçador (Dano Adicional + Sangramento)
-                configPassivas.aplicarStatusSorte = "SANGRAMENTO";
+                // 🐺 Rank C: Lobisomem (Causa Medo)
+                configPassivas.aplicarStatusSorte = "MEDO";
                 configPassivas.danoExtra += 10;
-                configPassivas.log += "<br>🐺 <b>Estigma do Caçador:</b> Feridas abertas e sangramento contínuo!";
+                configPassivas.log += "<br>🐺 <b>Estigma do Caçador:</b> Um uivo aterrorizante aplica Medo no alvo!";
             } else if (rankUnico === 'E') {
                 // 🦅 Rank E: Pássaro/Vento (Aplica Suspenso)
                 configPassivas.aplicarStatusSorte = "SUSPENSO";
