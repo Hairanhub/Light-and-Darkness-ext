@@ -458,12 +458,17 @@ window.StatusSystem = {
                 if (tipoChave === "BARREIRA") {
                     const snapT = await window.mapaRef.child('tokens').once('value');
                     const tokensNoMapa = snapT.val() || {};
+                    const meuNome = (localStorage.getItem('rubi_username') || "").toLowerCase();
+
                     for(let tid in tokensNoMapa) {
-                        if (tokensNoMapa[tid].dono === tokenId && tokensNoMapa[tid].isBarreiraFisica) {
+                        const donoBarreira = (tokensNoMapa[tid].dono || "").toLowerCase();
+                        
+                        // 🔥 A vassoura definitiva: caça a barreira pelo ID do criador ou pelo seu nome
+                        if (tokensNoMapa[tid].isBarreiraFisica && (tokensNoMapa[tid].criadorId === tokenId || tokensNoMapa[tid].dono === tokenId || donoBarreira === meuNome)) {
                             await window.mapaRef.child('tokens').child(tid).remove();
                         }
                     }
-                    logsAtivos.push(`🧱 A <b>Barreira Mágica</b> se desintegrou.`);
+                    logsAtivos.push(`🧱 A <b>Barreira Mágica</b> se desintegrou pelo tempo.`);
                 }
                 
                 if (s.atributoAlvo && s.valor > 0) {

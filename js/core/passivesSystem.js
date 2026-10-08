@@ -39,7 +39,7 @@ window.PassiveSystem = {
             if (textoParaBusca.includes("ISOLDE")) return { tipo: "ISOLDE", nome: "Colar de Isolde", nivel: nivel };
             if (textoParaBusca.includes("HORUZ"))  return { tipo: "HORUZ",  nome: "Anel de Horuz",  nivel: nivel };
             if (textoParaBusca.includes("AATROX")) return { tipo: "AATROX", nome: "Máscara de Aatrox", nivel: nivel };
-            if (textoParaBusca.includes("MALDICAO") || textoParaBusca.includes("MALDIÇÃO") || textoParaBusca.includes("MARCA")) return { tipo: "MALDICAO", nome: "Marca da Maldição", nivel: nivel };
+            if (textoParaBusca.includes("MALDICAO") || textoParaBusca.includes("MALDIÇÃO") || textoParaBusca.includes("MARCA DA MALDIÇÃO")) return { tipo: "MALDICAO", nome: "Marca da Maldição", nivel: nivel };
 
             let elementoDetectado = null;
             if (textoParaBusca.includes("VENENO")) {

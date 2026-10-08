@@ -793,15 +793,32 @@ window.spellEngine = {
                     }
 
                     const idBarreiraFisica = "barr_" + Date.now() + "_" + idx + "_" + Math.floor(Math.random() * 1000);
+                    const meuNome = localStorage.getItem('rubi_username') || "Sistema";
+
                     await window.mapaRef.child('tokens').child(idBarreiraFisica).set({
                         nome: "Parede de " + (this.magiaAtiva.nome || "Barreira"),
-                        dono: this.tokenControlado.id, 
+                        dono: meuNome, // 🔥 CORREÇÃO: Agora a barreira é oficialmente sua e não fica invisível na névoa!
                         isBarreiraFisica: true,
-                        tipo: "monstros", 
+                        tipo: "monstro", 
                         hpMax: hpDaBarreira, hpAtual: hpDaBarreira,
                         atributos: { hp: hpDaBarreira, def: 5, dex: 0, int: 0, con: 1, for: 0 },
                         x: coord.x, y: coord.y, tamanho: 35, img: urlImg
                     });
+
+                    // 🕵️ DETETIVE AUTOMÁTICO: Verifica o mapa por você
+                    setTimeout(() => {
+                        const tokenVisual = document.getElementById(`token-${idBarreiraFisica}`);
+                        if (tokenVisual) {
+                            tokenVisual.style.zIndex = "999"; // Força a parede a ficar bem visível por cima de tudo
+                            if (window.combate && window.combate.notificarCombate) {
+                                window.combate.notificarCombate("SISTEMA", `✅ Barreira física erguida com sucesso no mapa!`, "#2ecc71");
+                            }
+                        } else {
+                            if (window.combate && window.combate.notificarCombate) {
+                                window.combate.notificarCombate("ALERTA", `❌ O Firebase salvou a barreira, mas o motor visual bloqueou o desenho.`, "#ff0000");
+                            }
+                        }
+                    }, 1000);
                 }
             }
 

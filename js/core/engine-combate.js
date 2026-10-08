@@ -1497,8 +1497,23 @@ window.combate = {
         }
 
         if (window.PassiveSystem) {
-            if (window.PassiveSystem.verificarDefesaEspecial && window.PassiveSystem.verificarDefesaEspecial(dadosAlvo)?.horuzAtivou) {
-                return { dano: 0, total: totalAtaque, alvoDefesa: 'HORUZ', status: window.PassiveSystem.verificarDefesaEspecial(dadosAlvo).log + "<br>Ataque completamente anulado!", detalhe: 'Anulado', isoldeAtivou: false, curaAtacanteBase: 0, acordouAlvo: false, quebrouGelo: false, ataqueBonusArma: false, empurrarAlvo: false };
+            // 🔥 Rola o dado apenas UMA VEZ e salva o resultado na memória! Fim do "indefinido".
+            const defesaEspecial = window.PassiveSystem.verificarDefesaEspecial ? window.PassiveSystem.verificarDefesaEspecial(dadosAlvo) : null;
+            
+            if (defesaEspecial && defesaEspecial.horuzAtivou) {
+                return { 
+                    dano: 0, 
+                    total: totalAtaque, 
+                    alvoDefesa: 'HORUZ', 
+                    status: defesaEspecial.log + "<br><span style='color:#ccc; font-size:11px;'>O anel repeliu o golpe no ar! (Você defendeu normalmente sem a ajuda da armadura).</span>", 
+                    detalhe: 'Anulado', 
+                    isoldeAtivou: false, 
+                    curaAtacanteBase: 0, 
+                    acordouAlvo: false, 
+                    quebrouGelo: false, 
+                    ataqueBonusArma: false, 
+                    empurrarAlvo: false 
+                };
             }
             if (window.PassiveSystem.calcularDanoExtra) {
                 const passivasCalculadas = window.PassiveSystem.calcularDanoExtra(dadosAtacante, ataqueEhMagico ? "magico" : "fisico", dadosAlvo, true, armaAtacante ? armaAtacante.tipo : "melee");
